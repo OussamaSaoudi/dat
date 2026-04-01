@@ -27,9 +27,15 @@ if [[ ! -f "$JAR_PATH" ]]; then
   exit 1
 fi
 
-SPARK_SHELL="${SPARK_HOME:-}/bin/spark-shell"
-if [[ ! -x "$SPARK_SHELL" ]]; then
-  SPARK_SHELL="$(which spark-shell 2>/dev/null || true)"
+# Prefer Spark with Scala 2.13
+SPARK_213_HOME="$HOME/spark/spark-3.5.3-bin-hadoop3-scala2.13"
+if [[ -d "$SPARK_213_HOME" ]]; then
+  SPARK_SHELL="$SPARK_213_HOME/bin/spark-shell"
+else
+  SPARK_SHELL="${SPARK_HOME:-}/bin/spark-shell"
+  if [[ ! -x "$SPARK_SHELL" ]]; then
+    SPARK_SHELL="$(which spark-shell 2>/dev/null || true)"
+  fi
 fi
 if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
   echo "ERROR: spark-shell not found. Set SPARK_HOME or add spark-shell to PATH."
@@ -37,6 +43,7 @@ if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
 fi
 
 SPARK_CONF=(
+  --repositories "https://maven-proxy.dev.databricks.com/"
   --packages "io.delta:delta-spark_2.13:3.3.2"
   --conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension"
   --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
@@ -71,4 +78,5 @@ echo "Running: $SCALA_SCRIPT"
 echo "Output:  $OUTPUT_DIR"
 echo ""
 
-exec "$SPARK_SHELL" "${SPARK_CONF[@]}" -i "$SCALA_SCRIPT"
+# Use stdin instead of -i flag (works better in non-interactive environments)
+exec "$SPARK_SHELL" "${SPARK_CONF[@]}" < "$SCALA_SCRIPT"

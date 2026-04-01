@@ -75,7 +75,7 @@ object SnapshotCapture {
         val tsValue = java.sql.Timestamp.valueOf(ts)
         deltaLog.getSnapshotAt(
           deltaLog.history.getActiveCommitAtTime(
-            tsValue, None, canReturnLastCommit = true).version)
+            tsValue, canReturnLastCommit = true).version)
       case _ => deltaLog.update()
     }
 
@@ -139,7 +139,7 @@ object SnapshotCapture {
     } else if (spec.has("timestamp")) {
       val ts = java.sql.Timestamp.valueOf(spec.get("timestamp").asText())
       deltaLog.getSnapshotAt(
-        deltaLog.history.getActiveCommitAtTime(ts, None, canReturnLastCommit = true).version)
+        deltaLog.history.getActiveCommitAtTime(ts, canReturnLastCommit = true).version)
     } else {
       deltaLog.update()
     }

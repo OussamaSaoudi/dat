@@ -55,7 +55,7 @@ import org.apache.spark.sql.delta.DeltaLog
  */
 object WorkloadGenerator {
 
-  private val registry = mutable.LinkedHashMap[String, WorkloadDef]()
+  private[workload] val registry = mutable.LinkedHashMap[String, WorkloadDef]()
 
   /**
    * Register a workload. The body creates tables via SQL, then declares
@@ -83,8 +83,10 @@ object WorkloadGenerator {
     val allTableSpecs = mutable.ArrayBuffer[TableSpec]()
 
     println(s"Registering workloads...")
+    val contexts = mutable.ArrayBuffer[WorkloadContext]()
     registry.values.foreach { wd =>
       val ctx = new WorkloadContext(spark, wd.name)
+      contexts += ctx
       try {
         wd.body(ctx)
         allTableSpecs ++= ctx.tableSpecs
@@ -92,15 +94,18 @@ object WorkloadGenerator {
         case e: Exception =>
           System.err.println(s"  ERROR in ${wd.name}: ${e.getMessage}")
           e.printStackTrace()
-      } finally {
-        ctx.cleanup()
       }
     }
 
     println(s"Generating ${allTableSpecs.size} workload(s) to $outputDir\n")
 
-    val results = allTableSpecs.map { ts =>
-      generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
+    val results = try {
+      allTableSpecs.map { ts =>
+        generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
+      }
+    } finally {
+      // Cleanup tables after generation is complete
+      contexts.foreach(_.cleanup())
     }
 
     println("\n=== Results ===")
@@ -122,7 +127,7 @@ object WorkloadGenerator {
       println("\nDone. Call System.exit(0) to terminate spark-shell.")
     }
 
-    results
+    results.toSeq
   }
 
   /** Generate a single workload by name. */
@@ -139,7 +144,7 @@ object WorkloadGenerator {
     val ctx = new WorkloadContext(spark, name)
     try {
       registry(name).body(ctx)
-      ctx.tableSpecs.map(ts => generateTable(spark, ts, Paths.get(outputDir), scriptContent))
+      ctx.tableSpecs.map(ts => generateTable(spark, ts, Paths.get(outputDir), scriptContent)).toSeq
     } finally {
       ctx.cleanup()
     }
