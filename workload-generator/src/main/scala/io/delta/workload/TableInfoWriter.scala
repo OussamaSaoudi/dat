@@ -28,7 +28,7 @@ import org.apache.spark.sql.delta.DeltaLog
 
 object TableInfoWriter {
 
-  private val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
+  private def mapper = JsonUtil.mapper
 
   def write(
       spark: SparkSession,

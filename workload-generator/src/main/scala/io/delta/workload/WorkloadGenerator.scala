@@ -265,12 +265,16 @@ object WorkloadGenerator {
       for (dm <- ts.domainMetadataSpecs) {
         try {
           val specName = s"${dirName}_${dm.name}"
-          val dl = DeltaLog.forTable(spark, destTablePath.toString)
           DeltaLog.clearCache()
-          // domainMetadata may not exist in all Delta versions
+          val dl = DeltaLog.forTable(spark, destTablePath.toString)
+          val snapshot = dm.version match {
+            case Some(v) => dl.getSnapshotAt(v)
+            case None => dl.update()
+          }
+          // Verify domain metadata is readable (may not exist in all Delta versions)
           try {
-            val method = dl.update().getClass.getMethod("domainMetadata")
-            method.invoke(dl.update())
+            val method = snapshot.getClass.getMethod("domainMetadata")
+            method.invoke(snapshot)
           } catch { case _: NoSuchMethodException => }
           val spec = new java.util.LinkedHashMap[String, Any]()
           spec.put("type", "domain_metadata")
@@ -310,7 +314,8 @@ object WorkloadGenerator {
       testInfo.put("test_id", dirName)
       testInfo.put("test_name", ts.description)
       testInfo.put("workload_count",
-        (ts.readSpecs.size + ts.cdfSpecs.size).asInstanceOf[AnyRef])
+        (ts.readSpecs.size + ts.cdfSpecs.size + ts.snapshotSpecs.size +
+          ts.domainMetadataSpecs.size + ts.txnSpecs.size).asInstanceOf[AnyRef])
       JsonUtil.writeJson(testOutputDir.resolve("test_info.json"), testInfo)
 
       // Repro
@@ -384,11 +389,10 @@ class TableHandle private[workload] (
     val commitFile = sourcePath.resolve("_delta_log").resolve(f"$version%020d.json")
     require(Files.exists(commitFile), s"No commit file for version $version: $commitFile")
     val content = new String(Files.readAllBytes(commitFile), "UTF-8")
-    val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
     val tsMillis = content.split("\n").iterator
       .filter(_.contains("\"commitInfo\""))
       .map { line =>
-        val ci = mapper.readTree(line).get("commitInfo")
+        val ci = JsonUtil.mapper.readTree(line).get("commitInfo")
         if (ci.has("inCommitTimestamp")) ci.get("inCommitTimestamp").asLong()
         else if (ci.has("timestamp")) ci.get("timestamp").asLong()
         else throw new RuntimeException(s"No timestamp in commitInfo for version $version")

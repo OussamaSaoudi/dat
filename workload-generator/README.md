@@ -154,9 +154,10 @@ Scripts also work standalone: `./bin/generate-workload.sh my_script.scala`
 
 ## Important Notes
 
-- Scripts run via `spark-shell -i` must end with `System.exit(0)`
-- Re-running overwrites output directories cleanly (idempotent)
-- If one workload fails, others still generate
+- Scripts run via `spark-shell` must end with `System.exit(0)` (otherwise the REPL hangs)
+- Re-running skips existing workloads (incremental). Use `--force` to regenerate all.
+- If one workload fails, others still generate. Use `generate("name", dir)` to re-run one.
+- Failed reads are auto-captured as error specs (`{"error": {"errorCode": "..."}}`). No special handling needed — just declare the spec and the framework records what happens.
 
 ## Examples
 

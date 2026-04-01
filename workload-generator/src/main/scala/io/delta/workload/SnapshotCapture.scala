@@ -20,8 +20,7 @@ import java.nio.file.{Files, Path}
 
 import scala.util.control.NonFatal
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
+// Uses JsonUtil.mapper for JSON operations
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
@@ -36,7 +35,7 @@ import org.apache.spark.sql.delta.DeltaLog
  */
 object SnapshotCapture {
 
-  private val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
+  private def mapper = JsonUtil.mapper
 
   /**
    * Capture a snapshot construction spec.
@@ -75,7 +74,7 @@ object SnapshotCapture {
         val tsValue = java.sql.Timestamp.valueOf(ts)
         deltaLog.getSnapshotAt(
           deltaLog.history.getActiveCommitAtTime(
-            tsValue, canReturnLastCommit = true).version)
+            tsValue, canReturnLastCommit = true, mustBeRecreatable = false, canReturnEarliestCommit = false).version)
       case _ => deltaLog.update()
     }
 
@@ -139,7 +138,7 @@ object SnapshotCapture {
     } else if (spec.has("timestamp")) {
       val ts = java.sql.Timestamp.valueOf(spec.get("timestamp").asText())
       deltaLog.getSnapshotAt(
-        deltaLog.history.getActiveCommitAtTime(ts, canReturnLastCommit = true).version)
+        deltaLog.history.getActiveCommitAtTime(ts, canReturnLastCommit = true, mustBeRecreatable = false, canReturnEarliestCommit = false).version)
     } else {
       deltaLog.update()
     }

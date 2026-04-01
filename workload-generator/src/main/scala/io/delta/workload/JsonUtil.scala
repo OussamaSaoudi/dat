@@ -20,13 +20,93 @@ import java.nio.file.{Files, Path}
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 
-/** Shared JSON utilities. */
+/** Shared utilities for JSON, DataFrame comparison, and column handling. */
 object JsonUtil {
-  private val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
 
+  /** Single shared ObjectMapper — use this instead of creating per-file instances. */
+  val mapper: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
+
+  /** Write an object as pretty-printed JSON. */
   def writeJson(path: Path, data: Any): Unit = {
     val json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(data)
     Files.write(path, json.getBytes("UTF-8"))
+  }
+
+  /**
+   * Convert a DataFrame to a multiset of canonical JSON rows.
+   * Order-independent, handles all types (binary, nested structs, maps, arrays).
+   */
+  def toRowMultiset(df: DataFrame): Map[String, Int] = {
+    df.toJSON.collect().toSeq.groupBy(identity).map {
+      case (value, rows) => value -> rows.size
+    }
+  }
+
+  /** Create a column reference, escaping backticks. Handles _metadata.* references. */
+  def columnRef(name: String): Column = {
+    if (name.startsWith("_metadata.")) col(name)
+    else { val escaped = name.replace("`", "``"); col(s"`$escaped`") }
+  }
+
+  /**
+   * Build a Delta reader with optional time-travel parameters.
+   * Returns a DataFrame ready for predicate/column filtering.
+   */
+  def buildDeltaReader(
+      spark: SparkSession,
+      tablePath: Path,
+      version: Option[Long],
+      timestamp: Option[String]): DataFrame = {
+    var reader = spark.read.format("delta")
+    version.foreach(v => reader = reader.option("versionAsOf", v))
+    timestamp.foreach(ts => reader = reader.option("timestampAsOf", ts))
+    reader.load(tablePath.toString)
+  }
+
+  /** Apply optional predicate and column projection to a DataFrame. */
+  def applyFilters(
+      df: DataFrame,
+      predicate: Option[String],
+      columns: Option[Seq[String]]): DataFrame = {
+    var result = df
+    predicate.foreach(p => result = result.filter(p))
+    columns.foreach(cols => result = result.select(cols.map(columnRef): _*))
+    result
+  }
+
+  /**
+   * Extract error code from an exception.
+   * Uses SparkThrowable.getErrorClass if available, otherwise class name.
+   */
+  def extractErrorCode(e: Exception): String = e match {
+    case st: org.apache.spark.SparkThrowable =>
+      Option(st.getErrorClass).getOrElse(e.getClass.getSimpleName)
+    case _ => e.getClass.getSimpleName
+  }
+
+  /** Assert two row multisets are equal, with detailed error reporting on mismatch. */
+  def assertMultisetsEqual(
+      expected: Map[String, Int],
+      actual: Map[String, Int],
+      specName: String): Unit = {
+    if (expected != actual) {
+      val missing = expected.keySet -- actual.keySet
+      val extra = actual.keySet -- expected.keySet
+      val details = new StringBuilder()
+      if (missing.nonEmpty) {
+        details.append(s"\n  Missing rows: ${missing.size}")
+        missing.take(3).foreach(r => details.append(s"\n    $r"))
+      }
+      if (extra.nonEmpty) {
+        details.append(s"\n  Extra rows: ${extra.size}")
+        extra.take(3).foreach(r => details.append(s"\n    $r"))
+      }
+      throw new RuntimeException(
+        s"Validation FAILED for $specName: row-level mismatch" +
+          s" (expected ${expected.values.sum}, got ${actual.values.sum})$details")
+    }
   }
 }
