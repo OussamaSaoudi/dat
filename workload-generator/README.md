@@ -16,7 +16,7 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 ```bash
 cd workload-generator
 sbt assembly
-./bin/generate-workload.sh examples/simple_read.scala --output-dir /tmp/workloads
+./bin/generate-workload.sh tables/simple_read.scala --output-dir /tmp/workloads
 ```
 
 ## Writing a Script
@@ -159,6 +159,8 @@ Scripts also work standalone: `./bin/generate-workload.sh my_script.scala`
 - If one workload fails, others still generate
 
 ## Examples
+
+Example scripts are in the `tables/` directory:
 
 | File | What it tests |
 |------|---------------|
