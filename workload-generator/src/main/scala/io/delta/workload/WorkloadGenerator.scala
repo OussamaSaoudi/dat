@@ -263,11 +263,37 @@ object WorkloadGenerator {
             case Some(v) => dl.getSnapshotAt(v)
             case None => dl.update()
           }
-          // Verify domain metadata is readable (may not exist in all Delta versions)
-          try {
+          // Read and validate domain metadata from snapshot
+          val domainActions = try {
             val method = snapshot.getClass.getMethod("domainMetadata")
-            method.invoke(snapshot)
-          } catch { case _: NoSuchMethodException => }
+            method.invoke(snapshot).asInstanceOf[Seq[_]]
+          } catch {
+            case _: NoSuchMethodException => Seq.empty
+          }
+
+          // Validate: find the expected domain in the snapshot's domain metadata
+          val domainJsons = domainActions.map { action =>
+            val jsonMethod = action.getClass.getMethod("json")
+            JsonUtil.mapper.readTree(jsonMethod.invoke(action).asInstanceOf[String])
+          }
+          val matchingDomain = domainJsons.find { node =>
+            val dmNode = Option(node.get("domainMetadata")).getOrElse(node)
+            dmNode.has("domain") && dmNode.get("domain").asText() == dm.domain
+          }
+          if (!dm.removed) {
+            require(matchingDomain.isDefined,
+              s"Domain metadata validation FAILED for $specName: " +
+                s"domain '${dm.domain}' not found in snapshot")
+            val dmNode = matchingDomain.get
+            val actual = Option(dmNode.get("domainMetadata")).getOrElse(dmNode)
+            if (actual.has("configuration")) {
+              val actualConfig = actual.get("configuration").asText()
+              require(actualConfig == dm.configuration,
+                s"Domain metadata validation FAILED for $specName: " +
+                  s"configuration expected='${dm.configuration}' actual='$actualConfig'")
+            }
+          }
+
           val spec = new java.util.LinkedHashMap[String, Any]()
           spec.put("type", "domain_metadata")
           dm.version.foreach(v => spec.put("version", v.asInstanceOf[AnyRef]))
@@ -286,6 +312,38 @@ object WorkloadGenerator {
       for (tx <- ts.txnSpecs) {
         try {
           val specName = s"${dirName}_${tx.name}"
+
+          // Validate: scan commit files for the SetTransaction action
+          val deltaLogDir = destTablePath.resolve("_delta_log")
+          val txnStream = Files.list(deltaLogDir)
+          val foundTxn = try {
+            scala.collection.JavaConverters.asScalaIteratorConverter(txnStream.iterator()).asScala
+              .filter(_.toString.endsWith(".json"))
+              .flatMap { commitFile =>
+                new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
+                  .filter(_.contains("\"txn\""))
+                  .flatMap { line =>
+                    try {
+                      val node = JsonUtil.mapper.readTree(line)
+                      val txnNode = node.get("txn")
+                      if (txnNode != null && txnNode.has("appId") &&
+                          txnNode.get("appId").asText() == tx.appId) {
+                        Some(txnNode.get("version").asLong())
+                      } else None
+                    } catch { case _: Exception => None }
+                  }
+              }.toSeq.lastOption // last occurrence wins (latest version)
+          } finally {
+            txnStream.close()
+          }
+
+          require(foundTxn.isDefined,
+            s"Txn validation FAILED for $specName: " +
+              s"SetTransaction for appId='${tx.appId}' not found in delta log")
+          require(foundTxn.get == tx.txnVersion,
+            s"Txn validation FAILED for $specName: " +
+              s"appId='${tx.appId}' version expected=${tx.txnVersion} actual=${foundTxn.get}")
+
           val spec = new java.util.LinkedHashMap[String, Any]()
           spec.put("type", "txn")
           tx.version.foreach(v => spec.put("version", v.asInstanceOf[AnyRef]))
