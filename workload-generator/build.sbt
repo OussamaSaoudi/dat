@@ -1,0 +1,34 @@
+/*
+ * Copyright (2024) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+name := "delta-workload-generator"
+version := "0.1.0"
+scalaVersion := "2.13.16"
+
+lazy val root = (project in file("."))
+  .settings(
+    name := "delta-workload-generator",
+    libraryDependencies ++= Seq(
+      "io.delta" %% "delta-spark" % "3.3.2" % "provided",
+      "org.apache.spark" %% "spark-sql" % "3.5.0" % "provided",
+      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.2",
+      "commons-io" % "commons-io" % "2.11.0"
+    ),
+    assembly / assemblyMergeStrategy := {
+      case PathList("META-INF", _*) => MergeStrategy.discard
+      case _ => MergeStrategy.first
+    }
+  )
