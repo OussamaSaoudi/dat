@@ -348,23 +348,23 @@ object WorkloadGenerator {
   }
 
   private def resolveSourceScript(explicit: String): Option[Path] = {
-    if (explicit != null) {
-      val p = Paths.get(explicit)
-      if (Files.exists(p)) return Some(p.toAbsolutePath)
+    def resolve(s: String): Option[Path] = {
+      val p = Paths.get(s)
+      if (Files.exists(p)) Some(p.toAbsolutePath) else None
     }
-    sys.env.get("WORKLOAD_SOURCE_SCRIPT")
-      .map(Paths.get(_)).filter(Files.exists(_)).map(_.toAbsolutePath)
-      .foreach(p => return Some(p))
-    try {
-      val cmd = System.getProperty("sun.java.command", "")
-      val pat = """-i\s+"([^"]+)"|--init\s+"([^"]+)"|-i\s+(\S+)|--init\s+(\S+)""".r
-      pat.findFirstMatchIn(cmd).foreach { m =>
-        val path = Seq(m.group(1), m.group(2), m.group(3), m.group(4)).find(_ != null).get
-        val p = Paths.get(path)
-        if (Files.exists(p)) return Some(p.toAbsolutePath)
+
+    Option(explicit).flatMap(resolve)
+      .orElse(sys.env.get("WORKLOAD_SOURCE_SCRIPT").flatMap(resolve))
+      .orElse {
+        try {
+          val cmd = System.getProperty("sun.java.command", "")
+          val pat = """-i\s+"([^"]+)"|--init\s+"([^"]+)"|-i\s+(\S+)|--init\s+(\S+)""".r
+          pat.findFirstMatchIn(cmd).flatMap { m =>
+            Seq(m.group(1), m.group(2), m.group(3), m.group(4))
+              .find(_ != null).flatMap(resolve)
+          }
+        } catch { case _: Exception => None }
       }
-    } catch { case _: Exception => }
-    None
   }
 }
 
