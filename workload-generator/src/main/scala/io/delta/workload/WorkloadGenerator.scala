@@ -79,33 +79,25 @@ object WorkloadGenerator {
     val scriptPath = resolveSourceScript(sourceScript)
     val scriptContent = scriptPath.map(p => new String(Files.readAllBytes(p), "UTF-8"))
 
-    // Collect all table specs from all workloads
-    val allTableSpecs = mutable.ArrayBuffer[TableSpec]()
+    println(s"Generating ${registry.size} workloads to $outputDir\n")
 
-    println(s"Registering workloads...")
-    val contexts = mutable.ArrayBuffer[WorkloadContext]()
-    registry.values.foreach { wd =>
+    // Process each workload sequentially: body → resolve → generate → cleanup
+    // This ensures table names don't collide between workloads.
+    val results = registry.values.toSeq.flatMap { wd =>
       val ctx = new WorkloadContext(spark, wd.name)
-      contexts += ctx
       try {
         wd.body(ctx)
-        allTableSpecs ++= ctx.tableSpecs
+        ctx.tableSpecs.map { ts =>
+          generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
+        }
       } catch {
         case e: Exception =>
           System.err.println(s"  ERROR in ${wd.name}: ${e.getMessage}")
           e.printStackTrace()
+          Seq.empty
+      } finally {
+        ctx.cleanup()
       }
-    }
-
-    println(s"Generating ${allTableSpecs.size} workload(s) to $outputDir\n")
-
-    val results = try {
-      allTableSpecs.map { ts =>
-        generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
-      }
-    } finally {
-      // Cleanup tables after generation is complete
-      contexts.foreach(_.cleanup())
     }
 
     println("\n=== Results ===")

@@ -83,13 +83,12 @@ object SnapshotCapture {
     timestamp.foreach(ts => snapshotSpec.put("timestamp", ts))
 
     val expectedBlock = new java.util.LinkedHashMap[String, Any]()
+    expectedBlock.put("version", snapshot.version.asInstanceOf[AnyRef])
 
-    // Protocol: Action.json produces {"protocol":{...}} - extract inner
     val protocolTree = mapper.readTree(snapshot.protocol.json)
     expectedBlock.put("protocol", mapper.treeToValue(
       protocolTree.get("protocol"), classOf[Any]))
 
-    // Metadata: Action.json produces {"metaData":{...}} - extract inner
     val metadataTree = mapper.readTree(snapshot.metadata.json)
     expectedBlock.put("metadata", mapper.treeToValue(
       metadataTree.get("metaData"), classOf[Any]))
@@ -137,32 +136,30 @@ object SnapshotCapture {
     require(spec.has("expected"), s"Snapshot spec $specName missing 'expected' block")
     val expected = spec.get("expected")
 
+    // Validate resolved version
+    if (expected.has("version")) {
+      val expectedVersion = expected.get("version").asLong()
+      require(snapshot.version == expectedVersion,
+        s"Snapshot validation failed for $specName: " +
+          s"version expected=$expectedVersion actual=${snapshot.version}")
+    }
+
     if (expected.has("protocol")) {
-      val expectedProto = expected.get("protocol")
-      val actualProtoTree = mapper.readTree(snapshot.protocol.json).get("protocol")
-      if (expectedProto.has("minReaderVersion")) {
-        val expectedRV = expectedProto.get("minReaderVersion").asInt()
-        val actualRV = actualProtoTree.get("minReaderVersion").asInt()
-        require(expectedRV == actualRV,
-          s"Snapshot validation failed for $specName: " +
-            s"protocol.minReaderVersion expected=$expectedRV actual=$actualRV")
-      }
-      if (expectedProto.has("minWriterVersion")) {
-        val expectedWV = expectedProto.get("minWriterVersion").asInt()
-        val actualWV = actualProtoTree.get("minWriterVersion").asInt()
-        require(expectedWV == actualWV,
-          s"Snapshot validation failed for $specName: " +
-            s"protocol.minWriterVersion expected=$expectedWV actual=$actualWV")
-      }
+      val expectedProto = mapper.readTree(mapper.writeValueAsString(expected.get("protocol")))
+      val actualProto = mapper.readTree(
+        mapper.writeValueAsString(
+          mapper.treeToValue(mapper.readTree(snapshot.protocol.json).get("protocol"), classOf[Any])))
+      require(expectedProto.equals(actualProto),
+        s"Snapshot validation failed for $specName: protocol mismatch\n" +
+          s"  expected: $expectedProto\n  actual: $actualProto")
     }
 
     if (expected.has("metadata")) {
-      val expectedMeta = expected.get("metadata")
-      val actualMetaTree = mapper.readTree(snapshot.metadata.json).get("metaData")
-      val expectedNorm = mapper.readTree(mapper.writeValueAsString(expectedMeta))
-      val actualNorm = mapper.readTree(
-        mapper.writeValueAsString(mapper.treeToValue(actualMetaTree, classOf[Any])))
-      require(expectedNorm.equals(actualNorm),
+      val expectedMeta = mapper.readTree(mapper.writeValueAsString(expected.get("metadata")))
+      val actualMeta = mapper.readTree(
+        mapper.writeValueAsString(
+          mapper.treeToValue(mapper.readTree(snapshot.metadata.json).get("metaData"), classOf[Any])))
+      require(expectedMeta.equals(actualMeta),
         s"Snapshot validation failed for $specName: metadata mismatch")
     }
   }
