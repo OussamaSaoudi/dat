@@ -280,7 +280,13 @@ object WorkloadGenerator {
             val dmNode = Option(node.get("domainMetadata")).getOrElse(node)
             dmNode.has("domain") && dmNode.get("domain").asText() == dm.domain
           }
-          if (!dm.removed) {
+          if (dm.removed) {
+            // Domain should NOT be present (or should be marked removed)
+            require(matchingDomain.isEmpty,
+              s"Domain metadata validation FAILED for $specName: " +
+                s"domain '${dm.domain}' should be removed but is still present")
+          } else {
+            // Domain should be present with correct configuration
             require(matchingDomain.isDefined,
               s"Domain metadata validation FAILED for $specName: " +
                 s"domain '${dm.domain}' not found in snapshot")
@@ -319,6 +325,7 @@ object WorkloadGenerator {
           val foundTxn = try {
             scala.collection.JavaConverters.asScalaIteratorConverter(txnStream.iterator()).asScala
               .filter(_.toString.endsWith(".json"))
+              .toSeq.sortBy(_.getFileName.toString) // ensure lexicographic order
               .flatMap { commitFile =>
                 new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
                   .filter(_.contains("\"txn\""))

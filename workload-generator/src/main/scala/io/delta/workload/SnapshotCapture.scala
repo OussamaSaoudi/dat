@@ -114,6 +114,7 @@ object SnapshotCapture {
     require(Files.exists(specFile), s"Snapshot spec file missing after capture: $specFile")
     val spec = mapper.readTree(Files.readAllBytes(specFile))
 
+    DeltaLog.clearCache()
     val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
     val snapshot = if (spec.has("version")) {
       val targetVersion = spec.get("version").asLong()
