@@ -84,5 +84,7 @@ workload("ice_with_dv", "IcebergCompat + DVs", "icebergCompat", "dv") { w =>
   w.snapshot(t)
 }
 
-generateAll(sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+generateAll(
+  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
+  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
 System.exit(0)

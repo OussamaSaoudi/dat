@@ -171,5 +171,7 @@ workload("dml_sequence", "Multi-step DML lifecycle", "dml") { w =>
   w.cdf(t, startVersion = 2, endVersion = 2)
 }
 
-generateAll(sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+generateAll(
+  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
+  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
 System.exit(0)

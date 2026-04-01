@@ -67,10 +67,14 @@ object WorkloadGenerator {
     registry(name) = WorkloadDef(name, description, tags, body)
   }
 
-  /** Generate all registered workloads. */
+  /**
+   * Generate all registered workloads.
+   * @param force If true, regenerate even if output exists. Default: false (skip existing).
+   */
   def generateAll(
       outputDir: String,
-      sourceScript: String = null): Seq[WorkloadResult] = {
+      sourceScript: String = null,
+      force: Boolean = false): Seq[WorkloadResult] = {
     val spark = SparkSession.active
     val scriptPath = resolveSourceScript(sourceScript)
     val scriptContent = scriptPath.map(p => new String(Files.readAllBytes(p), "UTF-8"))
@@ -96,7 +100,7 @@ object WorkloadGenerator {
     println(s"Generating ${allTableSpecs.size} workload(s) to $outputDir\n")
 
     val results = allTableSpecs.map { ts =>
-      generateTable(spark, ts, Paths.get(outputDir), scriptContent)
+      generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
     }
 
     println("\n=== Results ===")
@@ -152,9 +156,17 @@ object WorkloadGenerator {
       spark: SparkSession,
       ts: TableSpec,
       outputBase: Path,
-      scriptContent: Option[String]): WorkloadResult = {
+      scriptContent: Option[String],
+      force: Boolean = false): WorkloadResult = {
     val dirName = ts.outputName
     val testOutputDir = outputBase.resolve(dirName)
+
+    // Skip if already generated (incremental mode) unless forced
+    if (!force && Files.exists(testOutputDir.resolve("table_info.json"))) {
+      println(s"--- $dirName (exists, skipping) ---")
+      return WorkloadResult(testOutputDir.toString, dirName, -1,
+        Seq.empty, Seq.empty, Seq.empty, true, Seq.empty)
+    }
 
     println(s"--- $dirName ---")
 

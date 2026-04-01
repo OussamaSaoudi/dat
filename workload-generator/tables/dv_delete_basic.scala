@@ -76,5 +76,7 @@ workload("corrupt_truncated", "Truncated commit JSON", "corrupt") { w =>
   w.read(t)
 }
 
-generateAll(sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+generateAll(
+  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
+  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
 System.exit(0)

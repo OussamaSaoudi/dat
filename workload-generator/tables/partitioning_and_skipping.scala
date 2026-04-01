@@ -84,5 +84,7 @@ workload("column_projection", "Column subsets", "projection") { w =>
   w.snapshot(t)
 }
 
-generateAll(sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+generateAll(
+  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
+  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
 System.exit(0)

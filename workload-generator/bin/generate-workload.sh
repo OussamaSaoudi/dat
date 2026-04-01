@@ -54,14 +54,17 @@ SCALA_SCRIPT="${1:?Usage: $0 <script.scala> [--output-dir DIR] | --interactive}"
 shift
 
 OUTPUT_DIR="/tmp/workloads"
+FORCE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --output-dir) OUTPUT_DIR="$2"; shift 2;;
+    --force) FORCE="true"; shift;;
     *) echo "Unknown option: $1"; exit 1;;
   esac
 done
 
 export WORKLOAD_OUTPUT_DIR="$OUTPUT_DIR"
+export WORKLOAD_FORCE="${FORCE:-false}"
 export WORKLOAD_SOURCE_SCRIPT="$(cd "$(dirname "$SCALA_SCRIPT")" && pwd)/$(basename "$SCALA_SCRIPT")"
 
 echo "Running: $SCALA_SCRIPT"

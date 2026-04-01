@@ -106,5 +106,7 @@ workload("error_cdf_not_enabled", "CDF on table without CDF", "error", "cdf") { 
   w.snapshot(t)
 }
 
-generateAll(sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+generateAll(
+  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
+  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
 System.exit(0)
