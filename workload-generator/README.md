@@ -142,31 +142,4 @@ Every spec is validated after capture:
 
 ## Workload Suites
 
-| File | Tests | What it covers |
-|------|-------|----------------|
-| `reads.scala` | 155 | Core reads, predicates, time travel, legacy |
-| `merge.scala` | 105 | MERGE INTO operations |
-| `data_skipping.scala` | 102 | Data skipping, statistics, partitioning |
-| `protocol_versions.scala` | 72 | Protocol versions, reader/writer features |
-| `deletion_vectors.scala` | 57 | Deletion vectors |
-| `time_travel.scala` | 47 | Time travel reads |
-| `corruption.scala` | 46 | Corrupt tables, error handling |
-| `schema_evolution.scala` | 43 | Schema evolution |
-| `checkpoints.scala` | 37 | Checkpoint formats and reconstruction |
-| `variant.scala` | 31 | Variant type |
-| `types.scala` | 31 | Basic types, void, interval, timestamp NTZ |
-| `column_mapping.scala` | 31 | Column mapping modes |
-| `dml.scala` | 26 | DML operations, misc workloads |
-| `cdc.scala` | 26 | Change data feed |
-| `type_widening.scala` | 23 | Type widening |
-| `log_replay.scala` | 22 | Log replay edge cases |
-| `check_constraints.scala` | 22 | CHECK constraints |
-| `identity_columns.scala` | 20 | Identity columns |
-| `evolvability.scala` | 20 | Forward/backward compatibility |
-| `generated_columns.scala` | 18 | Generated columns |
-| `domain_metadata.scala` | 15 | Domain metadata |
-| `transactions.scala` | 12 | SetTransaction tracking |
-| `iceberg_compat.scala` | 12 | Iceberg compatibility |
-| `row_tracking.scala` | 11 | Row tracking |
-| `in_commit_timestamp.scala` | 10 | In-commit timestamps |
-| `default_values.scala` | 4 | Column defaults |
+Workload scripts are in `tables/`. Each file is a `WorkloadSuite` covering a specific Delta feature area. Run all suites with `./bin/generate-workload.sh tables/`.
