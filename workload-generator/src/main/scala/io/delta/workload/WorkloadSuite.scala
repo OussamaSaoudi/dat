@@ -79,11 +79,12 @@ class WorkloadSuite(val suiteName: String) {
    * Use this when running multiple suites in sequence.
    */
   def run(): Seq[TestResult] = {
-    val outputDir = Paths.get(
-      sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
-    val force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean
-    val sourceScript = sys.env.get("WORKLOAD_SOURCE_SCRIPT")
-      .map(Paths.get(_)).filter(Files.exists(_))
+    def conf(key: String, default: String): String =
+      sys.env.getOrElse(key, sys.props.getOrElse(key, default))
+    val outputDir = Paths.get(conf("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"))
+    val force = conf("WORKLOAD_FORCE", "false").toBoolean
+    val sourceScript = Option(conf("WORKLOAD_SOURCE_SCRIPT", null))
+      .filter(_ != null).map(Paths.get(_)).filter(Files.exists(_))
     val scriptContent = sourceScript.map(p => new String(Files.readAllBytes(p), "UTF-8"))
 
     val spark = SparkSession.active

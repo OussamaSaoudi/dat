@@ -65,7 +65,7 @@ object ReadCapture {
           val tsValue = java.sql.Timestamp.valueOf(ts)
           deltaLog.getSnapshotAt(
             deltaLog.history.getActiveCommitAtTime(
-              tsValue, None, canReturnLastCommit = true,
+              tsValue, canReturnLastCommit = true,
               mustBeRecreatable = false, canReturnEarliestCommit = false).version)
         case _ => deltaLog.update()
       }
@@ -205,7 +205,7 @@ object ReadCapture {
         s"original errorCode=[$originalErrorCode] but re-read errorCode=[$reErrorCode]")
   }
 
-  private def validateCapturedRead(
+  private[workload] def validateCapturedRead(
       spark: SparkSession, tablePath: Path, expectedDir: Path,
       specName: String, version: Option[Long], timestamp: Option[String],
       predicate: Option[String], columns: Option[Seq[String]],
