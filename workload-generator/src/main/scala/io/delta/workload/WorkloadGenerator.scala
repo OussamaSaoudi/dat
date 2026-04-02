@@ -87,6 +87,11 @@ object WorkloadGenerator {
       val ctx = new WorkloadContext(spark, wd.name)
       try {
         wd.body(ctx)
+        // Single-table workloads: use workload name as directory name
+        // Multi-table workloads: use {workload}_{table}
+        if (ctx.tableSpecs.size == 1) {
+          ctx.tableSpecs.head.outputName = wd.name
+        }
         ctx.tableSpecs.map { ts =>
           generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
         }
@@ -731,7 +736,7 @@ class WorkloadContext private[workload] (
 // ---------------------------------------------------------------------------
 
 private[workload] class TableSpec(
-    val outputName: String,
+    var outputName: String,
     val description: String,
     val tags: Seq[String],
     val sourcePath: Path) {
