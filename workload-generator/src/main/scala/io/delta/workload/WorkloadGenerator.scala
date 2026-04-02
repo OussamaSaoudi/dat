@@ -258,7 +258,7 @@ object WorkloadGenerator {
         try {
           val specName = s"${dirName}_${dm.name}"
 
-          // Try Snapshot API first (works on DBR), fall back to scanning commit JSON
+          // Try Snapshot API first, fall back to scanning commit JSON files
           val domainJsons: Seq[com.fasterxml.jackson.databind.JsonNode] = try {
             DeltaLog.clearCache()
             val dl = DeltaLog.forTable(spark, destTablePath.toString)
