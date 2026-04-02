@@ -65,7 +65,8 @@ object ReadCapture {
           val tsValue = java.sql.Timestamp.valueOf(ts)
           deltaLog.getSnapshotAt(
             deltaLog.history.getActiveCommitAtTime(
-              tsValue, canReturnLastCommit = true, mustBeRecreatable = false, canReturnEarliestCommit = false).version)
+              tsValue, canReturnLastCommit = true,
+              mustBeRecreatable = false, canReturnEarliestCommit = false).version)
         case _ => deltaLog.update()
       }
 
@@ -77,12 +78,8 @@ object ReadCapture {
         case None => snapshot.allFiles.collect().toSeq
       }
       val addFilesJson = addFiles.map(_.json)
-
-      val totalFileCount = if (predicate.isEmpty) {
-        addFiles.length.toLong // no predicate → addFiles IS allFiles
-      } else {
-        snapshot.allFiles.count()
-      }
+      val totalFileCount = if (predicate.isEmpty) addFiles.length.toLong
+        else snapshot.allFiles.count()
 
       var resultDf = JsonUtil.buildDeltaReader(spark, tablePath, version, timestamp)
       resultDf = JsonUtil.applyFilters(resultDf, predicate, columns)
@@ -102,9 +99,8 @@ object ReadCapture {
             actualCount, addFilesJson.length, totalFileCount)
           writeExpectedData(spark, expectedDir, resultDf, actualCount, specName)
           writeExpectedMetadata(spark, expectedDir, addFilesJson)
-          writeSummary(expectedDir, actualCount, addFilesJson.length, totalFileCount)
-          validateCapturedRead(spark, tablePath, specsDir, expectedDir, specName,
-            version, timestamp, predicate, columns)
+          validateCapturedRead(spark, tablePath, expectedDir, specName,
+            version, timestamp, predicate, columns, addFilesJson)
           println(s"  Read spec captured: $specName ($actualCount rows, " +
             s"${addFilesJson.length}/$totalFileCount files after data skipping)")
         } finally {
@@ -184,61 +180,60 @@ object ReadCapture {
     }
   }
 
-  private def writeSummary(
-      expectedDir: Path, actualCount: Long, fileCount: Int, totalFileCount: Long): Unit = {
-    val summary = new java.util.LinkedHashMap[String, Any]()
-    summary.put("actual_row_count", actualCount.asInstanceOf[AnyRef])
-    summary.put("file_count", fileCount.asInstanceOf[AnyRef])
-    summary.put("total_file_count", totalFileCount.asInstanceOf[AnyRef])
-    summary.put("files_skipped", (totalFileCount - fileCount).asInstanceOf[AnyRef])
-    JsonUtil.writeJson(expectedDir.resolve("summary.json"), summary)
-  }
-
   private def validateErrorReproducible(
       spark: SparkSession, tablePath: Path, specName: String,
       version: Option[Long], timestamp: Option[String],
       predicate: Option[String], columns: Option[Seq[String]],
       originalErrorCode: String): Unit = {
     DeltaLog.clearCache()
-    val succeeded = try {
+    val reErrorCode = try {
       val df = JsonUtil.applyFilters(
         JsonUtil.buildDeltaReader(spark, tablePath, version, timestamp),
         predicate, columns)
-      df.count(); true
-    } catch { case _: Exception => false }
-    if (succeeded) {
+      df.count()
+      null // succeeded — no error
+    } catch {
+      case e: Exception => JsonUtil.extractErrorCode(e)
+    }
+    if (reErrorCode == null) {
       throw new RuntimeException(
         s"Error spec validation FAILED for $specName: original failed with " +
           s"[$originalErrorCode] but re-read succeeded. Transient error.")
     }
+    require(reErrorCode == originalErrorCode,
+      s"Error spec validation FAILED for $specName: " +
+        s"original errorCode=[$originalErrorCode] but re-read errorCode=[$reErrorCode]")
   }
 
   private def validateCapturedRead(
-      spark: SparkSession, tablePath: Path, specsDir: Path, expectedDir: Path,
+      spark: SparkSession, tablePath: Path, expectedDir: Path,
       specName: String, version: Option[Long], timestamp: Option[String],
-      predicate: Option[String], columns: Option[Seq[String]]): Unit = {
+      predicate: Option[String], columns: Option[Seq[String]],
+      originalAddFilesJson: Seq[String]): Unit = {
     DeltaLog.clearCache()
     val rereadDf = JsonUtil.applyFilters(
       JsonUtil.buildDeltaReader(spark, tablePath, version, timestamp),
       predicate, columns)
 
+    // Validate expected_data (row-level)
     val expectedDataPath = expectedDir.resolve("expected_data")
     if (Files.exists(expectedDataPath)) {
       val expectedDf = spark.read.parquet(expectedDataPath.toString)
-      val rereadMultiset = JsonUtil.toRowMultiset(rereadDf)
-      val expectedMultiset = JsonUtil.toRowMultiset(expectedDf)
-      JsonUtil.assertMultisetsEqual(expectedMultiset, rereadMultiset, specName)
+      JsonUtil.assertMultisetsEqual(
+        JsonUtil.toRowMultiset(expectedDf),
+        JsonUtil.toRowMultiset(rereadDf),
+        specName)
     }
 
-    val specFile = specsDir.resolve(s"$specName.json")
-    if (Files.exists(specFile)) {
-      val specNode = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
-      if (specNode.has("expected")) {
-        val specRowCount = specNode.get("expected").get("rowCount").asLong()
-        val rereadCount = rereadDf.count()
-        require(rereadCount == specRowCount,
-          s"Validation FAILED for $specName: count=$rereadCount != spec=$specRowCount")
-      }
+    // Validate expected_metadata (AddFile actions)
+    val expectedMetaPath = expectedDir.resolve("expected_metadata")
+    if (Files.exists(expectedMetaPath)) {
+      val expectedMetaDf = spark.read.parquet(expectedMetaPath.toString)
+      val expectedActions = expectedMetaDf.collect().map(_.getString(0)).sorted
+      val originalActions = originalAddFilesJson.sorted
+      require(expectedActions.sameElements(originalActions),
+        s"Expected metadata validation FAILED for $specName: " +
+          s"written ${expectedActions.length} actions != original ${originalActions.length}")
     }
   }
 

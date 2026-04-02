@@ -64,10 +64,6 @@ object CdfCapture {
           if (expectedDataPath.toFile.exists()) FileUtils.deleteDirectory(expectedDataPath.toFile)
           df.write.mode(SaveMode.Overwrite).parquet(expectedDataPath.toString)
 
-          val summary = new java.util.LinkedHashMap[String, Any]()
-          summary.put("actual_row_count", count.asInstanceOf[AnyRef])
-          JsonUtil.writeJson(expectedDir.resolve("summary.json"), summary)
-
           val spec = buildCdfSpecBase(startVersion, endVersion, startTimestamp, endTimestamp,
             predicate, columns)
           val expected = new java.util.LinkedHashMap[String, Any]()
@@ -143,18 +139,24 @@ object CdfCapture {
       predicate: Option[String], columns: Option[Seq[String]],
       originalErrorCode: String): Unit = {
     DeltaLog.clearCache()
-    val succeeded = try {
+    val reErrorCode = try {
       val latestVersion = DeltaLog.forTable(spark, tablePath.toString).update().version
       var df = buildCdfReader(spark, tablePath, startVersion, endVersion,
         startTimestamp, endTimestamp, latestVersion)
       df = JsonUtil.applyFilters(df, predicate, columns)
-      df.count(); true
-    } catch { case _: Exception => false }
-    if (succeeded) {
+      df.count()
+      null // succeeded
+    } catch {
+      case e: Exception => JsonUtil.extractErrorCode(e)
+    }
+    if (reErrorCode == null) {
       throw new RuntimeException(
         s"CDF error spec validation FAILED for $specName: original failed with " +
           s"[$originalErrorCode] but re-read succeeded.")
     }
+    require(reErrorCode == originalErrorCode,
+      s"CDF error spec validation FAILED for $specName: " +
+        s"original errorCode=[$originalErrorCode] but re-read errorCode=[$reErrorCode]")
   }
 
   private def validateCapturedCdf(
