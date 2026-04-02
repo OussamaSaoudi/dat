@@ -32,15 +32,10 @@ if [[ ! -f "$JAR_PATH" ]]; then
   exit 1
 fi
 
-# Prefer Spark with Scala 2.13
-SPARK_213_HOME="$HOME/spark/spark-3.5.3-bin-hadoop3-scala2.13"
-if [[ -d "$SPARK_213_HOME" ]]; then
-  SPARK_SHELL="$SPARK_213_HOME/bin/spark-shell"
-else
-  SPARK_SHELL="${SPARK_HOME:-}/bin/spark-shell"
-  if [[ ! -x "$SPARK_SHELL" ]]; then
-    SPARK_SHELL="$(which spark-shell 2>/dev/null || true)"
-  fi
+# Find spark-shell: prefer SPARK_HOME, then PATH
+SPARK_SHELL="${SPARK_HOME:-}/bin/spark-shell"
+if [[ ! -x "$SPARK_SHELL" ]]; then
+  SPARK_SHELL="$(which spark-shell 2>/dev/null || true)"
 fi
 if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
   echo "ERROR: spark-shell not found. Set SPARK_HOME or add spark-shell to PATH."
@@ -48,7 +43,7 @@ if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
 fi
 
 SPARK_CONF=(
-  --packages "io.delta:delta-spark_2.13:3.3.2"
+  --packages "io.delta:delta-spark_2.13:4.1.0"
   --conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension"
   --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
   --jars "$JAR_PATH"

@@ -1,5 +1,5 @@
 /*
- * Copyright (2024) The Delta Lake Project Authors.
+ * Copyright (2025) The Delta Lake Project Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ lazy val root = (project in file("."))
   .settings(
     name := "delta-workload-generator",
     libraryDependencies ++= Seq(
-      "io.delta" %% "delta-spark" % "3.3.2" % "provided",
-      "org.apache.spark" %% "spark-sql" % "3.5.0" % "provided",
+      "io.delta" %% "delta-spark" % "4.1.0" % "provided",
+      "org.apache.spark" %% "spark-sql" % "4.0.0" % "provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.2",
       "commons-io" % "commons-io" % "2.11.0"
     ),

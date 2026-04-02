@@ -7,8 +7,8 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 ## Requirements
 
 - Java 17+
-- Apache Spark 3.5.x
-- Delta Spark 3.3.2 (pulled automatically via `--packages`)
+- Apache Spark 4.x
+- Delta Spark 4.1.0 (pulled automatically via `--packages`)
 - sbt 1.9+ (for building)
 
 ## Quick Start
