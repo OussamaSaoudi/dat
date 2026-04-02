@@ -110,6 +110,9 @@ workload("ict_multiple_commits", "ICT with multiple commits", "inCommitTimestamp
   w.read(t, version = 0)
   w.read(t, version = 1)
   w.read(t, version = 2)
+  w.read(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
+  w.read(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
+  w.read(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
   w.snapshot(t)
 }
 
@@ -124,6 +127,9 @@ workload("ict_time_travel", "ICT with time travel", "inCommitTimestamp") { w =>
   w.read(t, version = 0)
   w.read(t, version = 1)
   w.read(t, version = 2)
+  w.read(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
+  w.read(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
+  w.read(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
   w.snapshot(t)
 }
 

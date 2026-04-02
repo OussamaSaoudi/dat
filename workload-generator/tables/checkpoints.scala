@@ -298,7 +298,11 @@ workload("cp_v2_multipart_sidecar_json", "Multi-part V2 checkpoint (json) - 7 ve
   val t = w.table("tbl")
   w.read(t, name = "read_latest")
   w.read(t, version = 0)
+  w.read(t, version = 1)
+  w.read(t, version = 2, name = "read_v2_two_sidecars")
   w.read(t, version = 3)
+  w.read(t, version = 4, name = "read_v4_four_sidecars")
+  w.read(t, version = 5, name = "read_v5_part_size_100")
   w.read(t, version = 6)
   w.snapshot(t)
 }

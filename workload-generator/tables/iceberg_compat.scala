@@ -5,12 +5,14 @@
 import io.delta.workload.WorkloadGenerator._
 
 workload("ice_compat_v1", "IcebergCompatV1", "icebergCompat") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
+  w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
     TBLPROPERTIES ('delta.enableIcebergCompatV1' = 'true',
       'delta.columnMapping.mode' = 'name')""")
-  w.sql("INSERT INTO tbl VALUES (1), (2), (3)")
+  w.sql("INSERT INTO tbl VALUES (1, 'alice'), (2, 'bob'), (3, 'charlie')")
   val t = w.table("tbl")
-  w.read(t)
+  w.read(t, name = "read_all")
+  w.read(t, predicate = "name = 'bob'", name = "read_by_name")
+  w.read(t, predicate = "id > 1", name = "read_id_gt_1")
   w.snapshot(t)
 }
 
@@ -60,14 +62,18 @@ workload("ice_nested_array", "IcebergCompat V2 + ARRAY", "icebergCompat") { w =>
 }
 
 workload("ice_partitioned", "IcebergCompat + partitions", "icebergCompat") { w =>
-  w.sql("""CREATE TABLE tbl (col1 STRING, col2 STRING) USING delta
-    PARTITIONED BY (col1)
+  w.sql("""CREATE TABLE tbl (id INT, name STRING, category STRING) USING delta
+    PARTITIONED BY (category)
     TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
       'delta.columnMapping.mode' = 'name')""")
-  w.sql("INSERT INTO tbl VALUES ('a','b'),('c','d'),('a','e')")
+  w.sql("INSERT INTO tbl VALUES (1, 'alice', 'A'), (2, 'bob', 'B')")
+  w.sql("INSERT INTO tbl VALUES (3, 'charlie', 'A'), (4, 'diana', 'C')")
+  w.sql("INSERT INTO tbl VALUES (5, 'eve', 'B'), (6, 'frank', 'C')")
   val t = w.table("tbl")
-  w.read(t)
-  w.read(t, predicate = "col1 = 'a'")
+  w.read(t, name = "read_all")
+  w.read(t, predicate = "category = 'A'", name = "read_category_A")
+  w.read(t, predicate = "category = 'B'", name = "read_category_B")
+  w.read(t, predicate = "category = 'C'", name = "read_category_C")
   w.snapshot(t)
 }
 
