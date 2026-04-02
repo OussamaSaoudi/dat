@@ -1,7 +1,0 @@
-{
-  "testName" : "Commit JSON with invalid syntax",
-  "sourceFile" : "CorruptTableSuiteCapture.scala",
-  "sourceLines" : "corrupt-table-gaps",
-  "isErrorTest" : true,
-  "testId" : "ct_invalid_json"
-}

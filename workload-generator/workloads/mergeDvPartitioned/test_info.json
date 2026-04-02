@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge on partitioned DV table",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoLowShuffleDvSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeDvPartitioned"
-}

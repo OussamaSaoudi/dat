@@ -1,9 +1,0 @@
-{
-  "type" : "read",
-  "predicate" : "area = 'us-west'",
-  "expected" : {
-    "rowCount" : 1,
-    "fileCount" : 1,
-    "filesSkipped" : 3
-  }
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Generated column from nested struct",
-  "workloadCount" : 2,
-  "sourceFile" : "GeneratedColumnSuite.scala",
-  "sourceLines" : "various",
-  "testId" : "gc_nested"
-}

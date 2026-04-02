@@ -1,7 +1,0 @@
-{
-  "testName" : "Deleted version due to retention - version not found",
-  "sourceFile" : "DeltaTimeTravelSuite.scala",
-  "sourceLines" : "933-990",
-  "isErrorTest" : true,
-  "testId" : "tt_deleted_version_retention_error"
-}

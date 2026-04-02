@@ -1,7 +1,0 @@
-{
-  "testName" : "Nested struct field predicate",
-  "workloadCount" : 3,
-  "sourceFile" : "DataSkippingSuiteCapture.scala",
-  "sourceLines" : "data-skipping-gaps",
-  "testId" : "ds_nested_struct_predicate"
-}

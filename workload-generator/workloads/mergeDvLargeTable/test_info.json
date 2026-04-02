@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge on larger DV table (100+ rows)",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoLowShuffleDvSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeDvLargeTable"
-}

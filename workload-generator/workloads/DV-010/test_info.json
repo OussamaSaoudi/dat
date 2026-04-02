@@ -1,7 +1,0 @@
-{
-  "testName" : "insert into Delta table with DVs",
-  "workloadCount" : 1,
-  "sourceFile" : "DeletionVectorsSuite.scala",
-  "sourceLines" : "207-241",
-  "testId" : "DV-010"
-}

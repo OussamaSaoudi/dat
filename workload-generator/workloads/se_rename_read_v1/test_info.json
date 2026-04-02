@@ -1,8 +1,0 @@
-{
-  "testName" : "Version read before rename",
-  "workloadCount" : 2,
-  "sourceFile" : "SchemaEvolutionSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "hasSchemaEvolution" : true,
-  "testId" : "se_rename_read_v1"
-}

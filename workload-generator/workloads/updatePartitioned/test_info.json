@@ -1,7 +1,0 @@
-{
-  "testName" : "UPDATE on partitioned table",
-  "workloadCount" : 2,
-  "sourceFile" : "UpdateSuiteBase.scala",
-  "sourceLines" : "UPD-003",
-  "testId" : "updatePartitioned"
-}

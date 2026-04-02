@@ -1,7 +1,0 @@
-{
-  "testName" : "Schema evolution with deletion vectors",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-030",
-  "testId" : "mergeSchemaEvoDvSchemaEvo"
-}

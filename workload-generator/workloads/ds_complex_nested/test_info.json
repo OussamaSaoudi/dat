@@ -1,7 +1,0 @@
-{
-  "testName" : "Complex nested predicates",
-  "workloadCount" : 4,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ds_complex_nested"
-}

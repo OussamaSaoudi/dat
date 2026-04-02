@@ -1,9 +1,0 @@
-{
-  "type" : "read",
-  "predicate" : "PartCol = 'x'",
-  "expected" : {
-    "rowCount" : 2,
-    "fileCount" : 1,
-    "filesSkipped" : 1
-  }
-}

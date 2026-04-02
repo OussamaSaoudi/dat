@@ -1,7 +1,0 @@
-{
-  "testName" : "Filter that matches zero rows",
-  "workloadCount" : 2,
-  "sourceFile" : "CoreReadsSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cr_zero_matching_rows"
-}

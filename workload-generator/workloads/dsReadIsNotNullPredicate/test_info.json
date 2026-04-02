@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with IS NOT NULL predicate",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadIsNotNullPredicate"
-}

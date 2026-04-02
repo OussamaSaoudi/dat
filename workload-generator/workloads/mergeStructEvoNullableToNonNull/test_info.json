@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge target has nullable struct field, source has non-null values",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoStructEvolutionNullnessSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeStructEvoNullableToNonNull"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Null-safe equals operator (<=>)",
-  "workloadCount" : 5,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ds_null_safe_eq"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "INSERT INTO SELECT",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaInsertIntoSuite.scala",
-  "sourceLines" : "INS-004",
-  "testId" : "insertSelectReadBack"
-}

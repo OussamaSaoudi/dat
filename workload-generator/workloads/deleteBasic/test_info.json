@@ -1,7 +1,0 @@
-{
-  "testName" : "DELETE with WHERE clause",
-  "workloadCount" : 1,
-  "sourceFile" : "DeleteSuiteBase.scala",
-  "sourceLines" : "DEL-001",
-  "testId" : "deleteBasic"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Schema evolution adds multiple new columns",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-002",
-  "testId" : "mergeSchemaEvoAddMultiCols"
-}

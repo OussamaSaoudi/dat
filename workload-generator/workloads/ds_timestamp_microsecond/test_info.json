@@ -1,7 +1,0 @@
-{
-  "testName" : "Microsecond precision timestamp skipping",
-  "workloadCount" : 3,
-  "sourceFile" : "DataSkippingSuiteCapture.scala",
-  "sourceLines" : "data-skipping-gaps",
-  "testId" : "ds_timestamp_microsecond"
-}

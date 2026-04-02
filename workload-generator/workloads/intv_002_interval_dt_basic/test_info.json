@@ -1,7 +1,0 @@
-{
-  "testName" : "DayTimeIntervalType column",
-  "workloadCount" : 1,
-  "sourceFile" : "IntervalTypeSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "intv_002_interval_dt_basic"
-}

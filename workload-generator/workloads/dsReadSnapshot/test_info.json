@@ -1,7 +1,0 @@
-{
-  "testName" : "Snapshot metadata and protocol",
-  "workloadCount" : 3,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadSnapshot"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "long strings, long max",
-  "workloadCount" : 8,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "197-216",
-  "testId" : "ds_long_strings_max"
-}

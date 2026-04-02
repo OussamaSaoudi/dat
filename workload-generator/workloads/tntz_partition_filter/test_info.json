@@ -1,7 +1,0 @@
-{
-  "testName" : "NTZ partition filter",
-  "workloadCount" : 3,
-  "sourceFile" : "TimestampNTZSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "tntz_partition_filter"
-}

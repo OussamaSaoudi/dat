@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with string equality predicate",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadStringFilter"
-}

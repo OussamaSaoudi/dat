@@ -1,7 +1,0 @@
-{
-  "testName" : "IN set predicates",
-  "workloadCount" : 4,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ds_in_set"
-}

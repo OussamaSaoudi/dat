@@ -1,7 +1,0 @@
-{
-  "testName" : "Low shuffle with * syntax",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoLowShuffleSuite.scala",
-  "sourceLines" : "P2-LS-004",
-  "testId" : "mergeLowShuffleStar"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Read after column rename",
-  "workloadCount" : 2,
-  "sourceFile" : "SchemaEvolutionSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "se_rename_column"
-}

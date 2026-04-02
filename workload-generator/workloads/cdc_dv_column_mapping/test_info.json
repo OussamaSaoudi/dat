@@ -1,7 +1,0 @@
-{
-  "testName" : "CDC with deletion vectors and column mapping",
-  "workloadCount" : 6,
-  "sourceFile" : "CDCSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cdc_dv_column_mapping"
-}

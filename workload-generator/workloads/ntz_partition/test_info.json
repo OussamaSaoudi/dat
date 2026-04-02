@@ -1,7 +1,0 @@
-{
-  "testName" : "TIMESTAMP_NTZ as partition column",
-  "workloadCount" : 3,
-  "sourceFile" : "TimestampNTZSuiteCapture.scala",
-  "sourceLines" : "synthetic NTZ partition test",
-  "testId" : "ntz_partition"
-}

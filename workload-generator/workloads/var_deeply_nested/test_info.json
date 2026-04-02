@@ -1,7 +1,0 @@
-{
-  "testName" : "Variant with deeply nested JSON",
-  "workloadCount" : 1,
-  "sourceFile" : "VariantSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "var_deeply_nested"
-}

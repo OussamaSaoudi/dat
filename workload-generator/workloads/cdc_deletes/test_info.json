@@ -1,7 +1,0 @@
-{
-  "testName" : "Read CDC data with DELETE operations",
-  "workloadCount" : 6,
-  "sourceFile" : "DeltaCDCSuite.scala",
-  "sourceLines" : "1217-1239",
-  "testId" : "cdc_deletes"
-}

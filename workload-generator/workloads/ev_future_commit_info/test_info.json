@@ -1,7 +1,0 @@
-{
-  "testName" : "CommitInfo with unknown future fields (forward compat)",
-  "workloadCount" : 2,
-  "sourceFile" : "EvolvabilitySuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "ev_future_commit_info"
-}

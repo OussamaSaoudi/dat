@@ -1,7 +1,0 @@
-{
-  "testName" : "Truncated parquet data file",
-  "sourceFile" : "CorruptTableSuiteCapture.scala",
-  "sourceLines" : "corrupt-table-gaps",
-  "isErrorTest" : true,
-  "testId" : "ct_corrupt_parquet"
-}

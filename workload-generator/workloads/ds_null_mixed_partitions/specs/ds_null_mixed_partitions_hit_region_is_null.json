@@ -1,9 +1,0 @@
-{
-  "type" : "read",
-  "predicate" : "region IS NULL",
-  "expected" : {
-    "rowCount" : 1,
-    "fileCount" : 1,
-    "filesSkipped" : 2
-  }
-}

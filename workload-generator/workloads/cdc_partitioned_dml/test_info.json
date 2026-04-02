@@ -1,7 +1,0 @@
-{
-  "testName" : "CDC with partitioned table DML",
-  "workloadCount" : 7,
-  "sourceFile" : "CDCSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cdc_partitioned_dml"
-}

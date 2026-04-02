@@ -1,7 +1,0 @@
-{
-  "testName" : "DV + partition pruning with complex predicates",
-  "workloadCount" : 4,
-  "sourceFile" : "DeletionVectorsSuiteCapture.scala",
-  "sourceLines" : "new coverage",
-  "testId" : "dv_partition_pruning"
-}

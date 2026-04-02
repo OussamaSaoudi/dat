@@ -1,7 +1,0 @@
-{
-  "testName" : "Identity column with negative step",
-  "workloadCount" : 1,
-  "sourceFile" : "IdentityColumnSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "ic_negative_step"
-}

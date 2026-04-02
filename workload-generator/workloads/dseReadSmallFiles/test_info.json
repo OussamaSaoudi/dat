@@ -1,7 +1,0 @@
-{
-  "testName" : "Read table with many small files",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuiteEdge.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dseReadSmallFiles"
-}

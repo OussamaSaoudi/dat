@@ -1,7 +1,0 @@
-{
-  "testName" : "Variant in struct for data skipping",
-  "workloadCount" : 2,
-  "sourceFile" : "VariantDataSkippingStatsSuite.scala",
-  "sourceLines" : "2125-2148",
-  "testId" : "var_014_variant_in_struct"
-}

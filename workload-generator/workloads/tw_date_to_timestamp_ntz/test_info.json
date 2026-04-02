@@ -1,8 +1,0 @@
-{
-  "testName" : "Date to TimestampNTZ widening",
-  "workloadCount" : 2,
-  "sourceFile" : "TypeWideningMetadataSuite.scala",
-  "sourceLines" : "synthetic date->timestamp_ntz test",
-  "hasSchemaEvolution" : true,
-  "testId" : "tw_date_to_timestamp_ntz"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with predicate pushdown",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadWithPredicate"
-}

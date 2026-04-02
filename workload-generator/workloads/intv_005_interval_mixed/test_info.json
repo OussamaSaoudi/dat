@@ -1,7 +1,0 @@
-{
-  "testName" : "Both YM and DT interval columns",
-  "workloadCount" : 1,
-  "sourceFile" : "IntervalTypeSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "intv_005_interval_mixed"
-}

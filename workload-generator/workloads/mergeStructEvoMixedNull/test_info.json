@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge where some matched rows get null, others get values for new field",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoStructEvolutionNullnessSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeStructEvoMixedNull"
-}

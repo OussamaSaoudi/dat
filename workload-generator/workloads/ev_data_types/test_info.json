@@ -1,7 +1,0 @@
-{
-  "testName" : "Multiple data types evolvability",
-  "workloadCount" : 2,
-  "sourceFile" : "EvolvabilitySuite.scala",
-  "sourceLines" : "custom",
-  "testId" : "ev_data_types"
-}

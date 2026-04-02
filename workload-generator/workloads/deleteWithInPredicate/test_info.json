@@ -1,7 +1,0 @@
-{
-  "testName" : "DELETE with IN predicate",
-  "workloadCount" : 1,
-  "sourceFile" : "DeleteSuiteBase.scala",
-  "sourceLines" : "DEL-005",
-  "testId" : "deleteWithInPredicate"
-}

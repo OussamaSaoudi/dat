@@ -1,9 +1,0 @@
-{
-  "type" : "read",
-  "predicate" : "country = 'US'",
-  "expected" : {
-    "rowCount" : 2,
-    "fileCount" : 1,
-    "filesSkipped" : 1
-  }
-}

@@ -172,3 +172,4 @@ out
 workload-generator/target/
 workload-generator/project/target/
 workload-generator/project/project/
+workload-generator/workloads/

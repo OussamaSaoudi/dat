@@ -1,7 +1,0 @@
-{
-  "testName" : "Creating constraints with allowed expressions",
-  "workloadCount" : 2,
-  "sourceFile" : "CheckConstraintsSuite.scala",
-  "sourceLines" : "790-801",
-  "testId" : "cc_016_allowed_expressions"
-}

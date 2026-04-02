@@ -1,7 +1,0 @@
-{
-  "testName" : "DELETE with DVs - packing multiple DVs",
-  "workloadCount" : 1,
-  "sourceFile" : "DeletionVectorsSuite.scala",
-  "sourceLines" : "427-484",
-  "testId" : "DV-012"
-}

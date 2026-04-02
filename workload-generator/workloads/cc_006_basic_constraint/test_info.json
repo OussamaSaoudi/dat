@@ -1,7 +1,0 @@
-{
-  "testName" : "Read table with check constraint",
-  "workloadCount" : 2,
-  "sourceFile" : "CheckConstraintsSuite.scala",
-  "sourceLines" : "synthetic test",
-  "testId" : "cc_006_basic_constraint"
-}

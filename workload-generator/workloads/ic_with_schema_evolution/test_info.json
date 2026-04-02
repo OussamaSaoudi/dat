@@ -1,8 +1,0 @@
-{
-  "testName" : "Identity column after ADD COLUMN",
-  "workloadCount" : 3,
-  "sourceFile" : "IdentityColumnSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "hasSchemaEvolution" : true,
-  "testId" : "ic_with_schema_evolution"
-}

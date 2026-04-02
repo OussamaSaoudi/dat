@@ -1,7 +1,0 @@
-{
-  "testName" : "MERGE with NULL values",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSuiteBase.scala",
-  "sourceLines" : "MERGE-015",
-  "testId" : "mergeNullHandling"
-}

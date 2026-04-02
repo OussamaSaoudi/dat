@@ -1,7 +1,0 @@
-{
-  "testName" : "IcebergCompatV2 with complex types (array/map/struct)",
-  "workloadCount" : 2,
-  "sourceFile" : "IcebergCompatSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ice_complex_types"
-}

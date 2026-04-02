@@ -1,8 +1,0 @@
-{
-  "testName" : "Restore with positive step",
-  "workloadCount" : 2,
-  "sourceFile" : "IdentityColumnSuite.scala",
-  "sourceLines" : "620-631",
-  "hasSchemaEvolution" : true,
-  "testId" : "ic_008_restore_positive_step"
-}

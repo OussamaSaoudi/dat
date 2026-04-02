@@ -1,7 +1,0 @@
-{
-  "testName" : "Read after UPDATE some rows",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadUpdateThenRead"
-}

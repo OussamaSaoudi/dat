@@ -1,7 +1,0 @@
-{
-  "testName" : "NOT IN predicate",
-  "workloadCount" : 4,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ds_not_in"
-}

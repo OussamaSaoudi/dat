@@ -1,7 +1,0 @@
-{
-  "testName" : "IN on nested field",
-  "workloadCount" : 2,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "new coverage",
-  "testId" : "ds_in_nested"
-}

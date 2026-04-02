@@ -1,7 +1,0 @@
-{
-  "testName" : "Partitioned by interval",
-  "workloadCount" : 1,
-  "sourceFile" : "IntervalTypeSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "intv_003_interval_partitioned"
-}

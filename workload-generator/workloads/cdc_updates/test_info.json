@@ -1,7 +1,0 @@
-{
-  "testName" : "Read CDC data with UPDATE operations",
-  "workloadCount" : 7,
-  "sourceFile" : "DeltaCDCSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cdc_updates"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Error reading non-delta path as delta",
-  "sourceFile" : "DeltaSuiteEdge.scala",
-  "sourceLines" : "synthetic",
-  "isErrorTest" : true,
-  "testId" : "dseReadNonDeltaPath"
-}

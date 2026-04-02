@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge with array and schema evolution",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-006",
-  "testId" : "mergeSchemaEvoAddArrayElement"
-}

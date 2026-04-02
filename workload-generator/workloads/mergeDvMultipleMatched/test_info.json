@@ -1,7 +1,0 @@
-{
-  "testName" : "Multiple WHEN MATCHED clauses with DVs",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoLowShuffleDvSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeDvMultipleMatched"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge with DELETE clause on DV-enabled table",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoLowShuffleDvSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeDvDeleteClause"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with mixed case partition column names",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadMixedCasePartition"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Read table with single row",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadSingleRow"
-}

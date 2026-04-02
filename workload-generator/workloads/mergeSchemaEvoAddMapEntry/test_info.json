@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge adds map data with schema evolution",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-005",
-  "testId" : "mergeSchemaEvoAddMapEntry"
-}

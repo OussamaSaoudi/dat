@@ -1,7 +1,0 @@
-{
-  "testName" : "Read after OPTIMIZE",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadAfterOptimize"
-}

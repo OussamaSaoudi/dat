@@ -1,8 +1,0 @@
-{
-  "testName" : "Read after adding column with default",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaDefaultSuite.scala",
-  "sourceLines" : "synthetic",
-  "hasSchemaEvolution" : true,
-  "testId" : "ddefReadDefaultAfterAdd"
-}

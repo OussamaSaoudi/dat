@@ -1,7 +1,0 @@
-{
-  "testName" : "Read CDC data for single version",
-  "workloadCount" : 4,
-  "sourceFile" : "DeltaCDCSuite.scala",
-  "sourceLines" : "462-527",
-  "testId" : "cdc_single_version"
-}

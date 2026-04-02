@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with SaveMode.Ignore on existing table (no change)",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadSaveModeIgnore"
-}

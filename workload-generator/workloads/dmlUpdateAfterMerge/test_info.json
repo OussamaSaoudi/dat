@@ -1,7 +1,0 @@
-{
-  "testName" : "UPDATE after MERGE",
-  "workloadCount" : 2,
-  "sourceFile" : "DMLReadBack.scala",
-  "sourceLines" : "DML-004",
-  "testId" : "dmlUpdateAfterMerge"
-}

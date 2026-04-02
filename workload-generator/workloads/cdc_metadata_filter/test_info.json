@@ -1,7 +1,0 @@
-{
-  "testName" : "CDC filtering by data values",
-  "workloadCount" : 4,
-  "sourceFile" : "DeltaCDCSuite.scala",
-  "sourceLines" : "750-775",
-  "testId" : "cdc_metadata_filter"
-}

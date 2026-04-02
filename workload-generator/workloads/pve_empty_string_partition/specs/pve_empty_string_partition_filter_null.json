@@ -1,9 +1,0 @@
-{
-  "type" : "read",
-  "predicate" : "tag IS NULL",
-  "expected" : {
-    "rowCount" : 4,
-    "fileCount" : 4,
-    "filesSkipped" : 1
-  }
-}

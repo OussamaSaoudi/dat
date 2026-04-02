@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with multiple partition columns",
-  "workloadCount" : 3,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadMultiPartition"
-}

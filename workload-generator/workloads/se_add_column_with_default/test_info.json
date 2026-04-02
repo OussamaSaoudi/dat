@@ -1,7 +1,0 @@
-{
-  "testName" : "Column added then populated with explicit values",
-  "workloadCount" : 2,
-  "sourceFile" : "SchemaEvolutionSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "se_add_column_with_default"
-}

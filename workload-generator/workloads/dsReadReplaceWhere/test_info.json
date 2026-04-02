@@ -1,7 +1,0 @@
-{
-  "testName" : "Read after replaceWhere partition overwrite",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadReplaceWhere"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Unknown writer feature does not block read",
-  "workloadCount" : 2,
-  "sourceFile" : "EvolvabilitySuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "ev_unknown_writer_feature"
-}

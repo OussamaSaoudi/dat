@@ -1,7 +1,0 @@
-{
-  "testName" : "Table with multiple struct columns, merge evolves one",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoStructEvolutionNullnessSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeStructEvoMultiStructCols"
-}

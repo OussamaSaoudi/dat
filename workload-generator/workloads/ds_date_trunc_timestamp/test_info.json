@@ -1,7 +1,0 @@
-{
-  "testName" : "date_trunc() on Timestamp",
-  "workloadCount" : 3,
-  "sourceFile" : "DataSkippingDeltaTests.scala",
-  "sourceLines" : "new coverage",
-  "testId" : "ds_date_trunc_timestamp"
-}

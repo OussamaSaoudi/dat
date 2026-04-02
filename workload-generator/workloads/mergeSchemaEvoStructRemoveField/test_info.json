@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge with struct missing field (null filled)",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-018",
-  "testId" : "mergeSchemaEvoStructRemoveField"
-}

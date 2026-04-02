@@ -1,7 +1,0 @@
-{
-  "testName" : "MERGE triggering auto schema evolution",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeReadBackSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mrb_with_schema_evolution"
-}

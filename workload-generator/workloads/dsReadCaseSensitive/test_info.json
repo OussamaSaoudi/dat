@@ -1,7 +1,0 @@
-{
-  "testName" : "Read with mixed case column names",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dsReadCaseSensitive"
-}

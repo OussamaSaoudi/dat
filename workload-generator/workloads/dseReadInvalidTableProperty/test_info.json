@@ -1,7 +1,0 @@
-{
-  "testName" : "Error: unsupported protocol version",
-  "sourceFile" : "DeltaSuiteEdge.scala",
-  "sourceLines" : "synthetic",
-  "isErrorTest" : true,
-  "testId" : "dseReadInvalidTableProperty"
-}

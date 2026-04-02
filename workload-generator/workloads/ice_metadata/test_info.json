@@ -1,7 +1,0 @@
-{
-  "testName" : "IcebergCompat table metadata verification",
-  "workloadCount" : 1,
-  "sourceFile" : "IcebergCompatSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ice_metadata"
-}

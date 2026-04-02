@@ -1,7 +1,0 @@
-{
-  "testName" : "DELETE on partitioned table",
-  "workloadCount" : 2,
-  "sourceFile" : "DeleteSuiteBase.scala",
-  "sourceLines" : "DEL-003",
-  "testId" : "deletePartitioned"
-}

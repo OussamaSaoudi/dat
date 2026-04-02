@@ -1,7 +1,0 @@
-{
-  "testName" : "Merge with reordered struct fields",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-019",
-  "testId" : "mergeSchemaEvoStructReorderFields"
-}

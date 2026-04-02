@@ -1,7 +1,0 @@
-{
-  "testName" : "INSERT OVERWRITE partition",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaInsertIntoSuite.scala",
-  "sourceLines" : "INS-003",
-  "testId" : "insertOverwritePartition"
-}

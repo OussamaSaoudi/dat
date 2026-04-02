@@ -1,7 +1,0 @@
-{
-  "testName" : "Read identity with various start/step configurations",
-  "workloadCount" : 3,
-  "sourceFile" : "IdentityColumnSuite.scala",
-  "sourceLines" : "115-148",
-  "testId" : "ic_001_various_config"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Time travel with checkpoint between versions",
-  "workloadCount" : 4,
-  "sourceFile" : "TimeTravelSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "tt_checkpoint_between"
-}

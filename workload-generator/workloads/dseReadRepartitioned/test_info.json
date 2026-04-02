@@ -1,7 +1,0 @@
-{
-  "testName" : "Read after repartition write",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaSuiteEdge.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "dseReadRepartitioned"
-}

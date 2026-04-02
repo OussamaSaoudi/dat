@@ -1,7 +1,0 @@
-{
-  "testName" : "MERGE with CDF enabled",
-  "workloadCount" : 3,
-  "sourceFile" : "MergeReadBackSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mrb_with_cdf"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Malformed DV path error",
-  "sourceFile" : "DeletionVectorsSuite.scala",
-  "sourceLines" : "777",
-  "isErrorTest" : true,
-  "testId" : "dv_err_003_malformed_path"
-}

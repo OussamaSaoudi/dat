@@ -1,8 +1,0 @@
-{
-  "testName" : "Time travel with column mapping changes",
-  "workloadCount" : 3,
-  "sourceFile" : "TimeTravelSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "hasSchemaEvolution" : true,
-  "testId" : "tt_column_mapping"
-}

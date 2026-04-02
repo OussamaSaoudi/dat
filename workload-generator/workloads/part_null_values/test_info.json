@@ -1,7 +1,0 @@
-{
-  "testName" : "Partition with NULL values",
-  "workloadCount" : 3,
-  "sourceFile" : "PartitionSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "part_null_values"
-}

@@ -1,8 +1,0 @@
-{
-  "testName" : "Predicate on renamed column",
-  "workloadCount" : 3,
-  "sourceFile" : "SchemaEvolutionSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "hasSchemaEvolution" : true,
-  "testId" : "se_rename_pred"
-}

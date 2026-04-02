@@ -1,7 +1,0 @@
-{
-  "testName" : "Partition value encoding: boolean type",
-  "workloadCount" : 3,
-  "sourceFile" : "PartitionSuiteCapture.scala",
-  "sourceLines" : "protocol-spec",
-  "testId" : "pve_boolean_partition"
-}

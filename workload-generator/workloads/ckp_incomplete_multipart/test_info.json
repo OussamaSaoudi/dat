@@ -1,7 +1,0 @@
-{
-  "testName" : "Multi-part checkpoint with one part missing (fallback to JSON replay)",
-  "workloadCount" : 1,
-  "sourceFile" : "CheckpointsSuite.scala",
-  "sourceLines" : "synthetic incomplete multipart test",
-  "testId" : "ckp_incomplete_multipart"
-}

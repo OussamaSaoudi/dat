@@ -1,7 +1,0 @@
-{
-  "testName" : "State reconstruction without Protocol action",
-  "sourceFile" : "synthetic",
-  "sourceLines" : "synthetic",
-  "isErrorTest" : true,
-  "testId" : "log_err_missing_protocol"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "Sub-second DayTimeInterval",
-  "workloadCount" : 1,
-  "sourceFile" : "IntervalTypeSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "intv_sub_second"
-}

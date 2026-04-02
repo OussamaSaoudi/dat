@@ -1,7 +1,0 @@
-{
-  "testName" : "Schema evolution merge on DV table",
-  "workloadCount" : 1,
-  "sourceFile" : "MergeIntoLowShuffleDvSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "mergeDvSchemaEvolution"
-}

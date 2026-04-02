@@ -1,8 +1,0 @@
-{
-  "testName" : "Read after column mapping upgrade",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaColumnMappingSuite.scala",
-  "sourceLines" : "synthetic upgrade test",
-  "hasSchemaEvolution" : true,
-  "testId" : "cm_upgrade"
-}

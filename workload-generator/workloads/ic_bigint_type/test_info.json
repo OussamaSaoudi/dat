@@ -1,7 +1,0 @@
-{
-  "testName" : "Identity column with bigint type",
-  "workloadCount" : 2,
-  "sourceFile" : "IdentityColumnSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "ic_bigint_type"
-}

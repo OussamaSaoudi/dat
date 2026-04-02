@@ -1,7 +1,0 @@
-{
-  "testName" : "Nested variant stats",
-  "workloadCount" : 1,
-  "sourceFile" : "VariantDataSkippingStatsSuite.scala",
-  "sourceLines" : "290-307",
-  "testId" : "var_003_nested_stats"
-}

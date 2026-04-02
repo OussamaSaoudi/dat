@@ -1,7 +1,0 @@
-{
-  "testName" : "CDC after OPTIMIZE",
-  "workloadCount" : 4,
-  "sourceFile" : "CDCSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cdc_optimize"
-}

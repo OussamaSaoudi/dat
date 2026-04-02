@@ -1,7 +1,0 @@
-{
-  "testName" : "Variant with large JSON array",
-  "workloadCount" : 1,
-  "sourceFile" : "VariantSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "var_large_array"
-}

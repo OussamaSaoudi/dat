@@ -1,8 +1,0 @@
-{
-  "testName" : "Table state after protocol change (for logging verification)",
-  "workloadCount" : 2,
-  "sourceFile" : "DeltaProtocolVersionSuite.scala",
-  "sourceLines" : "2406-2473",
-  "hasSchemaEvolution" : true,
-  "testId" : "pv_102_protocol_change_logging"
-}

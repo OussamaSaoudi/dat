@@ -1,7 +1,0 @@
-{
-  "testName" : "Query columns in different order than schema",
-  "workloadCount" : 3,
-  "sourceFile" : "DataSkippingSuiteCapture.scala",
-  "sourceLines" : "data-skipping-gaps",
-  "testId" : "ds_schema_order_mismatch"
-}

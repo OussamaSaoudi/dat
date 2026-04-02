@@ -1,7 +1,0 @@
-{
-  "testName" : "Nested ARRAY<ARRAY<INT>> column",
-  "workloadCount" : 1,
-  "sourceFile" : "CoreReadsSuiteCapture.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "cr_array_of_arrays"
-}

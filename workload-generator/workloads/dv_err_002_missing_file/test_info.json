@@ -1,7 +1,0 @@
-{
-  "testName" : "Missing DV file error",
-  "sourceFile" : "DeletionVectorsSuite.scala",
-  "sourceLines" : "753",
-  "isErrorTest" : true,
-  "testId" : "dv_err_002_missing_file"
-}

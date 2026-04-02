@@ -1,7 +1,0 @@
-{
-  "testName" : "Identity column with partitioned table",
-  "workloadCount" : 3,
-  "sourceFile" : "IdentityColumnSuiteCapture.scala",
-  "sourceLines" : "custom",
-  "testId" : "ic_partitioned"
-}

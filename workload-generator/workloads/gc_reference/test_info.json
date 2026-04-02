@@ -1,7 +1,0 @@
-{
-  "testName" : "Generated column referencing other columns",
-  "workloadCount" : 2,
-  "sourceFile" : "GeneratedColumnSuite.scala",
-  "sourceLines" : "various",
-  "testId" : "gc_reference"
-}

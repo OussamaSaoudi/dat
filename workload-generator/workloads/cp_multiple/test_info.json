@@ -1,7 +1,0 @@
-{
-  "testName" : "Multiple checkpoints",
-  "workloadCount" : 4,
-  "sourceFile" : "CheckpointsSuite.scala",
-  "sourceLines" : "custom",
-  "testId" : "cp_multiple"
-}

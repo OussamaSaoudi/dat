@@ -1,7 +1,0 @@
-{
-  "testName" : "Read table with various default value types",
-  "workloadCount" : 1,
-  "sourceFile" : "DeltaDefaultSuite.scala",
-  "sourceLines" : "synthetic",
-  "testId" : "ddefReadDefaultTypes"
-}

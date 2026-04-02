@@ -1,7 +1,0 @@
-{
-  "testName" : "MERGE with boolean columns",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSuiteBase.scala",
-  "sourceLines" : "MERGE-014",
-  "testId" : "mergeBooleanValues"
-}

@@ -1,7 +1,0 @@
-{
-  "testName" : "UPDATE SET * with extra column in source",
-  "workloadCount" : 2,
-  "sourceFile" : "MergeIntoSchemaEvolutionSuite.scala",
-  "sourceLines" : "SE-012",
-  "testId" : "mergeSchemaEvoUpdateStarNewCol"
-}
