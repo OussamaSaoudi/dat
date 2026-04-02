@@ -404,7 +404,8 @@ object WorkloadGenerator {
       // Repro
       saveRepro(testOutputDir, scriptContent)
 
-      val total = snapshotNames.size + readNames.size + cdfNames.size
+      val total = snapshotNames.size + readNames.size + cdfNames.size +
+        ts.domainMetadataSpecs.size + ts.txnSpecs.size
       println(s"  $dirName: $total specs")
 
       WorkloadResult(testOutputDir.toString, dirName, total,
