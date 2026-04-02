@@ -145,9 +145,7 @@ object WorkloadGenerator {
   def reset(): Unit = registry.clear()
   def list(): Seq[String] = registry.keys.toSeq
 
-  // ---------------------------------------------------------------------------
   // Internal: generate one table's workload directory
-  // ---------------------------------------------------------------------------
 
   private def generateTable(
       spark: SparkSession,
@@ -302,11 +300,11 @@ object WorkloadGenerator {
 
           val spec = new java.util.LinkedHashMap[String, Any]()
           spec.put("type", "domain_metadata")
-          dm.version.foreach(v => spec.put("version", v.asInstanceOf[AnyRef]))
+          dm.version.foreach(v => spec.put("version", v))
           val expected = new java.util.LinkedHashMap[String, Any]()
           expected.put("domain", dm.domain)
           expected.put("configuration", dm.configuration)
-          expected.put("removed", dm.removed.asInstanceOf[AnyRef])
+          expected.put("removed", dm.removed)
           spec.put("expected", expected)
           JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
         } catch {
@@ -353,10 +351,10 @@ object WorkloadGenerator {
 
           val spec = new java.util.LinkedHashMap[String, Any]()
           spec.put("type", "txn")
-          tx.version.foreach(v => spec.put("version", v.asInstanceOf[AnyRef]))
+          tx.version.foreach(v => spec.put("version", v))
           val expected = new java.util.LinkedHashMap[String, Any]()
           expected.put("appId", tx.appId)
-          expected.put("txnVersion", tx.txnVersion.asInstanceOf[AnyRef])
+          expected.put("txnVersion", tx.txnVersion)
           spec.put("expected", expected)
           JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
         } catch {
@@ -372,7 +370,7 @@ object WorkloadGenerator {
       testInfo.put("test_name", ts.description)
       testInfo.put("workload_count",
         (ts.readSpecs.size + ts.cdfSpecs.size + ts.snapshotSpecs.size +
-          ts.domainMetadataSpecs.size + ts.txnSpecs.size).asInstanceOf[AnyRef])
+          ts.domainMetadataSpecs.size + ts.txnSpecs.size))
       JsonUtil.writeJson(testOutputDir.resolve("test_info.json"), testInfo)
 
       // Repro

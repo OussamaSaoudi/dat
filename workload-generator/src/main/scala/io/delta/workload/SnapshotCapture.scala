@@ -20,7 +20,6 @@ import java.nio.file.{Files, Path}
 
 import scala.util.control.NonFatal
 
-// Uses JsonUtil.mapper for JSON operations
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
@@ -35,7 +34,7 @@ import org.apache.spark.sql.delta.DeltaLog
  */
 object SnapshotCapture {
 
-  private def mapper = JsonUtil.mapper
+  
 
   /**
    * Capture a snapshot construction spec.
@@ -85,12 +84,12 @@ object SnapshotCapture {
     val expectedBlock = new java.util.LinkedHashMap[String, Any]()
     expectedBlock.put("version", snapshot.version.asInstanceOf[AnyRef])
 
-    val protocolTree = mapper.readTree(snapshot.protocol.json)
-    expectedBlock.put("protocol", mapper.treeToValue(
+    val protocolTree = JsonUtil.mapper.readTree(snapshot.protocol.json)
+    expectedBlock.put("protocol", JsonUtil.mapper.treeToValue(
       protocolTree.get("protocol"), classOf[Any]))
 
-    val metadataTree = mapper.readTree(snapshot.metadata.json)
-    expectedBlock.put("metadata", mapper.treeToValue(
+    val metadataTree = JsonUtil.mapper.readTree(snapshot.metadata.json)
+    expectedBlock.put("metadata", JsonUtil.mapper.treeToValue(
       metadataTree.get("metaData"), classOf[Any]))
 
     snapshotSpec.put("expected", expectedBlock)
@@ -112,7 +111,7 @@ object SnapshotCapture {
       specsDir: Path): Unit = {
     val specFile = specsDir.resolve(s"$specName.json")
     require(Files.exists(specFile), s"Snapshot spec file missing after capture: $specFile")
-    val spec = mapper.readTree(Files.readAllBytes(specFile))
+    val spec = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
 
     DeltaLog.clearCache()
     val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
@@ -146,20 +145,20 @@ object SnapshotCapture {
     }
 
     if (expected.has("protocol")) {
-      val expectedProto = mapper.readTree(mapper.writeValueAsString(expected.get("protocol")))
-      val actualProto = mapper.readTree(
-        mapper.writeValueAsString(
-          mapper.treeToValue(mapper.readTree(snapshot.protocol.json).get("protocol"), classOf[Any])))
+      val expectedProto = JsonUtil.mapper.readTree(JsonUtil.mapper.writeValueAsString(expected.get("protocol")))
+      val actualProto = JsonUtil.mapper.readTree(
+        JsonUtil.mapper.writeValueAsString(
+          JsonUtil.mapper.treeToValue(JsonUtil.mapper.readTree(snapshot.protocol.json).get("protocol"), classOf[Any])))
       require(expectedProto.equals(actualProto),
         s"Snapshot validation failed for $specName: protocol mismatch\n" +
           s"  expected: $expectedProto\n  actual: $actualProto")
     }
 
     if (expected.has("metadata")) {
-      val expectedMeta = mapper.readTree(mapper.writeValueAsString(expected.get("metadata")))
-      val actualMeta = mapper.readTree(
-        mapper.writeValueAsString(
-          mapper.treeToValue(mapper.readTree(snapshot.metadata.json).get("metaData"), classOf[Any])))
+      val expectedMeta = JsonUtil.mapper.readTree(JsonUtil.mapper.writeValueAsString(expected.get("metadata")))
+      val actualMeta = JsonUtil.mapper.readTree(
+        JsonUtil.mapper.writeValueAsString(
+          JsonUtil.mapper.treeToValue(JsonUtil.mapper.readTree(snapshot.metadata.json).get("metaData"), classOf[Any])))
       require(expectedMeta.equals(actualMeta),
         s"Snapshot validation failed for $specName: metadata mismatch")
     }

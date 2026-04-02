@@ -42,7 +42,7 @@ object TableCopier {
   }
 
   /** Recursively copy a directory tree preserving mtimes. */
-  def copyDirectory(src: Path, dest: Path): Unit = {
+  private def copyDirectory(src: Path, dest: Path): Unit = {
     if (!Files.exists(src)) return
     if (Files.exists(dest)) FileUtils.deleteDirectory(dest.toFile)
     val stream = Files.walk(src)
@@ -70,7 +70,7 @@ object TableCopier {
    * Ensures readers using file mtime produce the same timestamps as those
    * reading commitInfo.timestamp from JSON.
    */
-  def syncCommitFileTimestamps(tablePath: Path): Unit = {
+  private def syncCommitFileTimestamps(tablePath: Path): Unit = {
     val deltaLogDir = tablePath.resolve("_delta_log")
     if (!Files.exists(deltaLogDir)) return
     val stream = Files.list(deltaLogDir)

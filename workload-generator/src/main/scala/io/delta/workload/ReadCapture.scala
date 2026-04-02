@@ -123,9 +123,9 @@ object ReadCapture {
       rowCount: Long, fileCount: Int, totalFileCount: Long): Unit = {
     val spec = buildSpecBase(version, timestamp, predicate, columns)
     val expected = new java.util.LinkedHashMap[String, Any]()
-    expected.put("rowCount", rowCount.asInstanceOf[AnyRef])
-    expected.put("fileCount", fileCount.asInstanceOf[AnyRef])
-    expected.put("filesSkipped", (totalFileCount - fileCount).asInstanceOf[AnyRef])
+    expected.put("rowCount", rowCount)
+    expected.put("fileCount", fileCount)
+    expected.put("filesSkipped", (totalFileCount - fileCount))
     spec.put("expected", expected)
     JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
   }
@@ -149,7 +149,7 @@ object ReadCapture {
   ): java.util.LinkedHashMap[String, Any] = {
     val spec = new java.util.LinkedHashMap[String, Any]()
     spec.put("type", "read")
-    version.foreach(v => spec.put("version", v.asInstanceOf[AnyRef]))
+    version.foreach(v => spec.put("version", v))
     timestamp.foreach(ts => spec.put("timestamp", ts))
     predicate.foreach(p => spec.put("predicate", p))
     columns.foreach(cols => spec.put("columns", cols.asJava))

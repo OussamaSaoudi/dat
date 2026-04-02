@@ -19,16 +19,13 @@ package io.delta.workload
 import java.nio.file.{Files, Path}
 
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
 object TableInfoWriter {
 
-  private def mapper = JsonUtil.mapper
+  
 
   def write(
       spark: SparkSession,
@@ -46,14 +43,14 @@ object TableInfoWriter {
       tableInfo.put("name", name)
       tableInfo.put("description", description)
 
-      val schemaObj = mapper.readValue(snapshot.metadata.schemaString, classOf[Any])
+      val schemaObj = JsonUtil.mapper.readValue(snapshot.metadata.schemaString, classOf[Any])
       tableInfo.put("schema", schemaObj)
 
       val protocolInfo = new java.util.LinkedHashMap[String, Any]()
       protocolInfo.put("minReaderVersion",
-        snapshot.protocol.minReaderVersion.asInstanceOf[AnyRef])
+        snapshot.protocol.minReaderVersion)
       protocolInfo.put("minWriterVersion",
-        snapshot.protocol.minWriterVersion.asInstanceOf[AnyRef])
+        snapshot.protocol.minWriterVersion)
       val readerFeatures = snapshot.protocol.readerFeatureNames
       if (readerFeatures.nonEmpty) {
         protocolInfo.put("readerFeatures", readerFeatures.toSeq.sorted.asJava)
@@ -65,12 +62,12 @@ object TableInfoWriter {
       tableInfo.put("protocol", protocolInfo)
 
       val logInfoMap = new java.util.LinkedHashMap[String, Any]()
-      logInfoMap.put("numAddFiles", snapshot.numOfFiles.asInstanceOf[AnyRef])
-      logInfoMap.put("numRemoveFiles", snapshot.numOfRemoves.asInstanceOf[AnyRef])
-      logInfoMap.put("sizeInBytes", snapshot.sizeInBytes.asInstanceOf[AnyRef])
+      logInfoMap.put("numAddFiles", snapshot.numOfFiles)
+      logInfoMap.put("numRemoveFiles", snapshot.numOfRemoves)
+      logInfoMap.put("sizeInBytes", snapshot.sizeInBytes)
 
       val logSegment = snapshot.logSegment
-      logInfoMap.put("numCommits", logSegment.deltas.size.asInstanceOf[AnyRef])
+      logInfoMap.put("numCommits", logSegment.deltas.size)
 
       val numActions = try {
         val deltaLogDir = tablePath.resolve("_delta_log")
@@ -79,10 +76,10 @@ object TableInfoWriter {
           .map(p => Files.readAllLines(p).size().toLong)
           .sum
       } catch { case _: Exception => 0L }
-      logInfoMap.put("numActions", numActions.asInstanceOf[AnyRef])
+      logInfoMap.put("numActions", numActions)
 
       val lastCheckpointVersion = logSegment.checkpointProvider.version
-      logInfoMap.put("lastCheckpointVersion", lastCheckpointVersion.asInstanceOf[AnyRef])
+      logInfoMap.put("lastCheckpointVersion", lastCheckpointVersion)
 
       val lastCrcVersion = try {
         val deltaLogDir = tablePath.resolve("_delta_log")
@@ -95,12 +92,12 @@ object TableInfoWriter {
           }
           .toSeq.sorted.lastOption.getOrElse(-1L)
       } catch { case _: Exception => -1L }
-      logInfoMap.put("lastCrcVersion", lastCrcVersion.asInstanceOf[AnyRef])
+      logInfoMap.put("lastCrcVersion", lastCrcVersion)
 
       val numCheckpointFiles = try {
         logSegment.checkpointProvider.topLevelFiles.size
       } catch { case _: Exception => 0 }
-      logInfoMap.put("numCheckpointFiles", numCheckpointFiles.asInstanceOf[AnyRef])
+      logInfoMap.put("numCheckpointFiles", numCheckpointFiles)
 
       tableInfo.put("logInfo", logInfoMap)
 
@@ -109,17 +106,17 @@ object TableInfoWriter {
 
       val dataLayout = new java.util.LinkedHashMap[String, Any]()
       val numClusteringColumns = 0 // Clustering is not available in OSS Delta
-      dataLayout.put("numClusteringColumns", numClusteringColumns.asInstanceOf[AnyRef])
+      dataLayout.put("numClusteringColumns", numClusteringColumns)
 
       val partCols = snapshot.metadata.partitionColumns
-      dataLayout.put("numPartitionColumns", partCols.size.asInstanceOf[AnyRef])
+      dataLayout.put("numPartitionColumns", partCols.size)
 
       val numDistinctPartitions = if (partCols.nonEmpty) {
         try {
           snapshot.allFiles.select("partitionValues").distinct().count()
         } catch { case _: Exception => 0L }
       } else 0L
-      dataLayout.put("numDistinctPartitions", numDistinctPartitions.asInstanceOf[AnyRef])
+      dataLayout.put("numDistinctPartitions", numDistinctPartitions)
       tableInfo.put("dataLayout", dataLayout)
 
       if (tags.nonEmpty) {

@@ -67,7 +67,7 @@ object CdfCapture {
           val spec = buildCdfSpecBase(startVersion, endVersion, startTimestamp, endTimestamp,
             predicate, columns)
           val expected = new java.util.LinkedHashMap[String, Any]()
-          expected.put("rowCount", count.asInstanceOf[AnyRef])
+          expected.put("rowCount", count)
           spec.put("expected", expected)
           JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
 
@@ -107,9 +107,9 @@ object CdfCapture {
   ): java.util.LinkedHashMap[String, Any] = {
     val spec = new java.util.LinkedHashMap[String, Any]()
     spec.put("type", "cdf")
-    startVersion.foreach(v => spec.put("startVersion", v.asInstanceOf[AnyRef]))
+    startVersion.foreach(v => spec.put("startVersion", v))
     startTimestamp.foreach(ts => spec.put("startTimestamp", ts))
-    endVersion.foreach(v => spec.put("endVersion", v.asInstanceOf[AnyRef]))
+    endVersion.foreach(v => spec.put("endVersion", v))
     endTimestamp.foreach(ts => spec.put("endTimestamp", ts))
     predicate.foreach(p => spec.put("predicate", p))
     columns.foreach(cols => spec.put("columns", cols.asJava))
