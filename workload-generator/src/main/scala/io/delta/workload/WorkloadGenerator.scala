@@ -135,6 +135,9 @@ object WorkloadGenerator {
     val ctx = new WorkloadContext(spark, name, wd.tags)
     try {
       wd.body(ctx)
+      if (ctx.tableSpecs.size == 1) {
+        ctx.tableSpecs.head.resolveOutputName(name)
+      }
       ctx.tableSpecs.map(ts => generateTable(spark, ts, Paths.get(outputDir), scriptContent)).toSeq
     } finally {
       ctx.cleanup()
@@ -394,16 +397,9 @@ object WorkloadGenerator {
         }
       }
 
-      // table_info.json + test_info.json
+      // table_info.json
       TableInfoWriter.write(spark, destTablePath, testOutputDir,
         name = dirName, description = ts.description, tags = ts.tags)
-      val testInfo = new java.util.LinkedHashMap[String, Any]()
-      testInfo.put("test_id", dirName)
-      testInfo.put("test_name", ts.description)
-      testInfo.put("workload_count",
-        (ts.readSpecs.size + ts.cdfSpecs.size + ts.snapshotSpecs.size +
-          ts.domainMetadataSpecs.size + ts.txnSpecs.size))
-      JsonUtil.writeJson(testOutputDir.resolve("test_info.json"), testInfo)
 
       // Repro
       saveRepro(testOutputDir, scriptContent)
@@ -441,8 +437,12 @@ object WorkloadGenerator {
     val logDir = tablePath.resolve("_delta_log")
     val stream = Files.list(logDir)
     try {
+      // Only plain commit files (00000...NNN.json), not checkpoint manifests
       val commitFiles = stream.iterator().asScala
-        .filter(_.toString.endsWith(".json"))
+        .filter { p =>
+          val name = p.getFileName.toString
+          name.endsWith(".json") && !name.contains(".checkpoint.")
+        }
         .toSeq.sortBy(_.getFileName.toString)
       val domainState = new java.util.LinkedHashMap[String, com.fasterxml.jackson.databind.JsonNode]()
       for (commitFile <- commitFiles) {
@@ -515,8 +515,9 @@ class TableHandle private[workload] (
         else if (ci.has("timestamp")) ci.get("timestamp").asLong()
         else throw new RuntimeException(s"No timestamp in commitInfo for version $version")
       }.next()
+    val sessionTz = ctx.spark.conf.get("spark.sql.session.timeZone", "UTC")
     val fmt = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-    fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+    fmt.setTimeZone(java.util.TimeZone.getTimeZone(sessionTz))
     fmt.format(new java.util.Date(tsMillis))
   }
 }
@@ -666,8 +667,8 @@ class WorkloadContext private[workload] (
   /**
    * Modify actions in a specific commit version.
    * The modifier receives the action type (e.g. "add", "remove", "metaData") and
-   * the action ObjectNode. Return true to include the (potentially modified) action,
-   * false to drop it.
+   * the action ObjectNode. Return true to keep the action, false to drop it.
+   * CommitInfo is always preserved regardless of modifier return value.
    */
   def modifyCommitActions(table: TableHandle, version: Long)(
       modifier: (String, ObjectNode) => Boolean): Unit = {
@@ -677,13 +678,16 @@ class WorkloadContext private[workload] (
         val lines = new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
         val newLines = lines.flatMap { line =>
           val node = JsonUtil.mapper.readTree(line)
-          val actionType = node.fieldNames().next() // first key is the action type
+          val actionType = node.fieldNames().next()
           val actionNode = node.get(actionType)
-          if (actionNode.isObject) {
+          if (actionType == "commitInfo") {
+            // Always preserve commitInfo
+            Some(line)
+          } else if (actionNode.isObject) {
             if (modifier(actionType, actionNode.asInstanceOf[ObjectNode])) {
               Some(JsonUtil.mapper.writeValueAsString(node))
-            } else None // drop this action
-          } else Some(line) // non-object (e.g. commitInfo string) — keep as-is
+            } else None
+          } else Some(line)
         }
         Files.write(commitFile, newLines.mkString("\n").getBytes("UTF-8"))
         TableCopier.invalidateChecksumFilesForModifiedCommit(commitFile)

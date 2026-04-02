@@ -132,7 +132,15 @@ object TableInfoWriter {
       JsonUtil.writeJson(outputDir.resolve("table_info.json"), tableInfo)
     } catch {
       case e: Exception =>
-        System.err.println(s"WARN: Could not write table_info.json: ${e.getMessage}")
+        System.err.println(s"WARN: Could not write full table_info.json: ${e.getMessage}")
+        // Write minimal table_info.json so skip-on-rerun sentinel exists
+        try {
+          val minimal = new java.util.LinkedHashMap[String, Any]()
+          minimal.put("name", name)
+          minimal.put("description", description)
+          minimal.put("error", s"Metadata scan failed: ${e.getMessage}")
+          JsonUtil.writeJson(outputDir.resolve("table_info.json"), minimal)
+        } catch { case _: Exception => }
     }
   }
 }

@@ -80,7 +80,7 @@ export WORKLOAD_FORCE="${FORCE:-false}"
 
 # Resolve input: single file or directory of .scala files
 if [[ -d "$INPUT" ]]; then
-  SCRIPTS=($(find "$INPUT" -name '*.scala' -type f | sort))
+  mapfile -t SCRIPTS < <(find "$INPUT" -name '*.scala' -type f | sort)
   echo "Running ${#SCRIPTS[@]} suites from $INPUT"
 else
   SCRIPTS=("$INPUT")

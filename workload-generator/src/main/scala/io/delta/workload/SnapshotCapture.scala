@@ -18,8 +18,6 @@ package io.delta.workload
 
 import java.nio.file.{Files, Path}
 
-import scala.util.control.NonFatal
-
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
