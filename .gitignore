@@ -168,3 +168,7 @@ junit
 
 # Out folder
 out
+# Workload generator build artifacts
+workload-generator/target/
+workload-generator/project/target/
+workload-generator/project/project/
