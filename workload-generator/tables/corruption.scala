@@ -183,7 +183,6 @@ new WorkloadSuite("corruption") {
 
   // === Corrupt Tables Extended ===
 
-  // --- ct_* corrupt table workloads ---
 
   test("ct_corrupt_parquet", "Truncated parquet data file", "corrupt") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
@@ -380,7 +379,6 @@ new WorkloadSuite("corruption") {
     w.snapshot(t)
   }
 
-  // --- corrupt_* CRC and checkpoint corruption workloads ---
 
   test("corrupt_crc_empty", "Empty CRC file", "corrupt", "resilience") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
@@ -584,7 +582,6 @@ new WorkloadSuite("corruption") {
     w.snapshot(t)
   }
 
-  // --- err_* error workloads ---
 
   test("err_add_and_remove_same_path_dv", "Same path+dvId in both add and remove", "corrupt", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta

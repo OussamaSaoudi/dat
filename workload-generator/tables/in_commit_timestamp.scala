@@ -1,6 +1,5 @@
 new WorkloadSuite("in_commit_timestamp") {
 
-  // -- ict_basic: basic ICT read --
   test("ict_basic", "Basic ICT read", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -10,7 +9,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_create_or_replace: ICT preserved across REPLACE --
   test("ict_create_or_replace", "ICT preserved across REPLACE", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -21,7 +19,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_dml: ICT with DML operations --
   test("ict_dml", "ICT with DML operations", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -34,7 +31,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_enable_later: enable ICT on existing table --
   test("ict_enable_later", "Enable ICT on existing table", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'false', 'delta.enableDeletionVectors' = 'true')""")
@@ -53,7 +49,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t, version = 3)
   }
 
-  // -- ict_enabled_mid_lifecycle: ICT enabled at version N --
   test("ict_enabled_mid_lifecycle", "ICT enabled at version N", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'false', 'delta.enableDeletionVectors' = 'true')""")
@@ -74,7 +69,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t, version = 4)
   }
 
-  // -- ict_from_checkpoint: ICT from checkpoint --
   test("ict_from_checkpoint", "ICT from checkpoint", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES (
@@ -87,7 +81,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_from_crc: ICT value read from CRC file --
   test("ict_from_crc", "ICT value read from CRC file", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -99,7 +92,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_multiple_commits: ICT with multiple commits --
   test("ict_multiple_commits", "ICT with multiple commits", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -116,7 +108,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_time_travel: ICT with time travel --
   test("ict_time_travel", "ICT with time travel", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
@@ -133,7 +124,6 @@ new WorkloadSuite("in_commit_timestamp") {
     w.snapshot(t)
   }
 
-  // -- ict_with_checkpoint: ICT after checkpoint compaction --
   test("ict_with_checkpoint", "ICT after checkpoint compaction", "inCommitTimestamp") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES (

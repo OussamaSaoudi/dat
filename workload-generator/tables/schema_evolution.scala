@@ -80,7 +80,6 @@ new WorkloadSuite("schema_evolution") {
     w.snapshotHistory(t)
   }
 
-  // --- New workloads below ---
 
   test("schema_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution") { w =>
     w.sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
@@ -243,7 +242,6 @@ new WorkloadSuite("schema_evolution") {
     w.snapshotHistory(t)
   }
 
-  // --- se_* named workloads (matching acceptance_workloads directories) ---
 
   test("se_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution", "predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta

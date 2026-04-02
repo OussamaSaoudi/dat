@@ -8,9 +8,7 @@
 
 new WorkloadSuite("evolvability") {
 
-  // ---------------------------------------------------------------------------
   // Evolvability: basic reads with unknown actions
-  // ---------------------------------------------------------------------------
 
   test("ev_batch_read", "Transaction log schema evolvability - batch read",
       "evolvability") { w =>
@@ -42,9 +40,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Protocol evolvability
-  // ---------------------------------------------------------------------------
 
   test("ev_protocol", "Protocol evolvability", "evolvability") { w =>
     w.sql("CREATE TABLE tbl (id LONG) USING delta")
@@ -75,9 +71,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Unknown protocol features
-  // ---------------------------------------------------------------------------
 
   test("ev_unknown_protocol_feature", "Protocol with unrecognized writer feature",
       "evolvability") { w =>
@@ -143,9 +137,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Schema evolution
-  // ---------------------------------------------------------------------------
 
   test("ev_schema_evolution", "Schema evolution across versions",
       "evolvability", "schemaEvolution") { w =>
@@ -170,9 +162,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Partitioned + null partition values
-  // ---------------------------------------------------------------------------
 
   test("ev_partitioned", "Partitioned table evolvability", "evolvability") { w =>
     w.sql("CREATE TABLE tbl (id LONG, part STRING) USING delta PARTITIONED BY (part)")
@@ -193,9 +183,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // CommitInfo with future fields
-  // ---------------------------------------------------------------------------
 
   test("ev_future_commit_info", "CommitInfo with unknown future fields",
       "evolvability") { w =>
@@ -218,9 +206,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Missing intermediate version
-  // ---------------------------------------------------------------------------
 
   test("ev_missing_intermediate_version", "Log with version gap",
       "evolvability") { w =>
@@ -246,9 +232,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: unknown fields in add
-  // ---------------------------------------------------------------------------
 
   test("fc_unknown_field_in_add", "Forward compat - unknown field in add action",
       "formatCompat") { w =>
@@ -274,9 +258,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: unknown field in metadata
-  // ---------------------------------------------------------------------------
 
   test("fc_unknown_field_in_metadata", "Forward compat - unknown field in metadata",
       "formatCompat") { w =>
@@ -299,9 +281,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: unknown field in protocol
-  // ---------------------------------------------------------------------------
 
   test("fc_unknown_field_in_protocol", "Forward compat - unknown field in protocol",
       "formatCompat") { w =>
@@ -324,9 +304,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: unknown action at top level
-  // ---------------------------------------------------------------------------
 
   test("fc_unknown_action_top_level", "Forward compat - unknown action at top level",
       "formatCompat") { w =>
@@ -343,9 +321,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: null fields in add action
-  // ---------------------------------------------------------------------------
 
   test("fc_null_fields_in_add", "Forward compat - null fields in add action",
       "formatCompat") { w =>
@@ -372,9 +348,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: empty JSON line in commit file
-  // ---------------------------------------------------------------------------
 
   test("fc_empty_json_line", "Forward compat - empty JSON line in commit file",
       "formatCompat") { w =>
@@ -392,9 +366,7 @@ new WorkloadSuite("evolvability") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Format Compatibility: extra metadata configuration keys
-  // ---------------------------------------------------------------------------
 
   test("fc_extra_metadata_keys", "Forward compat - extra metadata configuration keys",
       "formatCompat") { w =>

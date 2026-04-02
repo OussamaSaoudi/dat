@@ -1,6 +1,5 @@
 new WorkloadSuite("generated_columns") {
 
-  // -- gc_basic: basic generated column --
   test("gc_basic", "Basic generated column (id * 2)", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id LONG,
@@ -13,7 +12,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_arithmetic_expr: price * quantity --
   test("gc_arithmetic_expr", "Generated column with arithmetic expression", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       price DOUBLE,
@@ -27,7 +25,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_case_when: CASE WHEN expression --
   test("gc_case_when", "Generated column with CASE WHEN", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       value INT,
@@ -41,7 +38,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_coalesce_null: COALESCE expression --
   test("gc_coalesce_null", "Generated column with COALESCE", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       nickname STRING,
@@ -56,7 +52,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_concat_expr: CONCAT expression --
   test("gc_concat_expr", "Generated column with CONCAT", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       first_name STRING,
@@ -70,7 +65,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_date_format_expr: DATE_FORMAT expression --
   test("gc_date_format_expr", "Generated column with DATE_FORMAT", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       event_date DATE,
@@ -83,7 +77,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_datetime: CAST timestamp to date/hour --
   test("gc_datetime", "Generated columns from timestamp", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       event_time TIMESTAMP,
@@ -101,7 +94,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_math: SQRT(x^2 + y^2) --
   test("gc_math", "Generated column with SQRT expression", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       x DOUBLE,
@@ -115,7 +107,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_multiple: multiple generated columns --
   test("gc_multiple", "Multiple generated columns", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id LONG,
@@ -130,7 +121,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_nested: generated from nested struct field --
   test("gc_nested", "Generated column from struct field", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       data STRUCT<x: INT, y: INT>,
@@ -146,7 +136,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_null_expression_result: CAST that can return NULL --
   test("gc_null_expression_result", "Generated column that can be NULL", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       value STRING,
@@ -162,7 +151,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_partition_col: generated column used as partition --
   test("gc_partition_col", "Generated column as partition column", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       date_col DATE,
@@ -179,7 +167,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_partitioned: partitioned table with generated column --
   test("gc_partitioned", "Partitioned table with generated column", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id LONG,
@@ -194,7 +181,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_reference: generated column referencing other columns --
   test("gc_reference", "Generated column referencing other columns", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       first_name STRING,
@@ -208,7 +194,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_string: SUBSTRING_INDEX for domain extraction --
   test("gc_string", "Generated column with string function", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       email STRING,
@@ -221,7 +206,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_ctas: generated column via CTAS (actually just create + insert) --
   test("gc_ctas", "Generated column with CTAS pattern", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id LONG,
@@ -234,7 +218,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_time_travel: read generated columns at different versions --
   test("gc_time_travel", "Generated columns with time travel", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id LONG,
@@ -251,7 +234,6 @@ new WorkloadSuite("generated_columns") {
     w.snapshot(t)
   }
 
-  // -- gc_added_via_alter_table: column added via ALTER TABLE --
   test("gc_added_via_alter_table", "Column added via ALTER TABLE alongside generated column", "generatedColumns") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT,

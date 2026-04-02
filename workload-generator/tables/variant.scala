@@ -5,9 +5,7 @@
 
 new WorkloadSuite("variant") {
 
-  // ---------------------------------------------------------------------------
   // var_001-006: Basic variant reads and stats
-  // ---------------------------------------------------------------------------
 
   test("var_001_basic", "Read table with VARIANT column", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
@@ -90,9 +88,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_007: Partitioned variant table
-  // ---------------------------------------------------------------------------
 
   test("var_007_partitions", "Variant stats with multiple partitions", "variant", "partition") { w =>
     w.sql("""CREATE TABLE tbl (part INT, v VARIANT) USING delta
@@ -108,9 +104,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_008-013: Various variant patterns
-  // ---------------------------------------------------------------------------
 
   test("var_008_many_fields", "More than 10 fields in variant", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
@@ -186,9 +180,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_014-015: Variant in struct and string skipping
-  // ---------------------------------------------------------------------------
 
   test("var_014_variant_in_struct", "Variant in struct for data skipping", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, wrapper STRUCT<data: VARIANT, label: STRING>) USING delta
@@ -214,9 +206,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_016-017: Array and map variant
-  // ---------------------------------------------------------------------------
 
   test("var_016_array_variant", "Read ARRAY<VARIANT> column", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, items ARRAY<VARIANT>) USING delta
@@ -244,9 +234,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_018: Column mapping + variant
-  // ---------------------------------------------------------------------------
 
   test("var_018_column_mapping", "VARIANT with column mapping", "variant", "column_mapping") { w =>
     w.sql("""CREATE TABLE tbl (id INT, json_col VARIANT) USING delta
@@ -261,9 +249,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_019: Schema evolution with variant
-  // ---------------------------------------------------------------------------
 
   test("var_019_schema_evolution", "Schema evolution with VARIANT column", "variant", "schema_evolution") { w =>
     w.sql("""CREATE TABLE tbl (v VARIANT) USING delta
@@ -280,9 +266,7 @@ new WorkloadSuite("variant") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_020: Time travel with variant
-  // ---------------------------------------------------------------------------
 
   test("var_020_time_travel", "Time travel with VARIANT column", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, payload VARIANT) USING delta
@@ -297,9 +281,7 @@ new WorkloadSuite("variant") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_021: Variant after OPTIMIZE
-  // ---------------------------------------------------------------------------
 
   test("var_021_optimized", "Read VARIANT after OPTIMIZE", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
@@ -316,9 +298,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_022: Variant stat fields property
-  // ---------------------------------------------------------------------------
 
   test("var_022_stat_fields", "VARIANT_DATA_SKIPPING_STAT_FIELDS property", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
@@ -333,9 +313,7 @@ new WorkloadSuite("variant") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // var_all_json_types - var_unicode_escapes: Additional variant patterns
-  // ---------------------------------------------------------------------------
 
   test("var_all_json_types", "Variant with all JSON types in one value", "variant") { w =>
     w.sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta

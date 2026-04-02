@@ -11,9 +11,7 @@ new WorkloadSuite("data_skipping") {
 
   // === Data Skipping ===
 
-  // ---------------------------------------------------------------------------
   // Top-level single value: all comparison operators
-  // ---------------------------------------------------------------------------
 
   test("ds_top_level_single_1", "top level, single 1", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a LONG) USING delta")
@@ -59,9 +57,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Nested field predicates
-  // ---------------------------------------------------------------------------
 
   test("ds_nested_single_1", "nested, single 1", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a STRUCT<b: LONG>) USING delta")
@@ -114,9 +110,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // AND / OR / NOT combinations
-  // ---------------------------------------------------------------------------
 
   test("ds_and_simple", "and statements - simple", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a LONG) USING delta")
@@ -207,9 +201,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // LIKE / starts with
-  // ---------------------------------------------------------------------------
 
   test("ds_starts_with", "starts with", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a STRING) USING delta")
@@ -252,9 +244,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Long strings (prefix truncation edge cases)
-  // ---------------------------------------------------------------------------
 
   test("ds_long_strings_min", "long strings, long min", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a STRING) USING delta")
@@ -287,9 +277,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // IN predicates
-  // ---------------------------------------------------------------------------
 
   test("ds_in_set", "IN set predicates", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a INT) USING delta")
@@ -362,9 +350,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // NULL predicates
-  // ---------------------------------------------------------------------------
 
   test("ds_is_null", "IS NULL predicate pushdown", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a INT) USING delta")
@@ -509,9 +495,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // BETWEEN
-  // ---------------------------------------------------------------------------
 
   test("ds_between", "BETWEEN predicate for range queries", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a INT) USING delta")
@@ -525,9 +509,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Boolean column
-  // ---------------------------------------------------------------------------
 
   test("ds_boolean", "boolean comparisons", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a BOOLEAN) USING delta")
@@ -551,9 +533,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Numeric types
-  // ---------------------------------------------------------------------------
 
   test("ds_numeric_types", "Numeric type comparisons", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (i INT, l LONG, f FLOAT, d DOUBLE) USING delta")
@@ -608,9 +588,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Date/time predicates
-  // ---------------------------------------------------------------------------
 
   test("ds_datetime", "Date and timestamp predicates", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (d DATE, ts TIMESTAMP) USING delta")
@@ -714,9 +692,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Multi-file range skipping
-  // ---------------------------------------------------------------------------
 
   test("ds_multi_file_ranges", "Multiple files with different ranges", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a INT) USING delta")
@@ -746,9 +722,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Typed stats (decimal, date, timestamp, float, double)
-  // ---------------------------------------------------------------------------
 
   test("ds_typed_stats", "DECIMAL/DATE/TIMESTAMP/FLOAT/DOUBLE data skipping stats",
       "dataSkipping") { w =>
@@ -788,9 +762,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Variant null stats
-  // ---------------------------------------------------------------------------
 
   test("ds_variant_null_stats", "VARIANT NULL/NOT NULL data skipping", "dataSkipping") { w =>
     w.sql("""CREATE TABLE tbl (
@@ -812,9 +784,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Indexed columns / stats configuration
-  // ---------------------------------------------------------------------------
 
   test("ds_indexed_names_empty", "empty indexed names disables stats", "dataSkipping") { w =>
     w.sql("""CREATE TABLE tbl (a LONG, b LONG) USING delta
@@ -956,9 +926,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Nested indexed columns (delta.dataSkippingNumIndexedCols with nested schema)
-  // ---------------------------------------------------------------------------
 
   test("ds_nested_indexed_0", "nested schema, indexed=0", "dataSkipping") { w =>
     w.sql("""CREATE TABLE tbl (a STRUCT<x: LONG, y: LONG>, b LONG) USING delta
@@ -1030,9 +998,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Partitioned + stats combined
-  // ---------------------------------------------------------------------------
 
   test("ds_partitioned", "Partitioned table data skipping", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
@@ -1069,9 +1035,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Schema order mismatch and nonexistent col filter
-  // ---------------------------------------------------------------------------
 
   test("ds_schema_order_mismatch", "Query columns in different order", "dataSkipping") { w =>
     w.sql("CREATE TABLE tbl (a INT, b INT, c INT) USING delta")
@@ -1091,9 +1055,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Generated columns
-  // ---------------------------------------------------------------------------
 
   test("ds_generated_col_skipping", "Skipping using generated column stats",
       "dataSkipping") { w =>
@@ -1109,9 +1071,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // DVs + data skipping
-  // ---------------------------------------------------------------------------
 
   test("ds_with_dvs_edge", "Data skipping + DVs combined", "dataSkipping", "dv") { w =>
     w.sql("""CREATE TABLE tbl (a INT) USING delta
@@ -1152,9 +1112,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Column mapping: stats after drop/rename
-  // ---------------------------------------------------------------------------
 
   test("ds_stats_col_drop", "Data skipping after column drop (CM=name)",
       "dataSkipping", "columnMapping") { w =>
@@ -1261,9 +1219,7 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Error test: field not found
-  // ---------------------------------------------------------------------------
 
   test("ds_err_001_field_not_found", "FIELD_NOT_FOUND for row commit version filter",
       "dataSkipping", "error") { w =>
@@ -1277,7 +1233,6 @@ new WorkloadSuite("data_skipping") {
 
   // === Statistics ===
 
-  // -- stats_null_in_min_max: all-null column (null min/max) --
   test("stats_null_in_min_max", "Stats with all-null column (null min/max)", "data-skipping", "stats", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, nullable_col STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1289,7 +1244,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_numrecords_only: stats with only numRecords --
   test("stats_numrecords_only", "Stats with only numRecords", "data-skipping", "stats", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1314,7 +1268,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_numrecords_with_dv: numRecords is physical count with DVs --
   test("stats_numrecords_with_dv", "numRecords is physical count, not logical (with DVs)", "data-skipping", "stats", "deletion-vectors", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1326,7 +1279,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_partition_col_no_stats: partition column excluded from data statistics --
   test("stats_partition_col_no_stats", "Partition column excluded from data statistics", "data-skipping", "stats", "partition", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, country STRING, amount INT) USING delta
       PARTITIONED BY (country) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1338,7 +1290,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_string_truncation: truncated string min/max stats --
   test("stats_string_truncation", "Stats with truncated string min/max (must not over-prune)", "data-skipping", "stats", "string-truncation", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, long_str STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1354,7 +1305,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_empty_string: stats with empty string values --
   test("stats_empty_string", "Stats with empty string values", "data-skipping", "stats", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1369,7 +1319,6 @@ new WorkloadSuite("data_skipping") {
     w.snapshot(t)
   }
 
-  // -- stats_missing_entirely: stats field missing entirely --
   test("stats_missing_entirely", "Stats field missing entirely", "data-skipping", "stats", "edge-case") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")

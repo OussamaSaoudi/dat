@@ -118,7 +118,6 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // --- New workloads below ---
 
   test("dv_with_merge", "DVs produced by MERGE", "dv", "merge") { w =>
     w.sql("""CREATE TABLE target (id INT, value STRING) USING delta
@@ -283,7 +282,6 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // --- dv_* named workloads (matching acceptance_workloads directories) ---
 
   test("dv_all_rows_deleted", "All rows in file marked deleted via DV", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -544,7 +542,6 @@ new WorkloadSuite("deletion_vectors") {
    * Run: ./bin/generate-workload.sh tables/dv_legacy.scala
    */
 
-  // =============================================================================
   // DV-001: 2000 rows, 5 versions with deletes and inserts, reads at each version
   // Schema: value INT (originally created via spark.range(2000))
   // v0: CREATE TABLE + INSERT 2000 rows
@@ -552,7 +549,6 @@ new WorkloadSuite("deletion_vectors") {
   // v2: INSERT (300, 700)
   // v3: DELETE value IN (300, 250, 350, 900, 1353, 1567, 1800)
   // v4: INSERT (900, 1567)
-  // =============================================================================
   test("DV-001", "read Delta table with deletion vectors", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -567,11 +563,9 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-002: partitioned table, 2000 rows with deletes/inserts, partition filters
   // Schema: id INT, name STRING, status STRING (default 'active')
   // Partitioned by a derived column; 2000 rows with alternating delete/insert
-  // =============================================================================
   test("DV-002", "read partitioned Delta table with deletion vectors", "dv", "partitioned") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING, status STRING DEFAULT 'active') USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -594,9 +588,7 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-003: metadata columns (same data as DV-001)
-  // =============================================================================
   test("DV-003", "select metadata columns from a Delta table with deletion vectors", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -610,9 +602,7 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-004: filter on DV table (same data as DV-001)
-  // =============================================================================
   test("DV-004", "read Delta table with deletion vectors with a filter", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -625,9 +615,7 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-005a: subquery count on DV table (same data as DV-001)
-  // =============================================================================
   test("DV-005a", "read Delta tables with DVs in subqueries - table1 count", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -641,10 +629,7 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-005b: second table for subquery test (small table)
-  // Schema: id INT, name STRING
-  // =============================================================================
   test("DV-005b", "read Delta tables with DVs in subqueries - table2 count", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -654,10 +639,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-006: DELETE on table with no prior DVs (500 files, 2 rows each = 1000 rows)
   // DELETE even ids < 200 => removes 100 rows => 900 remain
-  // =============================================================================
   test("DV-006", "DELETE with DVs - on a table with no prior DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -672,10 +655,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-007: DELETE on table that already has DVs
   // 50 rows (value 0..49), DELETE specific values twice
-  // =============================================================================
   test("DV-007", "DELETE with DVs - existing table already has DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -689,10 +670,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-008: JOIN with DVs - self-join (table2 is a small helper)
   // table2 has 1 row
-  // =============================================================================
   test("DV-008", "JOIN with DVs - self-join a table with DVs (underlying read)", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -702,10 +681,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-009: JOIN with DVs - non-DV table joins DV table
   // table2 is a small helper, 1 row at v1, empty at v0
-  // =============================================================================
   test("DV-009", "JOIN with DVs - non-DV table joins DV table (underlying reads)", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -716,10 +693,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-010: INSERT into DV table
   // 20 rows (value 0..19), DELETE 4, then INSERT 4 more
-  // =============================================================================
   test("DV-010", "insert into Delta table with DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -731,11 +706,9 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-011: DELETE with DVs + column mapping mode
   // 10 partitions (part 0..9), 5 rows per partition
   // col1 = part + 10*i, col2 = "foo" + (part % 5)
-  // =============================================================================
   test("DV-011", "DELETE with DVs with column mapping mode", "dv", "column_mapping", "partitioned") { w =>
     w.sql("""CREATE TABLE tbl (part INT, col1 INT, col2 STRING) USING delta
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -754,10 +727,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-012: DELETE with DVs - packing multiple DVs
   // 200 rows in many files, DELETE even ids < 20
-  // =============================================================================
   test("DV-012", "DELETE with DVs - packing multiple DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -769,13 +740,10 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-013: MERGE with DVs - merge into DV table
   // 10 rows (value 0..9), DELETE (0, 9), then MERGE:
   //   source = range(10001, 10009) UNION values matching existing
   //   MATCHED -> UPDATE, NOT MATCHED -> INSERT
-  // Result: 20 rows
-  // =============================================================================
   test("DV-013", "MERGE with DVs - merge into DV table", "dv", "merge") { w =>
     w.sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -793,10 +761,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-014: UPDATE with DVs - update rewrite files with DVs
   // 10 rows (value 0..9), DELETE (0, 9), then UPDATE value=1 SET value=-1
-  // =============================================================================
   test("DV-014", "UPDATE with DVs - update rewrite files with DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -808,10 +774,8 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-015: UPDATE with DVs - update deleted rows updates nothing
   // 10 rows (value 0..9), DELETE (0, 9), then UPDATE value=0 (no-op, already deleted)
-  // =============================================================================
   test("DV-015", "UPDATE with DVs - update deleted rows updates nothing", "dv") { w =>
     w.sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -824,15 +788,12 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-016: INSERT + DELETE + MERGE + UPDATE with DVs
   // Complex multi-step DML sequence:
   // v0: INSERT 10 rows (id 0..9)
   // v1: DELETE id IN (1, 8)
   // v2: UPDATE id=0 SET id=-1
   // v3: MERGE (source matches remaining, deletes matched, inserts new)
-  // v4: DELETE id=4
-  // =============================================================================
   test("DV-016", "INSERT + DELETE + MERGE + UPDATE with DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -855,11 +816,9 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-017: Huge table - 2B+ rows with existing DV
   // WARNING: This workload will take extremely long to run. It is provided for
   // completeness. The original table was pre-built as a golden table.
-  // =============================================================================
   test("DV-017", "huge table: read from tables of 2B rows with existing DV", "dv", "large") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -872,9 +831,7 @@ new WorkloadSuite("deletion_vectors") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // DV-018: DV feature enabled but no DVs produced
-  // =============================================================================
   test("DV-018", "table with DV feature enabled but no DVs", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")

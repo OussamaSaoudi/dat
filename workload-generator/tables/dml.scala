@@ -8,9 +8,7 @@ new WorkloadSuite("dml") {
 
   // === DML Operations ===
 
-  // =============================================================================
   // DELETE workloads
-  // =============================================================================
 
   test("deleteAllRows", "DELETE without WHERE", "delete", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -63,9 +61,7 @@ new WorkloadSuite("dml") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // INSERT workloads
-  // =============================================================================
 
   test("insertBasicAppend", "INSERT INTO append mode", "insert", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -121,9 +117,7 @@ new WorkloadSuite("dml") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // UPDATE workloads
-  // =============================================================================
 
   test("updateAllRows", "UPDATE without WHERE", "update", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, status STRING) USING delta
@@ -204,9 +198,7 @@ new WorkloadSuite("dml") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Combined DML sequences
-  // =============================================================================
 
   test("dmlMergeAfterDelete", "MERGE after DELETE", "merge", "delete", "dml", "combined") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -280,9 +272,7 @@ new WorkloadSuite("dml") {
 
   // === Misc Workloads ===
 
-  // =============================================================================
   // OSS-compatible read workloads
-  // =============================================================================
 
   test("ossReadBasicOSS", "Basic OSS compatible read", "oss", "read") { w =>
     w.sql("""CREATE TABLE tbl (id LONG, data STRING) USING delta
@@ -333,9 +323,7 @@ new WorkloadSuite("dml") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Special path handling
-  // =============================================================================
 
   test("pec_table_path_special", "Table path with special characters (spaces)", "path", "edge_case") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta

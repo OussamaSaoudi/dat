@@ -6,9 +6,7 @@
 
 new WorkloadSuite("type_widening") {
 
-  // ---------------------------------------------------------------------------
   // Simple type widenings
-  // ---------------------------------------------------------------------------
 
   test("tw_byte_to_int", "Multiple successive type widenings (byte -> short -> int)", "type_widening") { w =>
     w.sql("""CREATE TABLE tbl (a BYTE) USING delta
@@ -139,9 +137,7 @@ new WorkloadSuite("type_widening") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Nested, array, and map type widening
-  // ---------------------------------------------------------------------------
 
   test("tw_nested_field", "Nested field type widening (struct.count: int -> long)", "type_widening") { w =>
     w.sql("""CREATE TABLE tbl (data STRUCT<id: INT, count: INT>) USING delta
@@ -191,9 +187,7 @@ new WorkloadSuite("type_widening") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Type widening with other features
-  // ---------------------------------------------------------------------------
 
   test("tw_with_dv", "Type widening with deletion vectors", "type_widening", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta
@@ -282,9 +276,7 @@ new WorkloadSuite("type_widening") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Data skipping and projections with type widening
-  // ---------------------------------------------------------------------------
 
   test("tw_with_data_skipping", "Widened type with predicate pushdown", "type_widening") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value INT) USING delta
@@ -339,9 +331,7 @@ new WorkloadSuite("type_widening") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Null handling
-  // ---------------------------------------------------------------------------
 
   test("tw_null_handling", "Nulls preserved across type widening (short -> int)", "type_widening") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta

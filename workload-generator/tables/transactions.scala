@@ -10,7 +10,6 @@ new WorkloadSuite("transactions") {
     }
   }
 
-  // -- txn_basic: basic SetTransaction --
   test("txn_basic", "Basic SetTransaction tracking", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")
@@ -23,7 +22,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-1", txnVersion = 1, version = 1, name = "txn")
   }
 
-  // -- txn_update: SetTransaction version update --
   test("txn_update", "SetTransaction version update", "txn") { w =>
     txnTable(w, 3)
     val t = w.table("tbl")
@@ -41,7 +39,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-1", txnVersion = 3, name = "txn")
   }
 
-  // -- txn_duplicate_appid: same appId in separate commits --
   test("txn_duplicate_appid", "Two SetTransaction for same appId in separate commits", "txn") { w =>
     txnTable(w, 3)
     val t = w.table("tbl")
@@ -59,7 +56,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-dup", txnVersion = 5, name = "txn")
   }
 
-  // -- txn_multiple_apps_1: multiple apps - query app-1 --
   test("txn_multiple_apps_1", "Multiple app transactions - app-1", "txn") { w =>
     txnTable(w, 3)
     val t = w.table("tbl")
@@ -77,7 +73,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-1", txnVersion = 1, name = "txn")
   }
 
-  // -- txn_multiple_apps_2: multiple apps - query app-2 --
   test("txn_multiple_apps_2", "Multiple app transactions - app-2", "txn") { w =>
     txnTable(w, 3)
     val t = w.table("tbl")
@@ -95,7 +90,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-2", txnVersion = 100, name = "txn")
   }
 
-  // -- txn_batch_app1: multiple txns in single commit - query app-1 --
   test("txn_batch_app1", "Multiple SetTransactions in single commit - app-1", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")
@@ -109,7 +103,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-1", txnVersion = 100, name = "txn")
   }
 
-  // -- txn_batch_app3: multiple txns in single commit - query app-3 --
   test("txn_batch_app3", "Multiple SetTransactions in single commit - app-3", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")
@@ -123,7 +116,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-3", txnVersion = 300, name = "txn")
   }
 
-  // -- txn_with_last_updated: SetTransaction with lastUpdated --
   test("txn_with_last_updated", "SetTransaction with lastUpdated", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")
@@ -136,7 +128,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-with-ts", txnVersion = 42, name = "txn")
   }
 
-  // -- txn_without_last_updated: SetTransaction without lastUpdated --
   test("txn_without_last_updated", "SetTransaction without lastUpdated", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")
@@ -149,7 +140,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-no-ts", txnVersion = 7, name = "txn")
   }
 
-  // -- txn_after_checkpoint: SetTransaction survives checkpoint --
   test("txn_after_checkpoint", "SetTransaction survives checkpoint", "txn") { w =>
     txnTable(w, 3)
     val t = w.table("tbl")
@@ -167,7 +157,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-checkpoint", txnVersion = 20, name = "txn")
   }
 
-  // -- txn_at_version_1: SetTransaction at specific version --
   test("txn_at_version_1", "SetTransaction at version 1", "txn") { w =>
     txnTable(w, 4)
     val t = w.table("tbl")
@@ -190,7 +179,6 @@ new WorkloadSuite("transactions") {
     w.txn(t, appId = "app-1", txnVersion = 1, version = 1, name = "txn")
   }
 
-  // -- txn_future_version: SetTransaction version greater than commit version --
   test("txn_future_version", "SetTransaction version greater than commit version", "txn") { w =>
     txnTable(w, 2)
     val t = w.table("tbl")

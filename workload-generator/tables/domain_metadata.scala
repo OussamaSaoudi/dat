@@ -16,7 +16,6 @@ new WorkloadSuite("domain_metadata") {
     }
   }
 
-  // -- Basic domain metadata --
 
   test("dm_basic_read", "Basic domain metadata read", "domainMetadata") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
@@ -67,7 +66,6 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  // -- Deletion --
 
   test("dm_deletion", "Domain metadata deletion", "domainMetadata") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
@@ -85,7 +83,6 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  // -- Version-specific --
 
   test("dm_version_read", "Read domain metadata at specific version", "domainMetadata") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
@@ -103,7 +100,6 @@ new WorkloadSuite("domain_metadata") {
       removed = false, version = 2, name = "domain_metadata")
   }
 
-  // -- Checkpoint reconstruction --
 
   test("dm_with_checkpoint", "Domain metadata survives checkpoint", "domainMetadata") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
@@ -118,7 +114,6 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  // -- State reconstruction: checkpoint x CRC combinations --
 
   def stateReconstructionTest(
       name: String, desc: String,

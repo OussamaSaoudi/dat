@@ -20,9 +20,7 @@ new WorkloadSuite("checkpoints") {
     DeltaLog.clearCache()
   }
 
-  // ---------------------------------------------------------------------------
   // Existing 5 workloads
-  // ---------------------------------------------------------------------------
 
   test("cp_classic", "Classic checkpoint read", "checkpoint") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -84,9 +82,7 @@ new WorkloadSuite("checkpoints") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // New workloads: 32 more to match existing acceptance_workloads/cp_* & ckp_*
-  // ---------------------------------------------------------------------------
 
   test("cp_classic_checkpoint", "Read table with classic (single-file) checkpoint", "checkpoint") { w =>
     w.sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
@@ -185,7 +181,6 @@ new WorkloadSuite("checkpoints") {
     w.snapshot(t)
   }
 
-  // --- V2 Checkpoints ---
 
   test("cp_v2_basic", "V2 checkpoint basic read", "checkpoint", "v2_checkpoint") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
@@ -384,7 +379,6 @@ new WorkloadSuite("checkpoints") {
     w.snapshot(t)
   }
 
-  // --- Classic ckp_ variants ---
 
   test("ckp_after_100_commits", "Checkpoint after 100+ commits", "checkpoint") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '1000')")
@@ -439,7 +433,6 @@ new WorkloadSuite("checkpoints") {
     w.snapshot(t)
   }
 
-  // --- Corrupt / edge-case checkpoint workloads ---
 
   test("ckp_corrupt_last_checkpoint", "Invalid JSON in _last_checkpoint (fallback to directory listing)", "checkpoint") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -517,7 +510,6 @@ new WorkloadSuite("checkpoints") {
     w.snapshot(t)
   }
 
-  // --- Corrupt checkpoint error workloads ---
 
   test("cp_err_missing_metadata", "Checkpoint without Metadata action (empty checkpoint)", "checkpoint") { w =>
     // Create a simple table and checkpoint, then corrupt the checkpoint

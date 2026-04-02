@@ -1,6 +1,5 @@
 new WorkloadSuite("check_constraints") {
 
-  // -- cc_001_create_with_constraint: CREATE TABLE with valid check constraint --
   test("cc_001_create_with_constraint", "CREATE TABLE with valid check constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -13,7 +12,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_002_show_tblproperties: see constraints in table properties --
   test("cc_002_show_tblproperties", "See constraints in table properties", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (x INT, y INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -30,7 +28,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t, version = 3)
   }
 
-  // -- cc_003_delta_history: delta history for constraints --
   test("cc_003_delta_history", "Delta history for constraints", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -45,7 +42,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshotHistory(t)
   }
 
-  // -- cc_004_case_insensitive_drop: drop constraint is case insensitive --
   test("cc_004_case_insensitive_drop", "Drop constraint is case insensitive", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -61,7 +57,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshotHistory(t)
   }
 
-  // -- cc_005_varchar_constraint: constraint induced by varchar --
   test("cc_005_varchar_constraint", "Constraint induced by varchar", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, s VARCHAR(10)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -73,7 +68,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_006_basic_constraint: basic check constraint --
   test("cc_006_basic_constraint", "Read table with check constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -85,7 +79,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_007_multiple_constraints: multiple check constraints --
   test("cc_007_multiple_constraints", "Read table with multiple check constraints", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, amount DECIMAL(10,2), status STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -102,7 +95,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_008_nested_constraint: nested column constraint --
   test("cc_008_nested_constraint", "Read with nested column constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -116,7 +108,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_009_array_constraint: array size constraint --
   test("cc_009_array_constraint", "Read with array size constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -130,7 +121,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_010_length_constraint: string length constraint --
   test("cc_010_length_constraint", "Read with string length constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (code STRING, description STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -144,7 +134,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_011_compound_constraint: compound constraint --
   test("cc_011_compound_constraint", "Read with compound constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (start_date DATE, end_date DATE, amount DECIMAL(10,2)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -158,7 +147,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_012_not_null_constraint: NOT NULL-like constraint --
   test("cc_012_not_null_constraint", "Read with NOT NULL-like constraint", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, required_field STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -171,7 +159,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_013_time_travel: time travel with constraints --
   test("cc_013_time_travel", "Time travel with constraints", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -185,7 +172,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshotHistory(t)
   }
 
-  // -- cc_014_time_type_constraint: CHECK with TIME type column --
   test("cc_014_time_type_constraint", "CHECK constraints with TIME type columns", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, event_time STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -199,7 +185,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_015_time_multiple_conditions: TIME type with multiple conditions --
   test("cc_015_time_multiple_conditions", "CHECK constraints with TIME type - multiple conditions", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, start_time STRING, end_time STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -213,7 +198,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_016_allowed_expressions: constraints with allowed expressions --
   test("cc_016_allowed_expressions", "Creating constraints with allowed expressions", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (num INT, text STRING, d DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -229,7 +213,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_017_column_mapping: constraints with column mapping --
   test("cc_017_column_mapping", "Read constraints with column mapping", "checkConstraints", "columnMapping") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.enableDeletionVectors' = 'true')""")
@@ -241,7 +224,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_018_drop_feature: drop constraint before drop feature --
   test("cc_018_drop_feature", "Drop constraint before drop feature", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -256,7 +238,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshotHistory(t)
   }
 
-  // -- cc_019_boolean_column_names: boolean column with constraint --
   test("cc_019_boolean_column_names", "Boolean column with constraints", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, flag BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -269,7 +250,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_020_decimal_constraint: constraint with decimal column --
   test("cc_020_decimal_constraint", "Constraint with decimal column", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, price DECIMAL(10,2), quantity INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -286,7 +266,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_complex_expr: check constraint with AND/OR expression --
   test("cc_complex_expr", "Check constraint with AND/OR expression", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (age INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -299,7 +278,6 @@ new WorkloadSuite("check_constraints") {
     w.snapshot(t)
   }
 
-  // -- cc_null_aware: IS NOT NULL constraint on nested struct --
   test("cc_null_aware", "IS NOT NULL constraint on nested struct", "checkConstraints") { w =>
     w.sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")

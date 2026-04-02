@@ -20,9 +20,7 @@
 
 new WorkloadSuite("merge") {
 
-  // =============================================================================
   // Basic clause types
-  // =============================================================================
 
   test("mergeBasicInsert", "MERGE with only INSERT clause", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -129,9 +127,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Conditional clauses
-  // =============================================================================
 
   test("mergeConditionalInsert", "MERGE with conditional WHEN NOT MATCHED", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -158,9 +154,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Star syntax
-  // =============================================================================
 
   test("mergeStarInsert", "MERGE with INSERT * syntax", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -186,9 +180,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Source variations
-  // =============================================================================
 
   test("mergeSourceSubquery", "MERGE with source as subquery", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -218,9 +210,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Data types
-  // =============================================================================
 
   test("mergeBooleanValues", "MERGE with boolean columns", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, active BOOLEAN) USING delta
@@ -280,9 +270,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // NULL handling
-  // =============================================================================
 
   test("mergeNullHandling", "MERGE with NULL values", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -300,9 +288,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Complex types
-  // =============================================================================
 
   test("mergeWithArrayCol", "MERGE with array columns", "merge", "dml") { w =>
     w.sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>) USING delta
@@ -352,9 +338,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Partitioned tables
-  // =============================================================================
 
   test("mergePartitionedBasic", "MERGE on partitioned table", "merge", "dml", "partitioned") { w =>
     w.sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
@@ -401,9 +385,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Deletion vectors (DV-enabled tables with prior deletes)
-  // =============================================================================
 
   test("mergeDvBasicInsertUpdate", "Basic merge on DV-enabled table with INSERT+UPDATE", "merge", "dml", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -556,9 +538,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Low-shuffle merge variants
-  // =============================================================================
 
   test("mergeLowShuffleBasic", "Low shuffle merge basic read-back", "merge", "dml", "low_shuffle") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -705,9 +685,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Edge cases
-  // =============================================================================
 
   test("mergeEdgeAllMatched", "MERGE where every source row matches target", "merge", "dml", "edge") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -852,9 +830,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Error cases (table unchanged after failed merge)
-  // =============================================================================
 
   test("mergeErrAmbiguousColumn", "Table state after failed MERGE with ambiguous column", "merge", "dml", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -912,9 +888,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - basic column addition
-  // =============================================================================
 
   test("mergeSchemaEvoAddCol", "Merge adds new column via schema evolution", "merge", "dml", "schema_evolution") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -1076,9 +1050,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - nested structs
-  // =============================================================================
 
   test("mergeSchemaEvoAddNestedField", "Add nested struct field via merge", "merge", "dml", "schema_evolution") { w =>
     w.sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
@@ -1144,9 +1116,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - complex types (arrays, maps)
-  // =============================================================================
 
   test("mergeSchemaEvoAddArrayElement", "Merge with array and schema evolution", "merge", "dml", "schema_evolution") { w =>
     w.sql("""CREATE TABLE tbl (id INT, numbers ARRAY<INT>) USING delta
@@ -1213,9 +1183,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - struct field operations
-  // =============================================================================
 
   test("mergeSchemaEvoStructAddField", "Merge adds field to existing struct", "merge", "dml", "schema_evolution") { w =>
     w.sql("""CREATE TABLE tbl (id INT, metadata STRUCT<key: STRING, val: INT>) USING delta
@@ -1282,9 +1250,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - partitioned tables
-  // =============================================================================
 
   test("mergeSchemaEvoPartitionedAddCol", "Schema evolution on partitioned table", "merge", "dml", "schema_evolution", "partitioned") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
@@ -1320,9 +1286,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - type widening and column mapping
-  // =============================================================================
 
   test("mergeSchemaEvoWidenType", "Widen int to long via merge", "merge", "dml", "schema_evolution", "type_widening") { w =>
     w.sql("""CREATE TABLE tbl (id INT, amount INT) USING delta
@@ -1376,9 +1340,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Schema evolution - error cases
-  // =============================================================================
 
   test("mergeSchemaEvoErrDuplicateCol", "Table state after duplicate column error", "merge", "dml", "schema_evolution", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING, extra_value STRING) USING delta
@@ -1429,9 +1391,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Struct evolution (deep nesting, null handling)
-  // =============================================================================
 
   test("mergeStructEvoNullNewField", "Merge adds new struct field, existing rows get null for new field", "merge", "dml", "struct_evolution") { w =>
     w.sql("""CREATE TABLE tbl (id INT, info STRUCT<a: INT>) USING delta
@@ -1593,9 +1553,7 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // NOT MATCHED BY SOURCE (mrb_ prefix workloads)
-  // =============================================================================
 
   test("mrb_all_clause_types", "MERGE with all three clause types", "merge", "dml", "not_matched_by_source") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
@@ -1682,8 +1640,6 @@ new WorkloadSuite("merge") {
     w.snapshot(t)
   }
 
-  // =============================================================================
   // Generate all workloads
-  // =============================================================================
 
 }.runAll()

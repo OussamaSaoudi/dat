@@ -108,7 +108,6 @@ new WorkloadSuite("time_travel") {
     w.snapshot(t)
   }
 
-  // --- New workloads below ---
 
   test("time_travel_column_mapping", "Time travel with column mapping changes") { w =>
     w.sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
@@ -322,7 +321,6 @@ new WorkloadSuite("time_travel") {
     w.snapshot(t)
   }
 
-  // --- tt_* named workloads (matching acceptance_workloads directories) ---
 
   test("tt_after_vacuum", "Time travel after VACUUM removes old files", "timeTravel") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT) USING delta

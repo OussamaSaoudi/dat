@@ -274,9 +274,7 @@ new WorkloadSuite("reads") {
 
   // === Core Reads Extended ===
 
-  // ---------------------------------------------------------------------------
   // Core reads: type boundaries
-  // ---------------------------------------------------------------------------
 
   test("cr_byte_boundaries", "ByteType MIN/MAX values", "coreReads") { w =>
     w.sql("CREATE TABLE tbl (b BYTE) USING delta")
@@ -335,9 +333,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Core reads: special float/double values
-  // ---------------------------------------------------------------------------
 
   test("cr_float_nan", "Float NaN value read-back", "coreReads") { w =>
     w.sql("CREATE TABLE tbl (f FLOAT) USING delta")
@@ -375,9 +371,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Core reads: complex types
-  // ---------------------------------------------------------------------------
 
   test("cr_deeply_nested_struct", "4+ levels nested struct", "coreReads") { w =>
     w.sql("""CREATE TABLE tbl (
@@ -426,9 +420,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Core reads: null and string edge cases
-  // ---------------------------------------------------------------------------
 
   test("cr_empty_vs_null_string", "Empty string vs NULL distinction", "coreReads") { w =>
     w.sql("CREATE TABLE tbl (id INT, s STRING) USING delta")
@@ -476,9 +468,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Core reads: partitioned tables
-  // ---------------------------------------------------------------------------
 
   test("cr_multi_partition", "Multiple partition columns", "coreReads") { w =>
     w.sql("""CREATE TABLE tbl (id INT, year INT, region STRING)
@@ -500,9 +490,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Delta partition suite (dp*)
-  // ---------------------------------------------------------------------------
 
   test("dpBasicPartition", "Basic single-column string partition", "partitioned") { w =>
     w.sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
@@ -662,9 +650,7 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // File path edge cases (fpe_*)
-  // ---------------------------------------------------------------------------
 
   test("fpe_space_in_path", "File path with space encoding (%20)", "filePath") { w =>
     w.sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
@@ -802,9 +788,6 @@ new WorkloadSuite("reads") {
 
   // === Core Reads Legacy ===
 
-  // ---------------------------------------------------------------------------
-  // dsReadAfterOptimize: 10 single-row appends then OPTIMIZE (DVs enabled)
-  // ---------------------------------------------------------------------------
   test("dsReadAfterOptimize", "Read after OPTIMIZE") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -817,9 +800,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadAndPredicate: compound AND predicate
-  // ---------------------------------------------------------------------------
   test("dsReadAndPredicate", "Read with AND predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, cat STRING, score INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -830,9 +810,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadAppend: two appends
-  // ---------------------------------------------------------------------------
   test("dsReadAppend", "Read after append") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -843,9 +820,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadArrayColumn: array columns
-  // ---------------------------------------------------------------------------
   test("dsReadArrayColumn", "Array columns") { w =>
     w.sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>, scores ARRAY<INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -857,9 +831,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadBadProtocol: error on unsupported reader version
-  // ---------------------------------------------------------------------------
   test("dsReadBadProtocol", "Error: unsupported reader version", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -884,9 +855,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadBasic: simple 10-row table
-  // ---------------------------------------------------------------------------
   test("dsReadBasic", "Basic read") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -896,9 +864,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadBetweenPredicate: BETWEEN filter
-  // ---------------------------------------------------------------------------
   test("dsReadBetweenPredicate", "Read with BETWEEN predicate") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -909,9 +874,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadBinaryType: binary column
-  // ---------------------------------------------------------------------------
   test("dsReadBinaryType", "Binary type") { w =>
     w.sql("""CREATE TABLE tbl (id INT, data BINARY) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -923,9 +885,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadBooleanFilter: boolean column with true/false filters
-  // ---------------------------------------------------------------------------
   test("dsReadBooleanFilter", "Boolean filter") { w =>
     w.sql("""CREATE TABLE tbl (id INT, active BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -941,9 +900,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadCaseSensitive: mixed-case column names
-  // ---------------------------------------------------------------------------
   test("dsReadCaseSensitive", "Case-sensitive column names") { w =>
     w.sql("""CREATE TABLE tbl (Id INT, FirstName STRING, lastName STRING, AGE INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -954,9 +910,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadDateType: date column with filter
-  // ---------------------------------------------------------------------------
   test("dsReadDateType", "Date type with filter") { w =>
     w.sql("""CREATE TABLE tbl (id INT, event_date DATE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -969,9 +922,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadDecimalType: decimal columns
-  // ---------------------------------------------------------------------------
   test("dsReadDecimalType", "Decimal type") { w =>
     w.sql("""CREATE TABLE tbl (id INT, price DECIMAL(10,2), ratio DECIMAL(18,8)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -984,9 +934,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadDeleteThenRead: DELETE then read
-  // ---------------------------------------------------------------------------
   test("dsReadDeleteThenRead", "Read after DELETE") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -997,9 +944,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadDoubleType: double values including extreme
-  // ---------------------------------------------------------------------------
   test("dsReadDoubleType", "Double type") { w =>
     w.sql("""CREATE TABLE tbl (id INT, dval DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1009,9 +953,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadEmptyPartition: partitioned table, filter on non-existent partition
-  // ---------------------------------------------------------------------------
   test("dsReadEmptyPartition", "Empty partition filter result") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT, part INT) USING delta
       PARTITIONED BY (part)
@@ -1023,9 +964,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadEmptyString: error - no delta table at path
-  // ---------------------------------------------------------------------------
   test("dsReadEmptyString", "Error: no delta table at empty subdir", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1042,9 +980,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadEmptyTable: error - no delta table at path
-  // ---------------------------------------------------------------------------
   test("dsReadEmptyTable", "Error: no delta table", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1060,9 +995,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadFloatType: float values including extreme
-  // ---------------------------------------------------------------------------
   test("dsReadFloatType", "Float type") { w =>
     w.sql("""CREATE TABLE tbl (id INT, fval FLOAT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1072,9 +1004,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadInPredicate: IN predicate
-  // ---------------------------------------------------------------------------
   test("dsReadInPredicate", "Read with IN predicate") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1085,9 +1014,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadIsNotNullPredicate: IS NOT NULL filter
-  // ---------------------------------------------------------------------------
   test("dsReadIsNotNullPredicate", "IS NOT NULL predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, label STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1098,9 +1024,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadIsNullPredicate: IS NULL filter
-  // ---------------------------------------------------------------------------
   test("dsReadIsNullPredicate", "IS NULL predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, label STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1111,9 +1034,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadLargeSchema: 25-column table (id + 24 computed cols)
-  // ---------------------------------------------------------------------------
   test("dsReadLargeSchema", "25 columns") { w =>
     val colDefs = (1 to 24).map(i => s"col_$i BIGINT").mkString(", ")
     w.sql(s"""CREATE TABLE tbl (id BIGINT, $colDefs) USING delta
@@ -1125,9 +1045,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadLikePredicate: LIKE filter
-  // ---------------------------------------------------------------------------
   test("dsReadLikePredicate", "LIKE predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, word STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1138,9 +1055,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadLongType: long values including min/max
-  // ---------------------------------------------------------------------------
   test("dsReadLongType", "Long type") { w =>
     w.sql("""CREATE TABLE tbl (lval BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1150,9 +1064,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadMapColumn: map columns
-  // ---------------------------------------------------------------------------
   test("dsReadMapColumn", "Map columns") { w =>
     w.sql("""CREATE TABLE tbl (id INT, props MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1164,9 +1075,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadMergeThenRead: MERGE then read
-  // ---------------------------------------------------------------------------
   test("dsReadMergeThenRead", "Read after MERGE") { w =>
     w.sql("""CREATE TABLE target (id INT, val STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1182,9 +1090,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadMultiPartition: multiple partition columns
-  // ---------------------------------------------------------------------------
   test("dsReadMultiPartition", "Multiple partition columns") { w =>
     w.sql("""CREATE TABLE tbl (id INT, country STRING, city STRING, amount INT) USING delta
       PARTITIONED BY (country, city)
@@ -1197,9 +1102,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadMultipleAppends: 7 single-row appends
-  // ---------------------------------------------------------------------------
   test("dsReadMultipleAppends", "Multiple appends") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1211,9 +1113,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadMultipleTypes: multiple data types in one table
-  // ---------------------------------------------------------------------------
   test("dsReadMultipleTypes", "Multiple data types") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT, name STRING, score DOUBLE, active BOOLEAN,
@@ -1228,9 +1127,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadNestedStruct: nested struct columns
-  // ---------------------------------------------------------------------------
   test("dsReadNestedStruct", "Nested struct columns") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT, info STRUCT<name: STRING, age: INT, address: STRUCT<city: STRING, zip: STRING>>
@@ -1243,9 +1139,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadNotEqualPredicate: != filter
-  // ---------------------------------------------------------------------------
   test("dsReadNotEqualPredicate", "Not equal predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT, cat STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1256,9 +1149,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadNullValues: null values across types
-  // ---------------------------------------------------------------------------
   test("dsReadNullValues", "Null values across types") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE, active BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1271,9 +1161,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadOrPredicate: OR predicate
-  // ---------------------------------------------------------------------------
   test("dsReadOrPredicate", "OR predicate") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1284,9 +1171,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadOverwrite: overwrite table
-  // ---------------------------------------------------------------------------
   test("dsReadOverwrite", "Read after overwrite") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1297,9 +1181,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadPartitioned: partitioned table with filters
-  // ---------------------------------------------------------------------------
   test("dsReadPartitioned", "Partitioned read with filter") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT, part INT) USING delta
       PARTITIONED BY (part)
@@ -1312,9 +1193,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadPathWithSpaces: error - path with spaces (no delta log)
-  // ---------------------------------------------------------------------------
   test("dsReadPathWithSpaces", "Error: path with spaces", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1330,9 +1208,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSaveMode: ErrorIfExists then Append
-  // ---------------------------------------------------------------------------
   test("dsReadSaveMode", "Save mode Append") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1343,9 +1218,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSaveModeErrorIfExists: single write
-  // ---------------------------------------------------------------------------
   test("dsReadSaveModeErrorIfExists", "Save mode ErrorIfExists") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1355,9 +1227,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSaveModeIgnore: write then ignore
-  // ---------------------------------------------------------------------------
   test("dsReadSaveModeIgnore", "Save mode Ignore") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1369,9 +1238,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSaveModeOverwrite: write then overwrite
-  // ---------------------------------------------------------------------------
   test("dsReadSaveModeOverwrite", "Save mode Overwrite") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1382,9 +1248,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSchemaEvolution: ADD COLUMN then insert
-  // ---------------------------------------------------------------------------
   test("dsReadSchemaEvolution", "Schema evolution with ADD COLUMN") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1402,9 +1265,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSelectColumns: column projection
-  // ---------------------------------------------------------------------------
   test("dsReadSelectColumns", "Column projection") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE, category STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1418,9 +1278,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSnapshot: time travel read at versions
-  // ---------------------------------------------------------------------------
   test("dsReadSnapshot", "Time travel snapshot read") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1433,9 +1290,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSnapshotPartitioned: partitioned snapshot read
-  // ---------------------------------------------------------------------------
   test("dsReadSnapshotPartitioned", "Partitioned snapshot read") { w =>
     w.sql("""CREATE TABLE tbl (region STRING, category INT, amount INT) USING delta
       PARTITIONED BY (region, category)
@@ -1446,9 +1300,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSnapshotWithProperties: table with custom properties
-  // ---------------------------------------------------------------------------
   test("dsReadSnapshotWithProperties", "Snapshot with table properties") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES (
@@ -1462,9 +1313,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadSpecialChars: special chars in partition values
-  // ---------------------------------------------------------------------------
   test("dsReadSpecialChars", "Special chars in partition values") { w =>
     w.sql("""CREATE TABLE tbl (id INT, category STRING) USING delta
       PARTITIONED BY (category)
@@ -1476,9 +1324,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadStringFilter: string equality filter
-  // ---------------------------------------------------------------------------
   test("dsReadStringFilter", "String equality filter") { w =>
     w.sql("""CREATE TABLE tbl (id INT, fruit STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1489,9 +1334,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadTimestampType: timestamp column
-  // ---------------------------------------------------------------------------
   test("dsReadTimestampType", "Timestamp type") { w =>
     w.sql("""CREATE TABLE tbl (id INT, event_time TIMESTAMP) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1503,9 +1345,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadUpdateThenRead: UPDATE then read
-  // ---------------------------------------------------------------------------
   test("dsReadUpdateThenRead", "Read after UPDATE") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1517,9 +1356,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadVersionNegative: error - negative version
-  // ---------------------------------------------------------------------------
   test("dsReadVersionNegative", "Error: negative version", "error") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1529,9 +1365,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadVersionOutOfRange: error - version out of range
-  // ---------------------------------------------------------------------------
   test("dsReadVersionOutOfRange", "Error: version out of range", "error") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1540,9 +1373,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t, version = 100)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadVersionZero: time travel to v0
-  // ---------------------------------------------------------------------------
   test("dsReadVersionZero", "Time travel to version 0") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1556,9 +1386,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadWithAlias: simple read (alias is a Spark concept, table is normal)
-  // ---------------------------------------------------------------------------
   test("dsReadWithAlias", "Read with alias") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1568,9 +1395,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadWithLimit: read all (LIMIT is a Spark concept)
-  // ---------------------------------------------------------------------------
   test("dsReadWithLimit", "Read with limit") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1580,9 +1404,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadWithOrderBy: read all (ORDER BY is a Spark concept)
-  // ---------------------------------------------------------------------------
   test("dsReadWithOrderBy", "Read with order by") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1592,9 +1413,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dsReadWithPredicate: simple predicate pushdown
-  // ---------------------------------------------------------------------------
   test("dsReadWithPredicate", "Predicate pushdown") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1605,13 +1423,8 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ===========================================================================
   // dse* workloads (Delta Suite Extended)
-  // ===========================================================================
 
-  // ---------------------------------------------------------------------------
-  // dseReadAfterAlterTable: SET TBLPROPERTIES then append
-  // ---------------------------------------------------------------------------
   test("dseReadAfterAlterTable", "Read after ALTER TABLE SET TBLPROPERTIES") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1623,9 +1436,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadAfterSchemaChange: ADD COLUMN then insert with new column
-  // ---------------------------------------------------------------------------
   test("dseReadAfterSchemaChange", "Read after schema change") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1639,9 +1449,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadLargeFile: 10000-row table
-  // ---------------------------------------------------------------------------
   test("dseReadLargeFile", "Large file read") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT, data STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1652,9 +1459,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadSmallFiles: 10 single-row appends
-  // ---------------------------------------------------------------------------
   test("dseReadSmallFiles", "Many small files") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1666,9 +1470,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadRepartitioned: 100 rows written (repartition is Spark concept)
-  // ---------------------------------------------------------------------------
   test("dseReadRepartitioned", "Repartitioned read") { w =>
     w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1678,9 +1479,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadWithColumnPruning: column pruning / projection
-  // ---------------------------------------------------------------------------
   test("dseReadWithColumnPruning", "Column pruning") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE, active BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1692,9 +1490,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseReadWithStats: 5 batches of 3 rows for stats-based filtering
-  // ---------------------------------------------------------------------------
   test("dseReadWithStats", "Read with stats-based filtering") { w =>
     w.sql("""CREATE TABLE tbl (id INT, batch STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1711,9 +1506,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
-  // dseSnapshotVersion: time travel across 3 versions
-  // ---------------------------------------------------------------------------
   test("dseSnapshotVersion", "Snapshot version read") { w =>
     w.sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1728,7 +1520,6 @@ new WorkloadSuite("reads") {
     w.snapshot(t)
   }
 
-  // --- Missing ds*/dse* workloads (matching acceptance_workloads directories) ---
 
   test("dsReadAfterVacuum", "Read after VACUUM") { w =>
     w.sql("""CREATE TABLE tbl (value BIGINT) USING delta

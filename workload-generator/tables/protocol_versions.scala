@@ -5,9 +5,7 @@
 
 new WorkloadSuite("protocol_versions") {
 
-  // ---------------------------------------------------------------------------
   // pv_001*: Basic protocol version tables
-  // ---------------------------------------------------------------------------
 
   test("pv_001a_protocol_1_1", "Protocol (1,1) table", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -73,9 +71,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_002-007: Protocol upgrades
-  // ---------------------------------------------------------------------------
 
   test("pv_002_upgrade_to_current", "Table after protocol upgrade to current version", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -141,9 +137,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 1)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_008-012: Overwrite behavior
-  // ---------------------------------------------------------------------------
 
   test("pv_008_overwrite_keeps_protocol", "Table after overwrite preserves protocol version", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -196,9 +190,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_014: Vacuum protocol check
-  // ---------------------------------------------------------------------------
 
   test("pv_014_vacuum_protocol_check", "Table state that vacuum would check protocol on", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -209,9 +201,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_023-026: Downgrade and defaults
-  // ---------------------------------------------------------------------------
 
   test("pv_023_downgrade_noop", "Table after downgrade attempt (no-op)", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -240,9 +230,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_030-040: CREATE TABLE with various feature configurations
-  // ---------------------------------------------------------------------------
 
   test("pv_030_create_session_features", "Table created with session-configured features", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -342,9 +330,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_046-047: ALTER TABLE to add features
-  // ---------------------------------------------------------------------------
 
   test("pv_046_alter_add_cdf", "Table after ALTER to add CDF feature", "protocol", "cdf") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -376,9 +362,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 2)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_082: Protocol property precedence
-  // ---------------------------------------------------------------------------
 
   test("pv_082_protocol_property_wins", "Table where protocol property wins over session config", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -389,9 +373,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_090-092: Protocol visibility and auto-upgrade
-  // ---------------------------------------------------------------------------
 
   test("pv_090_protocol_desc_table", "Table with protocol visible in DESC TABLE", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -430,9 +412,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 2)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_097-098: All features and feature status
-  // ---------------------------------------------------------------------------
 
   test("pv_097_all_active_features", "Table with all active features enabled", "protocol", "column_mapping", "cdf", "dv") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -454,9 +434,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_099-100: REPLACE AS protocol behavior
-  // ---------------------------------------------------------------------------
 
   test("pv_099_replace_as_updates_protocol", "Table after REPLACE AS with higher protocol defaults", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -487,9 +465,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 1)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_102: Protocol change logging
-  // ---------------------------------------------------------------------------
 
   test("pv_102_protocol_change_logging", "Table state after protocol change (for logging verification)", "protocol", "cdf") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -506,9 +482,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 2)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_104-105: Feature removal
-  // ---------------------------------------------------------------------------
 
   test("pv_104_remove_writer_feature", "Table after writer feature removal (appendOnly disabled)", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -538,9 +512,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 1)
   }
 
-  // ---------------------------------------------------------------------------
   // pv_110-116: Downgrade testing states
-  // ---------------------------------------------------------------------------
 
   test("pv_110_downgrade_1_4", "Table with protocol (1,4) for downgrade testing", "protocol") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -601,9 +573,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t, version = 2)
   }
 
-  // ---------------------------------------------------------------------------
   // Hand-crafted protocol edge cases (mutateTable)
-  // ---------------------------------------------------------------------------
 
   test("pv_empty_reader_features", "Table with empty readerFeatures/writerFeatures arrays", "protocol", "edge") { w =>
     w.sql("""CREATE TABLE tbl (id LONG) USING delta
@@ -810,9 +780,7 @@ new WorkloadSuite("protocol_versions") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // pve_*: Partition value encoding
-  // ---------------------------------------------------------------------------
 
   test("pve_boolean_partition", "Partition value encoding: boolean type", "partition") { w =>
     w.sql("""CREATE TABLE tbl (id INT, flag BOOLEAN) USING delta

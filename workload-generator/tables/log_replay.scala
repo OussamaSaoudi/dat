@@ -10,9 +10,7 @@
 
 new WorkloadSuite("log_replay") {
 
-  // ---------------------------------------------------------------------------
   // Log replay: add then remove
-  // ---------------------------------------------------------------------------
 
   test("lr_add_then_remove", "Log replay - add then remove", "logReplay") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -24,9 +22,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: checkpoint supersedes log
-  // ---------------------------------------------------------------------------
 
   test("lr_checkpoint_supersedes_log", "Log replay - checkpoint supersedes log",
       "logReplay") { w =>
@@ -46,9 +42,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: no checkpoint, full replay from v0
-  // ---------------------------------------------------------------------------
 
   test("lr_no_checkpoint_full_replay", "Log replay - no checkpoint, full replay",
       "logReplay") { w =>
@@ -67,9 +61,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: metadata latest wins
-  // ---------------------------------------------------------------------------
 
   test("lr_metadata_latest_wins", "Log replay - metadata latest wins", "logReplay") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -82,9 +74,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: dataChange=false from compaction
-  // ---------------------------------------------------------------------------
 
   test("lr_datachange_false", "Log replay - dataChange=false from compaction",
       "logReplay") { w =>
@@ -97,9 +87,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: add, remove, re-add across transactions
-  // ---------------------------------------------------------------------------
 
   test("log_replay_add_remove_readd", "Same file added, removed, re-added",
       "logReplay") { w =>
@@ -114,9 +102,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Log replay: DV key dedup
-  // ---------------------------------------------------------------------------
 
   test("log_replay_dv_key_dedup", "DV deduplication during log replay",
       "logReplay", "dv") { w =>
@@ -130,9 +116,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Error: missing metadata in state reconstruction
-  // ---------------------------------------------------------------------------
 
   test("log_err_missing_metadata", "State reconstruction without Metadata action",
       "logReplay", "error") { w =>
@@ -148,9 +132,7 @@ new WorkloadSuite("log_replay") {
     w.read(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Error: missing protocol in state reconstruction
-  // ---------------------------------------------------------------------------
 
   test("log_err_missing_protocol", "State reconstruction without Protocol action",
       "logReplay", "error") { w =>
@@ -166,9 +148,7 @@ new WorkloadSuite("log_replay") {
     w.read(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Last checkpoint info (lc_*)
-  // ---------------------------------------------------------------------------
 
   test("lc_basic", "Basic last checkpoint read", "lastCheckpoint") { w =>
     w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -232,9 +212,7 @@ new WorkloadSuite("log_replay") {
     w.snapshot(t)
   }
 
-  // ---------------------------------------------------------------------------
   // Production edge cases (prod_*)
-  // ---------------------------------------------------------------------------
 
   test("prod_empty_table_with_schema", "Empty Delta table with schema but no data files",
       "production") { w =>

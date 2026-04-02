@@ -110,7 +110,6 @@ new WorkloadSuite("types") {
 
   // === Void Type ===
 
-  // -- void_001_void_top_level: top-level NullType column --
   test("void_001_void_top_level", "Top-level NullType column", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, void_col VOID) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -120,7 +119,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- void_002_void_nested_struct: NullType inside struct --
   test("void_002_void_nested_struct", "NullType inside struct", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT,
@@ -132,7 +130,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- void_005_void_schema_evolution: NullType added via schema evolution --
   test("void_005_void_schema_evolution", "NullType added via schema evolution", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -143,7 +140,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- void_006_void_multiple_columns: multiple NullType columns --
   test("void_006_void_multiple_columns", "Multiple NullType columns", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, void_a VOID, void_b VOID) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -153,7 +149,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- void_007_void_with_backticks: NullType column with special name --
   test("void_007_void_with_backticks", "NullType column with special name", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, `my.void` VOID) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -163,7 +158,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- void_in_struct: NullType in struct field --
   test("void_in_struct", "NullType in struct field", "void", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT,
@@ -177,7 +171,6 @@ new WorkloadSuite("types") {
 
   // === Interval Type ===
 
-  // -- intv_001_interval_ym_basic: YearMonthIntervalType column --
   test("intv_001_interval_ym_basic", "YearMonthIntervalType column", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, period INTERVAL YEAR TO MONTH) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -188,7 +181,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_002_interval_dt_basic: DayTimeIntervalType column --
   test("intv_002_interval_dt_basic", "DayTimeIntervalType column", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, duration INTERVAL DAY TO SECOND) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -199,7 +191,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_003_interval_partitioned: partitioned by interval --
   test("intv_003_interval_partitioned", "Partitioned by interval", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, period INTERVAL YEAR TO MONTH) USING delta
       PARTITIONED BY (period) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -211,7 +202,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_004_interval_negative: negative interval values --
   test("intv_004_interval_negative", "Negative interval values", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, period INTERVAL YEAR TO MONTH) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -223,7 +213,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_005_interval_mixed: both YM and DT interval columns --
   test("intv_005_interval_mixed", "Both YM and DT interval columns", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT,
@@ -238,7 +227,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_boundary_values: max/min interval values --
   test("intv_boundary_values", "Max/min interval values", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (
       id INT,
@@ -253,7 +241,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- intv_sub_second: sub-second DayTimeInterval --
   test("intv_sub_second", "Sub-second DayTimeInterval", "interval", "unsupportedType") { w =>
     w.sql("""CREATE TABLE tbl (id INT, duration INTERVAL DAY TO SECOND) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -268,7 +255,6 @@ new WorkloadSuite("types") {
 
   // === Timestamp NTZ ===
 
-  // -- ntz_basic: basic TIMESTAMP_NTZ column --
   test("ntz_basic", "Table with TIMESTAMP_NTZ column", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -282,7 +268,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- ntz_far_past: NTZ with old date value --
   test("ntz_far_past", "NTZ with old date value", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -296,7 +281,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- ntz_mixed_tz_ntz: both TIMESTAMP and TIMESTAMP_NTZ columns --
   test("ntz_mixed_tz_ntz", "Both TIMESTAMP and TIMESTAMP_NTZ columns", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts_tz TIMESTAMP, ts_ntz TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -310,7 +294,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- ntz_partition: TIMESTAMP_NTZ as partition column --
   test("ntz_partition", "TIMESTAMP_NTZ as partition column", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING, ts_part TIMESTAMP_NTZ) USING delta
       PARTITIONED BY (ts_part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -326,7 +309,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- ntz_stats: data skipping with NTZ min/max stats --
   test("ntz_stats", "Data skipping with NTZ min/max stats", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -340,7 +322,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- tntz_column_mapping: NTZ with column mapping --
   test("tntz_column_mapping", "NTZ with column mapping", "timestampNTZ", "columnMapping") { w =>
     w.sql("""CREATE TABLE tbl (id INT, event_time TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES (
@@ -356,7 +337,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- tntz_epoch: NTZ epoch value --
   test("tntz_epoch", "NTZ epoch value", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -369,7 +349,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- tntz_partition_filter: NTZ partition filter --
   test("tntz_partition_filter", "NTZ partition filter", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, value STRING, ts_part TIMESTAMP_NTZ) USING delta
       PARTITIONED BY (ts_part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -384,7 +363,6 @@ new WorkloadSuite("types") {
     w.snapshot(t)
   }
 
-  // -- tntz_time_travel: NTZ with version-based time travel --
   test("tntz_time_travel", "NTZ with version-based time travel", "timestampNTZ") { w =>
     w.sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")

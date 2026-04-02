@@ -1,8 +1,6 @@
 new WorkloadSuite("column_mapping") {
 
-  // ---------------------------------------------------------------------------
   // Existing 6 workloads
-  // ---------------------------------------------------------------------------
 
   test("cm_mode_name", "Read table with column mapping mode 'name'", "column_mapping") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING, value DOUBLE) USING delta
@@ -81,9 +79,7 @@ new WorkloadSuite("column_mapping") {
     w.snapshotHistory(t)
   }
 
-  // ---------------------------------------------------------------------------
   // New workloads: 25 more to match existing acceptance_workloads/cm_*
-  // ---------------------------------------------------------------------------
 
   test("cm_mode_id", "Read table with column mapping mode 'id'", "column_mapping") { w =>
     w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
