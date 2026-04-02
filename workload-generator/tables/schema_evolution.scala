@@ -80,6 +80,169 @@ workload("schema_predicate_on_added", "Predicate on null-filled added column", "
   w.snapshotHistory(t)
 }
 
+// --- New workloads below ---
+
+workload("schema_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution") { w =>
+  w.sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+  w.sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+  w.sql("INSERT INTO tbl VALUES (4,'d',100),(5,'e',200),(6,'f',300)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "score = 200")
+  w.read(t, predicate = "score = 100 OR score IS NULL")
+  w.snapshotHistory(t)
+}
+
+workload("schema_drop_col_pred", "Data skipping after column drop", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING, category STRING) USING delta
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'alice','A'),(2,'bob','B'),(3,'charlie','A')")
+  w.sql("ALTER TABLE tbl DROP COLUMN category")
+  w.sql("INSERT INTO tbl VALUES (4,'diana'),(5,'eve')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "id > 3")
+  w.read(t, predicate = "name = 'alice'")
+  w.snapshotHistory(t)
+}
+
+workload("schema_rename_pred", "Predicate on renamed column", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie')")
+  w.sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+  w.sql("INSERT INTO tbl VALUES (4,'diana')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "new_name = 'alice'")
+  w.read(t, predicate = "new_name = 'diana'")
+  w.snapshotHistory(t)
+}
+
+workload("schema_rename_partition", "Partition pruning on renamed partition column", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, category STRING) USING delta
+    PARTITIONED BY (category)
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'A'),(2,'B'),(3,'A'),(4,'C')")
+  w.sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
+  w.sql("INSERT INTO tbl VALUES (5,'A'),(6,'C')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "cat = 'A'")
+  w.read(t, predicate = "cat = 'C'")
+  w.snapshotHistory(t)
+}
+
+workload("schema_drop_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'hello'),(2,'world')")
+  w.sql("ALTER TABLE tbl DROP COLUMN x")
+  w.sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+  w.sql("INSERT INTO tbl VALUES (3,100),(4,200)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshotHistory(t)
+}
+
+workload("schema_readd_pred", "Predicate on re-added column (new physical name)", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'old1'),(2,'old2')")
+  w.sql("ALTER TABLE tbl DROP COLUMN x")
+  w.sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+  w.sql("INSERT INTO tbl VALUES (3,100),(4,200)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "x = 200")
+  w.read(t, predicate = "x IS NULL")
+  w.snapshotHistory(t)
+}
+
+workload("schema_dv_pred_null", "Null-fill predicate + DVs combined", "schema_evolution", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie'),(4,'diana')")
+  w.sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+  w.sql("INSERT INTO tbl VALUES (5,'eve',90),(6,'frank',80)")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 5)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "score IS NULL")
+  w.read(t, predicate = "score IS NOT NULL")
+  w.snapshotHistory(t)
+}
+
+workload("schema_rename_read_v1", "Version read before rename", "schema_evolution", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+    TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'before_rename')")
+  w.sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+  w.sql("INSERT INTO tbl VALUES (2,'after_rename')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, version = 1)
+  w.snapshotHistory(t)
+}
+
+workload("schema_nested_field_pred", "Predicate on added nested field", "schema_evolution") { w =>
+  w.sql("CREATE TABLE tbl (id INT, info STRUCT<name: STRING>) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1, named_struct('name','alice'))")
+  w.sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+  w.sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','email','bob@x.com'))")
+  w.sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','email','charlie@y.com'))")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "info.email IS NULL")
+  w.read(t, predicate = "info.email IS NOT NULL")
+  w.snapshotHistory(t)
+}
+
+workload("schema_proj_at_old_version", "Project column at version before schema change", "schema_evolution") { w =>
+  w.sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1,'one'),(2,'two')")
+  w.sql("ALTER TABLE tbl ADD COLUMNS (extra INT)")
+  w.sql("INSERT INTO tbl VALUES (3,'three',300)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, version = 1, columns = Seq("id", "value"))
+  w.read(t, columns = Seq("id", "extra"))
+  w.snapshotHistory(t)
+}
+
+workload("schema_type_coercion_insert", "INSERT with implicit type cast int to long", "schema_evolution") { w =>
+  w.sql("CREATE TABLE tbl (id LONG, value LONG) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1, 100)")
+  // Insert int values into long columns (implicit coercion)
+  w.sql("INSERT INTO tbl SELECT CAST(2 AS INT), CAST(200 AS INT)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "value > 150")
+  w.snapshotHistory(t)
+}
+
+workload("schema_merge_with_evolution", "MERGE with schema evolution", "schema_evolution") { w =>
+  w.sql("""CREATE TABLE target (id INT, name STRING) USING delta
+    TBLPROPERTIES ('delta.enableTypeWidening' = 'false')""")
+  w.sql("INSERT INTO target VALUES (1,'alice'),(2,'bob')")
+  w.sql("CREATE TABLE src (id INT, name STRING, score INT) USING delta")
+  w.sql("INSERT INTO src VALUES (2,'bob_updated',95),(3,'charlie',88)")
+  w.sql("""MERGE INTO target t USING src s ON t.id = s.id
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *""")
+  val t = w.table("target")
+  w.read(t)
+  w.read(t, columns = Seq("id", "score"))
+  w.snapshotHistory(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
