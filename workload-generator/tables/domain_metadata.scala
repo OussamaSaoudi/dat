@@ -1,220 +1,192 @@
-import io.delta.workload.WorkloadGenerator._
+new WorkloadSuite("domain_metadata") {
 
-// -- dm_basic_read: basic domain metadata --
-workload("dm_basic_read", "Basic domain metadata read", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
-  // Add domain metadata via DeltaLog API
-  val t = w.table("tbl")
-  w.sql("TRUNCATE TABLE tbl")
-  // Inject domain metadata into the TRUNCATE commit
-  w.mutateTable(t) { tableDir =>
-    import com.fasterxml.jackson.databind.ObjectMapper
-    import com.fasterxml.jackson.module.scala.DefaultScalaModule
-    val commitFile = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
-    val lines = new String(java.nio.file.Files.readAllBytes(commitFile), "UTF-8")
-    val dmLine = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":false}}"""
-    java.nio.file.Files.write(commitFile, (lines.trim + "\n" + dmLine + "\n").getBytes("UTF-8"))
-  }
-  w.domainMetadata(t, domain = "testDomain1", configuration = "", removed = false,
-    name = "domain_metadata")
-}
-
-// -- dm_deletion: domain metadata deletion --
-workload("dm_deletion", "Domain metadata deletion", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
-  w.sql("TRUNCATE TABLE tbl")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  // Add domain metadata at v2, delete at v3
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val content2 = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val dm2 = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":false}}
-{"domainMetadata":{"domain":"testDomain2","configuration":"{\"key1\":\"value1\"}","removed":false}}"""
-    java.nio.file.Files.write(v2, (content2.trim + "\n" + dm2 + "\n").getBytes("UTF-8"))
-
-    val v3 = tableDir.resolve("_delta_log/00000000000000000003.json")
-    val content3 = new String(java.nio.file.Files.readAllBytes(v3), "UTF-8")
-    val dm3 = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":true}}"""
-    java.nio.file.Files.write(v3, (content3.trim + "\n" + dm3 + "\n").getBytes("UTF-8"))
-  }
-  // After deletion, testDomain2 should remain
-  w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
-    removed = false, name = "domain_metadata")
-}
-
-// -- dm_json_config: domain metadata with JSON configuration --
-workload("dm_json_config", "Domain metadata with JSON configuration", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val content = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val dm = """{"domainMetadata":{"domain":"testDomain2","configuration":"{\"key1\":\"value1\"}","removed":false}}"""
-    java.nio.file.Files.write(v2, (content.trim + "\n" + dm + "\n").getBytes("UTF-8"))
-  }
-  w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
-    removed = false, name = "domain_metadata")
-}
-
-// -- dm_large_payload: domain metadata with large payload (>1KB) --
-workload("dm_large_payload", "Domain metadata with large payload (>1KB)", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val content = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val pairs = (1 to 100).map(i => s""""key_$i":"xxxxxxxxxx"""").mkString(",")
-    val config = s"{$pairs}"
-    val dm = s"""{"domainMetadata":{"domain":"largeDomain","configuration":"${config.replace("\"", "\\\"")}","removed":false}}"""
-    java.nio.file.Files.write(v2, (content.trim + "\n" + dm + "\n").getBytes("UTF-8"))
-  }
-  val pairs = (1 to 100).map(i => s""""key_$i":"xxxxxxxxxx"""").mkString(",")
-  w.domainMetadata(t, domain = "largeDomain", configuration = s"{$pairs}",
-    removed = false, name = "domain_metadata")
-}
-
-// -- dm_multiple_domains: multiple domain metadata entries --
-workload("dm_multiple_domains", "Multiple domain metadata entries - testDomain1", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val content = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val dm = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":false}}
-{"domainMetadata":{"domain":"testDomain2","configuration":"{\"key1\":\"value1\"}","removed":false}}"""
-    java.nio.file.Files.write(v2, (content.trim + "\n" + dm + "\n").getBytes("UTF-8"))
-  }
-  w.domainMetadata(t, domain = "testDomain1", configuration = "",
-    removed = false, name = "domain_metadata")
-}
-
-// -- dm_version_read: read domain metadata at specific version --
-workload("dm_version_read", "Read domain metadata at specific version", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val c2 = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    java.nio.file.Files.write(v2, (c2.trim + "\n" +
-      """{"domainMetadata":{"domain":"domain_v2","configuration":"{\"version\":\"v2\"}","removed":false}}""" + "\n").getBytes("UTF-8"))
-
-    val v3 = tableDir.resolve("_delta_log/00000000000000000003.json")
-    val c3 = new String(java.nio.file.Files.readAllBytes(v3), "UTF-8")
-    java.nio.file.Files.write(v3, (c3.trim + "\n" +
-      """{"domainMetadata":{"domain":"domain_v3","configuration":"{\"version\":\"v3\"}","removed":false}}""" + "\n").getBytes("UTF-8"))
-  }
-  w.domainMetadata(t, domain = "domain_v2", configuration = """{"version":"v2"}""",
-    removed = false, version = 2, name = "domain_metadata")
-}
-
-// -- dm_with_checkpoint: domain metadata survives checkpoint --
-workload("dm_with_checkpoint", "Domain metadata survives checkpoint reconstruction", "domainMetadata") { w =>
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val content = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val dm = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":false}}
-{"domainMetadata":{"domain":"testDomain2","configuration":"{\"key1\":\"value1\"}","removed":false}}"""
-    java.nio.file.Files.write(v2, (content.trim + "\n" + dm + "\n").getBytes("UTF-8"))
-  }
-  w.domainMetadata(t, domain = "testDomain1", configuration = "",
-    removed = false, name = "domain_metadata")
-}
-
-// State reconstruction variants: checkpoint + CRC combinations
-// These share the same table structure but differ in checkpoint/CRC presence
-private def dmStateWorkload(name: String, desc: String, tags: String*)(
-    body: WorkloadContext => Unit): Unit = {
-  workload(name, desc, (Seq("domainMetadata", "stateReconstruction") ++ tags): _*)(body)
-}
-
-private def createDmStateTable(w: WorkloadContext, hasDeletion: Boolean): Unit = {
-  w.sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-  w.sql("INSERT INTO tbl VALUES (1)")
-  w.sql("TRUNCATE TABLE tbl")
-  if (hasDeletion) w.sql("TRUNCATE TABLE tbl")
-  val t = w.table("tbl")
-  w.mutateTable(t) { tableDir =>
-    val v2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-    val c2 = new String(java.nio.file.Files.readAllBytes(v2), "UTF-8")
-    val dm2 = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":false}}
-{"domainMetadata":{"domain":"testDomain2","configuration":"{\"key1\":\"value1\"}","removed":false}}"""
-    java.nio.file.Files.write(v2, (c2.trim + "\n" + dm2 + "\n").getBytes("UTF-8"))
-
-    if (hasDeletion) {
-      val v3 = tableDir.resolve("_delta_log/00000000000000000003.json")
-      val c3 = new String(java.nio.file.Files.readAllBytes(v3), "UTF-8")
-      val dm3 = """{"domainMetadata":{"domain":"testDomain1","configuration":"","removed":true}}"""
-      java.nio.file.Files.write(v3, (c3.trim + "\n" + dm3 + "\n").getBytes("UTF-8"))
+  def injectDomainMetadata(w: WorkloadContext, t: TableHandle,
+      version: Int, entries: Seq[(String, String, Boolean)]): Unit = {
+    w.mutateTable(t) { tableDir =>
+      val commitFile = tableDir.resolve(
+        "_delta_log/" + f"$version%020d.json")
+      val content = new String(java.nio.file.Files.readAllBytes(commitFile), "UTF-8")
+      val lines = entries.map { case (domain, config, removed) =>
+        val escapedConfig = config.replace("\"", "\\\"")
+        s"""{"domainMetadata":{"domain":"$domain","configuration":"$escapedConfig","removed":$removed}}"""
+      }
+      java.nio.file.Files.write(commitFile,
+        (content.trim + "\n" + lines.mkString("\n") + "\n").getBytes("UTF-8"))
     }
   }
-  if (hasDeletion) {
-    // After deletion of testDomain1, testDomain2 remains
-    w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
-      removed = false, name = "domain_metadata")
-  } else {
+
+  // -- Basic domain metadata --
+
+  test("dm_basic_read", "Basic domain metadata read", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2, Seq(("testDomain1", "", false)))
     w.domainMetadata(t, domain = "testDomain1", configuration = "",
       removed = false, name = "domain_metadata")
   }
-}
 
-dmStateWorkload("dm_state_ckpt_crc", "Domain metadata reconstruction: with checkpoint, with CRC") { w =>
-  createDmStateTable(w, hasDeletion = false)
-}
+  test("dm_json_config", "Domain metadata with JSON configuration", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2,
+      Seq(("testDomain2", """{"key1":"value1"}""", false)))
+    w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
+      removed = false, name = "domain_metadata")
+  }
 
-dmStateWorkload("dm_state_ckpt_no_crc", "Domain metadata reconstruction: with checkpoint, no CRC") { w =>
-  createDmStateTable(w, hasDeletion = false)
-}
+  test("dm_large_payload", "Domain metadata with large payload (>1KB)", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    val pairs = (1 to 100).map(i => s""""key_$i":"xxxxxxxxxx"""").mkString(",")
+    val config = s"{$pairs}"
+    injectDomainMetadata(w, t, 2, Seq(("largeDomain", config, false)))
+    w.domainMetadata(t, domain = "largeDomain", configuration = config,
+      removed = false, name = "domain_metadata")
+  }
 
-dmStateWorkload("dm_state_no_ckpt_crc", "Domain metadata reconstruction: no checkpoint, with CRC") { w =>
-  createDmStateTable(w, hasDeletion = false)
-}
+  test("dm_multiple_domains", "Multiple domain metadata entries", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2, Seq(
+      ("testDomain1", "", false),
+      ("testDomain2", """{"key1":"value1"}""", false)))
+    w.domainMetadata(t, domain = "testDomain1", configuration = "",
+      removed = false, name = "domain_metadata")
+  }
 
-dmStateWorkload("dm_state_no_ckpt_no_crc", "Domain metadata reconstruction: no checkpoint, no CRC") { w =>
-  createDmStateTable(w, hasDeletion = false)
-}
+  // -- Deletion --
 
-dmStateWorkload("dm_deletion_ckpt_crc", "Domain metadata deletion: with checkpoint, with CRC", "deletion") { w =>
-  createDmStateTable(w, hasDeletion = true)
-}
+  test("dm_deletion", "Domain metadata deletion", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
+    w.sql("DELETE FROM tbl")
+    w.sql("INSERT INTO tbl VALUES (4)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2, Seq(
+      ("testDomain1", "", false),
+      ("testDomain2", """{"key1":"value1"}""", false)))
+    injectDomainMetadata(w, t, 4, Seq(("testDomain1", "", true)))
+    w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
+      removed = false, name = "domain_metadata")
+  }
 
-dmStateWorkload("dm_deletion_ckpt_no_crc", "Domain metadata deletion: with checkpoint, no CRC", "deletion") { w =>
-  createDmStateTable(w, hasDeletion = true)
-}
+  // -- Version-specific --
 
-dmStateWorkload("dm_deletion_no_ckpt_crc", "Domain metadata deletion: no checkpoint, with CRC", "deletion") { w =>
-  createDmStateTable(w, hasDeletion = true)
-}
+  test("dm_version_read", "Read domain metadata at specific version", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1)")
+    w.sql("DELETE FROM tbl")
+    w.sql("INSERT INTO tbl VALUES (2)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2,
+      Seq(("domain_v2", """{"version":"v2"}""", false)))
+    injectDomainMetadata(w, t, 4,
+      Seq(("domain_v4", """{"version":"v4"}""", false)))
+    w.domainMetadata(t, domain = "domain_v2", configuration = """{"version":"v2"}""",
+      removed = false, version = 2, name = "domain_metadata")
+  }
 
-dmStateWorkload("dm_deletion_no_ckpt_no_crc", "Domain metadata deletion: no checkpoint, no CRC", "deletion") { w =>
-  createDmStateTable(w, hasDeletion = true)
-}
+  // -- Checkpoint reconstruction --
 
-generateAll(
-  sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
-  force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
-System.exit(0)
+  test("dm_with_checkpoint", "Domain metadata survives checkpoint", "domainMetadata") { w =>
+    w.sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    w.sql("INSERT INTO tbl VALUES (1)")
+    w.sql("DELETE FROM tbl")
+    val t = w.table("tbl")
+    injectDomainMetadata(w, t, 2, Seq(
+      ("testDomain1", "", false),
+      ("testDomain2", """{"key1":"value1"}""", false)))
+    w.domainMetadata(t, domain = "testDomain1", configuration = "",
+      removed = false, name = "domain_metadata")
+  }
+
+  // -- State reconstruction: checkpoint x CRC combinations --
+
+  def stateReconstructionTest(
+      name: String, desc: String,
+      hasDeletion: Boolean, withCheckpoint: Boolean, withCrc: Boolean): Unit = {
+    val tags = Seq("domainMetadata", "stateReconstruction") ++
+      (if (hasDeletion) Seq("deletion") else Seq.empty)
+    test(name, desc, tags: _*) { w =>
+      import org.apache.spark.sql.delta.DeltaLog
+      w.sql("""CREATE TABLE tbl (id INT) USING delta
+        TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+      w.sql("INSERT INTO tbl VALUES (1)")
+      w.sql("DELETE FROM tbl")
+      if (hasDeletion) {
+        w.sql("INSERT INTO tbl VALUES (2)")
+        w.sql("DELETE FROM tbl")
+      }
+      val t = w.table("tbl")
+      injectDomainMetadata(w, t, 2, Seq(
+        ("testDomain1", "", false),
+        ("testDomain2", """{"key1":"value1"}""", false)))
+      if (hasDeletion) {
+        injectDomainMetadata(w, t, 4, Seq(("testDomain1", "", true)))
+      }
+      if (withCheckpoint) {
+        val loc = w.spark.sql("DESCRIBE DETAIL tbl").collect()(0).getAs[String]("location")
+        DeltaLog.clearCache()
+        DeltaLog.forTable(w.spark, loc).checkpoint()
+        DeltaLog.clearCache()
+      }
+      if (!withCrc) {
+        w.mutateTable(t) { tableDir =>
+          val logDir = tableDir.resolve("_delta_log")
+          val stream = java.nio.file.Files.list(logDir)
+          try {
+            import scala.collection.JavaConverters._
+            stream.iterator().asScala
+              .filter(_.toString.endsWith(".crc"))
+              .foreach(java.nio.file.Files.delete)
+          } finally { stream.close() }
+        }
+      }
+      if (hasDeletion) {
+        w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
+          removed = false, name = "domain_metadata")
+      } else {
+        w.domainMetadata(t, domain = "testDomain1", configuration = "",
+          removed = false, name = "domain_metadata")
+        w.domainMetadata(t, domain = "testDomain2", configuration = """{"key1":"value1"}""",
+          removed = false, name = "dm2")
+      }
+      w.snapshot(t)
+    }
+  }
+
+  stateReconstructionTest("dm_state_ckpt_crc", "State: checkpoint + CRC",
+    hasDeletion = false, withCheckpoint = true, withCrc = true)
+  stateReconstructionTest("dm_state_ckpt_no_crc", "State: checkpoint, no CRC",
+    hasDeletion = false, withCheckpoint = true, withCrc = false)
+  stateReconstructionTest("dm_state_no_ckpt_crc", "State: no checkpoint, CRC",
+    hasDeletion = false, withCheckpoint = false, withCrc = true)
+  stateReconstructionTest("dm_state_no_ckpt_no_crc", "State: no checkpoint, no CRC",
+    hasDeletion = false, withCheckpoint = false, withCrc = false)
+  stateReconstructionTest("dm_deletion_ckpt_crc", "Deletion: checkpoint + CRC",
+    hasDeletion = true, withCheckpoint = true, withCrc = true)
+  stateReconstructionTest("dm_deletion_ckpt_no_crc", "Deletion: checkpoint, no CRC",
+    hasDeletion = true, withCheckpoint = true, withCrc = false)
+  stateReconstructionTest("dm_deletion_no_ckpt_crc", "Deletion: no checkpoint, CRC",
+    hasDeletion = true, withCheckpoint = false, withCrc = true)
+  stateReconstructionTest("dm_deletion_no_ckpt_no_crc", "Deletion: no checkpoint, no CRC",
+    hasDeletion = true, withCheckpoint = false, withCrc = false)
+
+}.runAll()

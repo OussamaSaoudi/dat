@@ -16,38 +16,51 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 ```bash
 cd workload-generator
 sbt assembly
-./bin/generate-workload.sh tables/simple_read.scala --output-dir /tmp/workloads
+
+# Run one suite
+./bin/generate-workload.sh tables/reads.scala --output-dir /tmp/workloads
+
+# Run all suites
+./bin/generate-workload.sh tables/ --output-dir /tmp/workloads
 ```
 
 ## Writing a Script
 
+Each script is a `WorkloadSuite` — like a test suite. Each `test` creates tables, declares specs, and the framework handles the rest.
+
 ```scala
-import io.delta.workload.WorkloadGenerator._
+new WorkloadSuite("cdc") {
 
-workload("cdf_merge", "MERGE with CDC enabled") { w =>
-  w.sql("""CREATE TABLE target (id INT, val STRING) USING delta
-    TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-  w.sql("INSERT INTO target VALUES (1, 'old'), (2, 'old')")
-  w.sql("CREATE TABLE source (id INT, val STRING) USING delta")
-  w.sql("INSERT INTO source VALUES (2, 'new'), (3, 'new')")
-  w.sql("""MERGE INTO target t USING source s ON t.id = s.id
-    WHEN MATCHED THEN UPDATE SET val = s.val
-    WHEN NOT MATCHED THEN INSERT *""")
+  test("cdf_merge", "MERGE with CDC enabled") { w =>
+    w.sql("""CREATE TABLE target (id INT, val STRING) USING delta
+      TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
+    w.sql("INSERT INTO target VALUES (1, 'old'), (2, 'old')")
+    w.sql("CREATE TABLE source (id INT, val STRING) USING delta")
+    w.sql("INSERT INTO source VALUES (2, 'new'), (3, 'new')")
+    w.sql("""MERGE INTO target t USING source s ON t.id = s.id
+      WHEN MATCHED THEN UPDATE SET val = s.val
+      WHEN NOT MATCHED THEN INSERT *""")
 
-  val tgt = w.table("target")
-  val src = w.table("source")
+    val tgt = w.table("target")
+    w.read(tgt)
+    w.read(tgt, version = 0)
+    w.read(tgt, predicate = "id > 1")
+    w.snapshot(tgt)
+    w.cdf(tgt, startVersion = 2)
+  }
 
-  w.read(tgt)
-  w.read(tgt, version = 0)
-  w.read(tgt, predicate = "id > 1")
-  w.read(src)
-  w.snapshot(tgt)
-  w.cdf(tgt, startVersion = 2)
-}
+  test("cdf_insert_delete", "INSERT then DELETE with CDC") { w =>
+    // ...
+  }
 
-generateAll("/tmp/workloads")
-System.exit(0)  // Required for spark-shell scripts
+}.runAll()
 ```
+
+### Test semantics
+
+- **Pass**: output kept, skipped on re-run (incremental)
+- **Fail**: output deleted, auto-retries next run (no `--force` needed)
+- **Each test is independent**: failures don't stop the suite
 
 ## Output
 
@@ -68,32 +81,18 @@ cdf_merge_target/
   table_info.json
   test_info.json
   repro/generate.scala
-
-cdf_merge_source/
-  delta/
-  specs/
-  expected/
-  ...
 ```
 
 ## API Reference
 
-### Registration
-
-```scala
-workload(name: String, description: String, tags: String*)(body: WorkloadContext => Unit)
-generateAll(outputDir: String)
-generate(name: String, outputDir: String)  // single workload
-```
-
-### Inside a workload body
+### Inside a test body
 
 | Method | Description |
 |--------|-------------|
 | `w.sql(stmt)` | Execute Spark SQL |
 | `w.spark` | Direct SparkSession access |
-| `w.table("name")` | Get handle to a managed Spark table → `TableHandle` |
-| `w.tableFromPath("/path")` | Get handle to a table on disk → `TableHandle` |
+| `w.table("name")` | Get handle to a managed Spark table |
+| `w.tableFromPath("/path")` | Get handle to a table on disk |
 
 ### Spec declaration
 
@@ -141,34 +140,33 @@ Every spec is validated after capture:
 - **Error specs**: Re-attempted to confirm reproducibility
 - **Snapshot specs**: Protocol and metadata deep comparison
 
-## IDE Support
+## Workload Suites
 
-For full LSP/autocomplete, copy `project-template/`:
-
-```bash
-cp -r project-template/ my-workloads/
-# Open in IntelliJ or VS Code with Metals
-```
-
-Scripts also work standalone: `./bin/generate-workload.sh my_script.scala`
-
-## Important Notes
-
-- Scripts run via `spark-shell` must end with `System.exit(0)` (otherwise the REPL hangs)
-- Re-running skips existing workloads (incremental). Use `--force` to regenerate all.
-- If one workload fails, others still generate. Use `generate("name", dir)` to re-run one.
-- Failed reads are auto-captured as error specs (`{"error": {"errorCode": "..."}}`). No special handling needed — just declare the spec and the framework records what happens.
-
-## Examples
-
-Example scripts are in the `tables/` directory:
-
-| File | What it tests |
-|------|---------------|
-| `simple_read.scala` | Minimal example |
-| `core_reads.scala` | Basic reads, predicates, time travel, errors |
-| `types_and_basic.scala` | Primitives, nested types, NULLs, edge cases |
-| `partitioning_and_skipping.scala` | Partition pruning, data skipping |
-| `features_and_dml.scala` | Schema evolution, DVs, CDF, checkpoints, DML |
-| `iceberg_compat.scala` | Iceberg compatibility features |
-| `dv_delete_basic.scala` | DVs, MERGE, table corruption |
+| File | Tests | What it covers |
+|------|-------|----------------|
+| `reads.scala` | 155 | Core reads, predicates, time travel, legacy |
+| `merge.scala` | 105 | MERGE INTO operations |
+| `data_skipping.scala` | 102 | Data skipping, statistics, partitioning |
+| `protocol_versions.scala` | 72 | Protocol versions, reader/writer features |
+| `deletion_vectors.scala` | 57 | Deletion vectors |
+| `time_travel.scala` | 47 | Time travel reads |
+| `corruption.scala` | 46 | Corrupt tables, error handling |
+| `schema_evolution.scala` | 43 | Schema evolution |
+| `checkpoints.scala` | 37 | Checkpoint formats and reconstruction |
+| `variant.scala` | 31 | Variant type |
+| `types.scala` | 31 | Basic types, void, interval, timestamp NTZ |
+| `column_mapping.scala` | 31 | Column mapping modes |
+| `dml.scala` | 26 | DML operations, misc workloads |
+| `cdc.scala` | 26 | Change data feed |
+| `type_widening.scala` | 23 | Type widening |
+| `log_replay.scala` | 22 | Log replay edge cases |
+| `check_constraints.scala` | 22 | CHECK constraints |
+| `identity_columns.scala` | 20 | Identity columns |
+| `evolvability.scala` | 20 | Forward/backward compatibility |
+| `generated_columns.scala` | 18 | Generated columns |
+| `domain_metadata.scala` | 15 | Domain metadata |
+| `transactions.scala` | 12 | SetTransaction tracking |
+| `iceberg_compat.scala` | 12 | Iceberg compatibility |
+| `row_tracking.scala` | 11 | Row tracking |
+| `in_commit_timestamp.scala` | 10 | In-commit timestamps |
+| `default_values.scala` | 4 | Column defaults |

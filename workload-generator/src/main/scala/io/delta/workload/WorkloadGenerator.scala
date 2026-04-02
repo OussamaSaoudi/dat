@@ -26,31 +26,23 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
-// ---------------------------------------------------------------------------
-// Public API — import WorkloadGenerator._ in your script
-// ---------------------------------------------------------------------------
-
 /**
- * Workload generator for Delta kernel acceptance tests.
+ * Internal workload generation engine. Use [[WorkloadSuite]] as the public API:
  *
  * {{{
- * import io.delta.workload.WorkloadGenerator._
- *
- * workload("dv_delete_basic", "Deletion vectors after DELETE") { w =>
- *   w.sql("CREATE TABLE tbl (id INT, name STRING) USING delta " +
- *     "TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')")
- *   w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
- *   w.sql("DELETE FROM tbl WHERE id = 2")
- *
- *   val t = w.table("tbl")
- *   w.read(t)
- *   w.read(t, version = 0)
- *   w.read(t, predicate = "id > 1")
- *   w.snapshot(t)
- * }
- *
- * generateAll("/tmp/workloads")
- * System.exit(0)
+ * new WorkloadSuite("deletion_vectors") {
+ *   test("dv_delete_basic", "Deletion vectors after DELETE") { w =>
+ *     w.sql("CREATE TABLE tbl (id INT, name STRING) USING delta " +
+ *       "TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')")
+ *     w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+ *     w.sql("DELETE FROM tbl WHERE id = 2")
+ *     val t = w.table("tbl")
+ *     w.read(t)
+ *     w.read(t, version = 0)
+ *     w.read(t, predicate = "id > 1")
+ *     w.snapshot(t)
+ *   }
+ * }.runAll()
  * }}}
  */
 object WorkloadGenerator {
@@ -152,7 +144,7 @@ object WorkloadGenerator {
 
   // Internal: generate one table's workload directory
 
-  private def generateTable(
+  private[workload] def generateTable(
       spark: SparkSession,
       ts: TableSpec,
       outputBase: Path,
@@ -260,36 +252,39 @@ object WorkloadGenerator {
       for (dm <- ts.domainMetadataSpecs) {
         try {
           val specName = s"${dirName}_${dm.name}"
-          DeltaLog.clearCache()
-          val dl = DeltaLog.forTable(spark, destTablePath.toString)
-          val snapshot = dm.version match {
-            case Some(v) => dl.getSnapshotAt(v)
-            case None => dl.update()
-          }
-          // Read and validate domain metadata from snapshot
-          val domainActions = try {
+
+          // Try Snapshot API first (works on DBR), fall back to scanning commit JSON
+          val domainJsons: Seq[com.fasterxml.jackson.databind.JsonNode] = try {
+            DeltaLog.clearCache()
+            val dl = DeltaLog.forTable(spark, destTablePath.toString)
+            val snapshot = dm.version match {
+              case Some(v) => dl.getSnapshotAt(v)
+              case None => dl.update()
+            }
             val method = snapshot.getClass.getMethod("domainMetadata")
-            method.invoke(snapshot).asInstanceOf[Seq[_]]
+            val actions = method.invoke(snapshot).asInstanceOf[Seq[_]]
+            actions.map { action =>
+              val jsonMethod = action.getClass.getMethod("json")
+              JsonUtil.mapper.readTree(jsonMethod.invoke(action).asInstanceOf[String])
+            }
           } catch {
-            case _: NoSuchMethodException => Seq.empty
+            case _: NoSuchMethodException =>
+              // OSS Delta: scan commit JSON files directly
+              scanDomainMetadataFromLog(destTablePath, dm.version)
+            case _: Exception =>
+              scanDomainMetadataFromLog(destTablePath, dm.version)
           }
 
-          // Validate: find the expected domain in the snapshot's domain metadata
-          val domainJsons = domainActions.map { action =>
-            val jsonMethod = action.getClass.getMethod("json")
-            JsonUtil.mapper.readTree(jsonMethod.invoke(action).asInstanceOf[String])
-          }
+          // Find matching domain
           val matchingDomain = domainJsons.find { node =>
             val dmNode = Option(node.get("domainMetadata")).getOrElse(node)
             dmNode.has("domain") && dmNode.get("domain").asText() == dm.domain
           }
           if (dm.removed) {
-            // Domain should NOT be present (or should be marked removed)
             require(matchingDomain.isEmpty,
               s"Domain metadata validation FAILED for $specName: " +
                 s"domain '${dm.domain}' should be removed but is still present")
           } else {
-            // Domain should be present with correct configuration
             require(matchingDomain.isDefined,
               s"Domain metadata validation FAILED for $specName: " +
                 s"domain '${dm.domain}' not found in snapshot")
@@ -405,6 +400,41 @@ object WorkloadGenerator {
       case None => Files.write(reproDir.resolve("generate.scala"),
         "// Generated interactively.\n".getBytes("UTF-8"))
     }
+  }
+
+  /** Scan commit JSON files to reconstruct domain metadata state (OSS fallback). */
+  private def scanDomainMetadataFromLog(
+      tablePath: Path,
+      version: Option[Long]): Seq[com.fasterxml.jackson.databind.JsonNode] = {
+    val logDir = tablePath.resolve("_delta_log")
+    val stream = Files.list(logDir)
+    try {
+      val commitFiles = scala.collection.JavaConverters
+        .asScalaIteratorConverter(stream.iterator()).asScala
+        .filter(_.toString.endsWith(".json"))
+        .toSeq.sortBy(_.getFileName.toString)
+      val domainState = new java.util.LinkedHashMap[String, com.fasterxml.jackson.databind.JsonNode]()
+      for (commitFile <- commitFiles) {
+        val fileVersion = commitFile.getFileName.toString.stripSuffix(".json").toLong
+        if (version.forall(fileVersion <= _)) {
+          val lines = new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
+          for (line <- lines if line.contains("\"domainMetadata\"")) {
+            try {
+              val node = JsonUtil.mapper.readTree(line)
+              val dmNode = node.get("domainMetadata")
+              if (dmNode != null && dmNode.has("domain")) {
+                val domain = dmNode.get("domain").asText()
+                val removed = dmNode.has("removed") && dmNode.get("removed").asBoolean()
+                if (removed) domainState.remove(domain)
+                else domainState.put(domain, node)
+              }
+            } catch { case _: Exception => }
+          }
+        }
+      }
+      scala.collection.JavaConverters.asScalaIteratorConverter(
+        domainState.values().iterator()).asScala.toSeq
+    } finally { stream.close() }
   }
 
   private def resolveSourceScript(explicit: String): Option[Path] = {

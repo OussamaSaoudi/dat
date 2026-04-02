@@ -56,51 +56,78 @@ object SnapshotCapture {
     require(!(version.isDefined && timestamp.isDefined),
       "Cannot specify both version and timestamp for snapshot construction")
 
-    val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
-    DeltaLog.clearCache()
-    val snapshot = (version, timestamp) match {
-      case (Some(v), _) => deltaLog.getSnapshotAt(v)
-      case (_, Some(ts)) =>
-        val tsValue = java.sql.Timestamp.valueOf(ts)
-        deltaLog.getSnapshotAt(
-          deltaLog.history.getActiveCommitAtTime(
-            tsValue, canReturnLastCommit = true, mustBeRecreatable = false, canReturnEarliestCommit = false).version)
-      case _ => deltaLog.update()
-    }
-
     val specName = (version, timestamp) match {
       case (Some(v), _) => s"${testId}_snapshot_v$v"
       case (_, Some(ts)) => s"${testId}_snapshot_ts_${ts.replace(":", "-").replace(" ", "_")}"
       case _ => s"${testId}_snapshot"
     }
 
-    // Build spec with inline expected protocol + metadata
-    val snapshotSpec = new java.util.LinkedHashMap[String, Any]()
-    snapshotSpec.put("type", "snapshotConstruction")
-    (version.orElse(if (timestamp.isEmpty) Some(snapshot.version) else None))
-      .foreach(v => snapshotSpec.put("version", v.asInstanceOf[AnyRef]))
-    timestamp.foreach(ts => snapshotSpec.put("timestamp", ts))
+    val snapshotAttempt: Either[(String, String), org.apache.spark.sql.delta.Snapshot] = try {
+      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
+      DeltaLog.clearCache()
+      val snapshot = (version, timestamp) match {
+        case (Some(v), _) => deltaLog.getSnapshotAt(v)
+        case (_, Some(ts)) =>
+          val tsValue = java.sql.Timestamp.valueOf(ts)
+          deltaLog.getSnapshotAt(
+            deltaLog.history.getActiveCommitAtTime(
+              tsValue, canReturnLastCommit = true, mustBeRecreatable = false, canReturnEarliestCommit = false).version)
+        case _ => deltaLog.update()
+      }
+      Right(snapshot)
+    } catch {
+      case e: Exception =>
+        Left((JsonUtil.extractErrorCode(e), Option(e.getMessage).getOrElse("")))
+    }
 
-    val expectedBlock = new java.util.LinkedHashMap[String, Any]()
-    expectedBlock.put("version", snapshot.version.asInstanceOf[AnyRef])
+    snapshotAttempt match {
+      case Right(snapshot) =>
+        // Build spec with inline expected protocol + metadata
+        val snapshotSpec = new java.util.LinkedHashMap[String, Any]()
+        snapshotSpec.put("type", "snapshot")
+        (version.orElse(if (timestamp.isEmpty) Some(snapshot.version) else None))
+          .foreach(v => snapshotSpec.put("version", v.asInstanceOf[AnyRef]))
+        timestamp.foreach(ts => snapshotSpec.put("timestamp", ts))
 
-    val protocolTree = JsonUtil.mapper.readTree(snapshot.protocol.json)
-    expectedBlock.put("protocol", JsonUtil.mapper.treeToValue(
-      protocolTree.get("protocol"), classOf[Any]))
+        val expectedBlock = new java.util.LinkedHashMap[String, Any]()
 
-    val metadataTree = JsonUtil.mapper.readTree(snapshot.metadata.json)
-    expectedBlock.put("metadata", JsonUtil.mapper.treeToValue(
-      metadataTree.get("metaData"), classOf[Any]))
+        val protocolTree = JsonUtil.mapper.readTree(snapshot.protocol.json)
+        expectedBlock.put("protocol", JsonUtil.mapper.treeToValue(
+          protocolTree.get("protocol"), classOf[Any]))
 
-    snapshotSpec.put("expected", expectedBlock)
+        val metadataTree = JsonUtil.mapper.readTree(snapshot.metadata.json)
+        expectedBlock.put("metadata", JsonUtil.mapper.treeToValue(
+          metadataTree.get("metaData"), classOf[Any]))
 
-    val specFile = specsDir.resolve(s"$specName.json")
-    JsonUtil.writeJson(specFile, snapshotSpec)
+        snapshotSpec.put("expected", expectedBlock)
 
-    // Post-capture validation: re-read and compare
-    validate(spark, specName, tablePath, specsDir)
+        val specFile = specsDir.resolve(s"$specName.json")
+        JsonUtil.writeJson(specFile, snapshotSpec)
 
-    println(s"  Snapshot spec captured: $specName (version=${snapshot.version})")
+        // Post-capture validation: re-read and compare
+        validate(spark, specName, tablePath, specsDir)
+
+        println(s"  Snapshot spec captured: $specName (version=${snapshot.version})")
+
+      case Left((errorCode, errorMessage)) =>
+        // Write error spec
+        val snapshotSpec = new java.util.LinkedHashMap[String, Any]()
+        snapshotSpec.put("type", "snapshot")
+        version.foreach(v => snapshotSpec.put("version", v.asInstanceOf[AnyRef]))
+        timestamp.foreach(ts => snapshotSpec.put("timestamp", ts))
+        snapshotSpec.put("name", testId)
+
+        val error = new java.util.LinkedHashMap[String, Any]()
+        error.put("errorCode", errorCode)
+        error.put("errorMessage", errorMessage)
+        snapshotSpec.put("error", error)
+
+        val errorSpecName = s"${testId}_error"
+        val specFile = specsDir.resolve(s"$errorSpecName.json")
+        JsonUtil.writeJson(specFile, snapshotSpec)
+
+        println(s"  Snapshot spec captured (error): $errorSpecName [$errorCode] $errorMessage")
+    }
   }
 
   /** Validate a captured snapshot spec by re-loading and comparing. */

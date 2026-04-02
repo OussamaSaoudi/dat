@@ -3,8 +3,13 @@
 # Generate Delta acceptance test workloads.
 #
 # Usage:
-#   ./generate-workload.sh <script.scala> [--output-dir DIR]
-#   ./generate-workload.sh --interactive
+#   ./generate-workload.sh tables/reads.scala           # Run one suite
+#   ./generate-workload.sh tables/                      # Run all suites in directory
+#   ./generate-workload.sh --interactive                 # Launch spark-shell
+#
+# Options:
+#   --output-dir DIR   Output directory (default: /tmp/workloads)
+#   --force            Regenerate even if output exists
 #
 
 set -euo pipefail
@@ -52,12 +57,12 @@ SPARK_CONF=(
 
 if [[ "${1:-}" == "--interactive" ]]; then
   echo "Launching spark-shell with WorkloadGenerator..."
-  echo "  import io.delta.workload.WorkloadGenerator._"
+  echo "  import io.delta.workload._"
   echo ""
   exec "$SPARK_SHELL" "${SPARK_CONF[@]}"
 fi
 
-SCALA_SCRIPT="${1:?Usage: $0 <script.scala> [--output-dir DIR] | --interactive}"
+INPUT="${1:?Usage: $0 <script.scala|dir/> [--output-dir DIR] [--force]}"
 shift
 
 OUTPUT_DIR="/tmp/workloads"
@@ -72,11 +77,25 @@ done
 
 export WORKLOAD_OUTPUT_DIR="$OUTPUT_DIR"
 export WORKLOAD_FORCE="${FORCE:-false}"
-export WORKLOAD_SOURCE_SCRIPT="$(cd "$(dirname "$SCALA_SCRIPT")" && pwd)/$(basename "$SCALA_SCRIPT")"
 
-echo "Running: $SCALA_SCRIPT"
-echo "Output:  $OUTPUT_DIR"
+# Resolve input: single file or directory of .scala files
+if [[ -d "$INPUT" ]]; then
+  SCRIPTS=($(find "$INPUT" -name '*.scala' -type f | sort))
+  echo "Running ${#SCRIPTS[@]} suites from $INPUT"
+else
+  SCRIPTS=("$INPUT")
+fi
+
+echo "Output: $OUTPUT_DIR"
 echo ""
 
-# Use stdin instead of -i flag (works better in non-interactive environments)
-exec "$SPARK_SHELL" "${SPARK_CONF[@]}" < "$SCALA_SCRIPT"
+# Concatenate all scripts with import prepended
+{
+  echo 'import io.delta.workload._'
+  for script in "${SCRIPTS[@]}"; do
+    export WORKLOAD_SOURCE_SCRIPT="$(cd "$(dirname "$script")" && pwd)/$(basename "$script")"
+    echo ""
+    echo "// --- $(basename "$script") ---"
+    cat "$script"
+  done
+} | "$SPARK_SHELL" "${SPARK_CONF[@]}"
