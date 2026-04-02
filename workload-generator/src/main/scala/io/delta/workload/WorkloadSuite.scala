@@ -99,6 +99,12 @@ class WorkloadSuite(val suiteName: String) {
 
         td.body(ctx)
 
+        if (ctx.tableSpecs.isEmpty) {
+          System.err.println(s"  [WARN] ${td.name}: no tables declared (missing w.table()?)")
+          results += TestResult(td.name, td.description, 0, passed = true,
+            Seq("No tables declared"), skipped = false)
+        }
+
         if (ctx.tableSpecs.size == 1) {
           ctx.tableSpecs.head.outputName = td.name
         }

@@ -12,6 +12,7 @@ new WorkloadSuite("domain_metadata") {
       }
       java.nio.file.Files.write(commitFile,
         (content.trim + "\n" + lines.mkString("\n") + "\n").getBytes("UTF-8"))
+      io.delta.workload.TableCopier.invalidateChecksumFilesForModifiedCommit(commitFile)
     }
   }
 
