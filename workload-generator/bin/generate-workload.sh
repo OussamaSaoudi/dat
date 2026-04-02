@@ -89,13 +89,19 @@ fi
 echo "Output: $OUTPUT_DIR"
 echo ""
 
-# Concatenate all scripts with import prepended
-{
-  echo 'import io.delta.workload._'
+if [[ ${#SCRIPTS[@]} -eq 1 ]]; then
+  # Single file: pipe directly
+  {
+    echo 'import io.delta.workload._'
+    cat "${SCRIPTS[0]}"
+  } | "$SPARK_SHELL" "${SPARK_CONF[@]}"
+else
+  # Multiple files: run each suite individually
   for script in "${SCRIPTS[@]}"; do
-    export WORKLOAD_SOURCE_SCRIPT="$(cd "$(dirname "$script")" && pwd)/$(basename "$script")"
-    echo ""
-    echo "// --- $(basename "$script") ---"
-    cat "$script"
+    echo "--- Running $(basename "$script") ---"
+    {
+      echo 'import io.delta.workload._'
+      cat "$script"
+    } | "$SPARK_SHELL" "${SPARK_CONF[@]}" || true
   done
-} | "$SPARK_SHELL" "${SPARK_CONF[@]}"
+fi
