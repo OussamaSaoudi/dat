@@ -18,7 +18,7 @@ package io.delta.workload
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}

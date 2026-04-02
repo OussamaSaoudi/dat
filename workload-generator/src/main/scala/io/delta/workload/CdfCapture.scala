@@ -18,7 +18,7 @@ package io.delta.workload
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
@@ -76,7 +76,7 @@ object CdfCapture {
             predicate, columns, count)
 
           val startStr = startVersion.map(v => s"v$v")
-            .orElse(startTimestamp.map(ts => s"ts($ts)")).get
+            .orElse(startTimestamp.map(ts => s"ts($ts)")).getOrElse("?")
           val endStr = endVersion.map(v => s"v$v")
             .orElse(endTimestamp.map(ts => s"ts($ts)"))
             .getOrElse(s"v$latestVersion")

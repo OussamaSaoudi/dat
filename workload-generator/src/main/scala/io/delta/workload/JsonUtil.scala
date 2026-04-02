@@ -27,7 +27,8 @@ import org.apache.spark.sql.functions._
 object JsonUtil {
 
   /** Single shared ObjectMapper — use this instead of creating per-file instances. */
-  val mapper: ObjectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
+  private[workload] val mapper: ObjectMapper =
+    new ObjectMapper().registerModule(DefaultScalaModule)
 
   /** Write an object as pretty-printed JSON. */
   def writeJson(path: Path, data: Any): Unit = {

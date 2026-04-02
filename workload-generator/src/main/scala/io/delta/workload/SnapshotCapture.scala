@@ -168,15 +168,7 @@ object SnapshotCapture {
     DeltaLog.clearCache()
     val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
     val snapshot = if (spec.has("version")) {
-      val targetVersion = spec.get("version").asLong()
-      try { deltaLog.getSnapshotAt(targetVersion) }
-      catch {
-        case NonFatal(_) =>
-          val latest = deltaLog.update()
-          require(latest.version == targetVersion,
-            s"Snapshot version mismatch for $specName")
-          latest
-      }
+      deltaLog.getSnapshotAt(spec.get("version").asLong())
     } else if (spec.has("timestamp")) {
       val ts = java.sql.Timestamp.valueOf(spec.get("timestamp").asText())
       deltaLog.getSnapshotAt(

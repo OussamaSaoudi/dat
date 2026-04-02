@@ -103,7 +103,7 @@ class WorkloadSuite(val suiteName: String) {
         }
 
         if (ctx.tableSpecs.size == 1) {
-          ctx.tableSpecs.head.outputName = td.name
+          ctx.tableSpecs.head.resolveOutputName(td.name)
         }
 
         for (ts <- ctx.tableSpecs) {

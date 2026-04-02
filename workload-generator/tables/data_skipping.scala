@@ -933,8 +933,9 @@ new WorkloadSuite("data_skipping") {
     w.sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = w.table("tbl")
     // Strip stats from commit
-    w.modifyCommitActions(t, version = 1) { addNode =>
-      addNode.remove("stats")
+    w.modifyCommitActions(t, version = 1) { case ("add", node) =>
+      node.remove("stats"); true
+      case _ => true
     }
     w.read(t, predicate = "a = 1")
     w.read(t, predicate = "a > 99")
@@ -1295,18 +1296,20 @@ new WorkloadSuite("data_skipping") {
     w.sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b')")
     val t = w.table("tbl")
     // Strip min/max stats, keep only numRecords
-    w.modifyCommitActions(t, 0) { addNode =>
-      if (addNode.has("stats")) {
-        val stats = addNode.get("stats").asText()
+    w.modifyCommitActions(t, 0) { case ("add", node) =>
+      if (node.has("stats")) {
+        val stats = node.get("stats").asText()
         if (stats.contains("numRecords")) {
           import com.fasterxml.jackson.databind.ObjectMapper
           val mapper = new ObjectMapper()
           val statsNode = mapper.readTree(stats)
           val newStats = mapper.createObjectNode()
           newStats.set("numRecords", statsNode.get("numRecords"))
-          addNode.put("stats", mapper.writeValueAsString(newStats))
+          node.put("stats", mapper.writeValueAsString(newStats))
         }
       }
+      true
+      case _ => true
     }
     w.snapshot(t)
   }
@@ -1358,10 +1361,10 @@ new WorkloadSuite("data_skipping") {
     w.sql("INSERT INTO tbl VALUES (1, ''),(2, 'a'),(3, '')")
     val t = w.table("tbl")
     // Strip stats completely to simulate empty stats string
-    w.modifyCommitActions(t, 0) { addNode =>
-      if (addNode.has("stats")) {
-        addNode.put("stats", "")
-      }
+    w.modifyCommitActions(t, 0) { case ("add", node) =>
+      if (node.has("stats")) node.put("stats", "")
+      true
+      case _ => true
     }
     w.snapshot(t)
   }
@@ -1373,8 +1376,9 @@ new WorkloadSuite("data_skipping") {
     w.sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b')")
     val t = w.table("tbl")
     // Remove stats field entirely
-    w.modifyCommitActions(t, 0) { addNode =>
-      addNode.remove("stats")
+    w.modifyCommitActions(t, 0) { case ("add", node) =>
+      node.remove("stats"); true
+      case _ => true
     }
     w.snapshot(t)
   }

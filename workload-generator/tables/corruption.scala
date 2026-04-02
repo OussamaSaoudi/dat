@@ -59,8 +59,9 @@ new WorkloadSuite("corruption") {
     w.sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     val t = w.table("tbl")
-    w.modifyCommitActions(t, version = 1) { addNode =>
-      addNode.put("stats", """{"numRecords":999}""")
+    w.modifyCommitActions(t, version = 1) { case ("add", node) =>
+      node.put("stats", """{"numRecords":999}"""); true
+      case _ => true
     }
     w.read(t)
     w.read(t, predicate = "id > 1")

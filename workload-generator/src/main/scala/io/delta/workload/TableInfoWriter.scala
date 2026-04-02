@@ -18,7 +18,7 @@ package io.delta.workload
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
@@ -35,8 +35,8 @@ object TableInfoWriter {
       description: String,
       tags: Seq[String] = Seq.empty): Unit = {
     try {
-      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       DeltaLog.clearCache()
+      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       val snapshot = deltaLog.update()
 
       val tableInfo = new java.util.LinkedHashMap[String, Any]()

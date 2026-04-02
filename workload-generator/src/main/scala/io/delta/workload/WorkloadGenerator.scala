@@ -19,10 +19,9 @@ package io.delta.workload
 import java.nio.file.{Files, Path, Paths}
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
 
@@ -82,7 +81,7 @@ object WorkloadGenerator {
         // Single-table workloads: use workload name as directory name
         // Multi-table workloads: use {workload}_{table}
         if (ctx.tableSpecs.size == 1) {
-          ctx.tableSpecs.head.outputName = wd.name
+          ctx.tableSpecs.head.resolveOutputName(wd.name)
         }
         ctx.tableSpecs.map { ts =>
           generateTable(spark, ts, Paths.get(outputDir), scriptContent, force)
@@ -91,7 +90,9 @@ object WorkloadGenerator {
         case e: Exception =>
           System.err.println(s"  ERROR in ${wd.name}: ${e.getMessage}")
           e.printStackTrace()
-          Seq.empty
+          Seq(WorkloadResult(outputDir, wd.name, 0,
+            Seq.empty, Seq.empty, Seq.empty, false,
+            Seq(s"Setup failed: ${e.getMessage}")))
       } finally {
         ctx.cleanup()
       }
@@ -291,12 +292,12 @@ object WorkloadGenerator {
                 s"domain '${dm.domain}' not found in snapshot")
             val dmNode = matchingDomain.get
             val actual = Option(dmNode.get("domainMetadata")).getOrElse(dmNode)
-            if (actual.has("configuration")) {
-              val actualConfig = actual.get("configuration").asText()
-              require(actualConfig == dm.configuration,
-                s"Domain metadata validation FAILED for $specName: " +
-                  s"configuration expected='${dm.configuration}' actual='$actualConfig'")
-            }
+            val actualConfig = if (actual.has("configuration")) {
+              actual.get("configuration").asText()
+            } else ""
+            require(actualConfig == dm.configuration,
+              s"Domain metadata validation FAILED for $specName: " +
+                s"configuration expected='${dm.configuration}' actual='$actualConfig'")
           }
 
           val spec = new java.util.LinkedHashMap[String, Any]()
@@ -339,7 +340,7 @@ object WorkloadGenerator {
           val deltaLogDir = destTablePath.resolve("_delta_log")
           val txnStream = Files.list(deltaLogDir)
           val foundTxn = try {
-            scala.collection.JavaConverters.asScalaIteratorConverter(txnStream.iterator()).asScala
+            txnStream.iterator().asScala
               .filter(_.toString.endsWith(".json"))
               .toSeq.sortBy(_.getFileName.toString) // ensure lexicographic order
               .flatMap { commitFile =>
@@ -440,8 +441,7 @@ object WorkloadGenerator {
     val logDir = tablePath.resolve("_delta_log")
     val stream = Files.list(logDir)
     try {
-      val commitFiles = scala.collection.JavaConverters
-        .asScalaIteratorConverter(stream.iterator()).asScala
+      val commitFiles = stream.iterator().asScala
         .filter(_.toString.endsWith(".json"))
         .toSeq.sortBy(_.getFileName.toString)
       val domainState = new java.util.LinkedHashMap[String, com.fasterxml.jackson.databind.JsonNode]()
@@ -461,8 +461,7 @@ object WorkloadGenerator {
           }
         }
       }
-      scala.collection.JavaConverters.asScalaIteratorConverter(
-        domainState.values().iterator()).asScala.toSeq
+      domainState.values().iterator().asScala.toSeq
     } finally { stream.close() }
   }
 
@@ -664,21 +663,29 @@ class WorkloadContext private[workload] (
     getTableSpec(table).mutations += mutation
   }
 
-  /** Modify AddFile actions in a specific commit version. */
+  /**
+   * Modify actions in a specific commit version.
+   * The modifier receives the action type (e.g. "add", "remove", "metaData") and
+   * the action ObjectNode. Return true to include the (potentially modified) action,
+   * false to drop it.
+   */
   def modifyCommitActions(table: TableHandle, version: Long)(
-      modifier: ObjectNode => Unit): Unit = {
+      modifier: (String, ObjectNode) => Boolean): Unit = {
     mutateTable(table) { tableDir =>
       val commitFile = tableDir.resolve("_delta_log").resolve(f"$version%020d.json")
       if (Files.exists(commitFile)) {
         val lines = new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
-        val newLines = lines.map { line =>
+        val newLines = lines.flatMap { line =>
           val node = JsonUtil.mapper.readTree(line)
-          if (node.has("add")) {
-            modifier(node.get("add").asInstanceOf[ObjectNode])
-            JsonUtil.mapper.writeValueAsString(node)
-          } else line
+          val actionType = node.fieldNames().next() // first key is the action type
+          val actionNode = node.get(actionType)
+          if (actionNode.isObject) {
+            if (modifier(actionType, actionNode.asInstanceOf[ObjectNode])) {
+              Some(JsonUtil.mapper.writeValueAsString(node))
+            } else None // drop this action
+          } else Some(line) // non-object (e.g. commitInfo string) — keep as-is
         }
-        Files.write(commitFile, java.util.Arrays.asList(newLines: _*))
+        Files.write(commitFile, newLines.mkString("\n").getBytes("UTF-8"))
         TableCopier.invalidateChecksumFilesForModifiedCommit(commitFile)
       }
     }
@@ -739,7 +746,7 @@ class WorkloadContext private[workload] (
     val outputName = s"${workloadName}_${handle.tableName}"
     if (!tableSpecs.exists(_.outputName == outputName)) {
       tableSpecs += new TableSpec(
-        outputName = outputName,
+        _outputName = outputName,
         description = s"$workloadName — ${handle.tableName}",
         tags = tags,
         sourcePath = handle.sourcePath
@@ -794,10 +801,13 @@ class WorkloadContext private[workload] (
 // ---------------------------------------------------------------------------
 
 private[workload] class TableSpec(
-    var outputName: String,
+    private var _outputName: String,
     val description: String,
     val tags: Seq[String],
     val sourcePath: Path) {
+  def outputName: String = _outputName
+  /** Set once by the orchestrator after body execution. */
+  private[workload] def resolveOutputName(name: String): Unit = { _outputName = name }
   val readSpecs = mutable.ArrayBuffer[ReadSpecConfig]()
   val snapshotSpecs = mutable.ArrayBuffer[SnapshotSpecConfig]()
   val cdfSpecs = mutable.ArrayBuffer[CdfSpecConfig]()
