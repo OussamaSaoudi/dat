@@ -63,8 +63,8 @@ object SnapshotCapture {
     }
 
     val snapshotAttempt: Either[(String, String), org.apache.spark.sql.delta.Snapshot] = try {
-      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       DeltaLog.clearCache()
+      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       val snapshot = (version, timestamp) match {
         case (Some(v), _) => deltaLog.getSnapshotAt(v)
         case (_, Some(ts)) =>
@@ -110,7 +110,33 @@ object SnapshotCapture {
         println(s"  Snapshot spec captured: $specName (version=${snapshot.version})")
 
       case Left((errorCode, errorMessage)) =>
-        // Write error spec
+        // Validate error reproducibility: retry and confirm same error
+        val retryErrorCode = try {
+          DeltaLog.clearCache()
+          val dl = DeltaLog.forTable(spark, tablePath.toString)
+          (version, timestamp) match {
+            case (Some(v), _) => dl.getSnapshotAt(v)
+            case (_, Some(ts)) =>
+              val tsValue = java.sql.Timestamp.valueOf(ts)
+              dl.getSnapshotAt(
+                dl.history.getActiveCommitAtTime(
+                  tsValue, canReturnLastCommit = true,
+                  mustBeRecreatable = false,
+                  canReturnEarliestCommit = false).version)
+            case _ => dl.update()
+          }
+          None // Succeeded on retry — original error was transient
+        } catch {
+          case e: Exception => Some(JsonUtil.extractErrorCode(e))
+        }
+        require(retryErrorCode.isDefined,
+          s"Snapshot error validation FAILED for $specName: " +
+            s"original error [$errorCode] did not reproduce on retry")
+        require(retryErrorCode.get == errorCode,
+          s"Snapshot error validation FAILED for $specName: " +
+            s"original errorCode=[$errorCode] but retry errorCode=[${retryErrorCode.get}]")
+
+        // Write error spec with unique name (includes version/timestamp suffix)
         val snapshotSpec = new java.util.LinkedHashMap[String, Any]()
         snapshotSpec.put("type", "snapshot")
         version.foreach(v => snapshotSpec.put("version", v.asInstanceOf[AnyRef]))
@@ -122,11 +148,10 @@ object SnapshotCapture {
         error.put("errorMessage", errorMessage)
         snapshotSpec.put("error", error)
 
-        val errorSpecName = s"${testId}_error"
-        val specFile = specsDir.resolve(s"$errorSpecName.json")
+        val specFile = specsDir.resolve(s"$specName.json")
         JsonUtil.writeJson(specFile, snapshotSpec)
 
-        println(s"  Snapshot spec captured (error): $errorSpecName [$errorCode] $errorMessage")
+        println(s"  Snapshot spec captured (error): $specName [$errorCode] $errorMessage")
     }
   }
 

@@ -306,7 +306,24 @@ object WorkloadGenerator {
           expected.put("configuration", dm.configuration)
           expected.put("removed", dm.removed)
           spec.put("expected", expected)
-          JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
+          val specFile = specsDir.resolve(s"$specName.json")
+          JsonUtil.writeJson(specFile, spec)
+
+          // Round-trip validation: re-read written spec and verify
+          val written = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
+          val writtenExpected = written.get("expected")
+          require(writtenExpected != null,
+            s"Domain metadata round-trip FAILED for $specName: missing 'expected' block")
+          require(writtenExpected.get("domain").asText() == dm.domain,
+            s"Domain metadata round-trip FAILED for $specName: " +
+              s"domain expected='${dm.domain}' written='${writtenExpected.get("domain").asText()}'")
+          require(writtenExpected.get("configuration").asText() == dm.configuration,
+            s"Domain metadata round-trip FAILED for $specName: " +
+              s"configuration expected='${dm.configuration}' " +
+              s"written='${writtenExpected.get("configuration").asText()}'")
+          require(writtenExpected.get("removed").asBoolean() == dm.removed,
+            s"Domain metadata round-trip FAILED for $specName: " +
+              s"removed expected=${dm.removed} written=${writtenExpected.get("removed").asBoolean()}")
         } catch {
           case e: Exception => warnings += s"DomainMetadata '${dm.name}': ${e.getMessage}"
         }
@@ -356,7 +373,20 @@ object WorkloadGenerator {
           expected.put("appId", tx.appId)
           expected.put("txnVersion", tx.txnVersion)
           spec.put("expected", expected)
-          JsonUtil.writeJson(specsDir.resolve(s"$specName.json"), spec)
+          val specFile = specsDir.resolve(s"$specName.json")
+          JsonUtil.writeJson(specFile, spec)
+
+          // Round-trip validation: re-read written spec and verify
+          val written = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
+          val writtenExpected = written.get("expected")
+          require(writtenExpected != null,
+            s"Txn round-trip FAILED for $specName: missing 'expected' block")
+          require(writtenExpected.get("appId").asText() == tx.appId,
+            s"Txn round-trip FAILED for $specName: " +
+              s"appId expected='${tx.appId}' written='${writtenExpected.get("appId").asText()}'")
+          require(writtenExpected.get("txnVersion").asLong() == tx.txnVersion,
+            s"Txn round-trip FAILED for $specName: " +
+              s"txnVersion expected=${tx.txnVersion} written=${writtenExpected.get("txnVersion").asLong()}")
         } catch {
           case e: Exception => warnings += s"Txn '${tx.name}': ${e.getMessage}"
         }
@@ -419,16 +449,14 @@ object WorkloadGenerator {
         if (version.forall(fileVersion <= _)) {
           val lines = new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
           for (line <- lines if line.contains("\"domainMetadata\"")) {
-            try {
-              val node = JsonUtil.mapper.readTree(line)
-              val dmNode = node.get("domainMetadata")
-              if (dmNode != null && dmNode.has("domain")) {
-                val domain = dmNode.get("domain").asText()
-                val removed = dmNode.has("removed") && dmNode.get("removed").asBoolean()
-                if (removed) domainState.remove(domain)
-                else domainState.put(domain, node)
-              }
-            } catch { case _: Exception => }
+            val node = JsonUtil.mapper.readTree(line)
+            val dmNode = node.get("domainMetadata")
+            if (dmNode != null && dmNode.has("domain")) {
+              val domain = dmNode.get("domain").asText()
+              val removed = dmNode.has("removed") && dmNode.get("removed").asBoolean()
+              if (removed) domainState.remove(domain)
+              else domainState.put(domain, node)
+            }
           }
         }
       }
@@ -637,16 +665,13 @@ class WorkloadContext private[workload] (
     mutateTable(table) { tableDir =>
       val commitFile = tableDir.resolve("_delta_log").resolve(f"$version%020d.json")
       if (Files.exists(commitFile)) {
-        val mapper = new ObjectMapper().registerModule(DefaultScalaModule)
         val lines = new String(Files.readAllBytes(commitFile), "UTF-8").split("\n")
         val newLines = lines.map { line =>
-          try {
-            val node = mapper.readTree(line)
-            if (node.has("add")) {
-              modifier(node.get("add").asInstanceOf[ObjectNode])
-              mapper.writeValueAsString(node)
-            } else line
-          } catch { case _: Exception => line }
+          val node = JsonUtil.mapper.readTree(line)
+          if (node.has("add")) {
+            modifier(node.get("add").asInstanceOf[ObjectNode])
+            JsonUtil.mapper.writeValueAsString(node)
+          } else line
         }
         Files.write(commitFile, java.util.Arrays.asList(newLines: _*))
         TableCopier.invalidateChecksumFilesForModifiedCommit(commitFile)
