@@ -43,7 +43,7 @@ if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
 fi
 
 SPARK_CONF=(
-  --packages "io.delta:delta-spark_2.13:3.3.2"
+  --packages "io.delta:delta-spark_2.13:4.1.0"
   --conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension"
   --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
   --jars "$JAR_PATH"

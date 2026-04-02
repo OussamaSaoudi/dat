@@ -16,29 +16,22 @@
 
 name := "delta-workload-generator"
 version := "0.1.0"
-scalaVersion := "2.13.16"
+scalaVersion := "2.13.17"
 
 lazy val root = (project in file("."))
   .settings(
     name := "delta-workload-generator",
     libraryDependencies ++= Seq(
-      "io.delta" %% "delta-spark" % "3.3.2" % "provided",
-      "org.apache.spark" %% "spark-sql" % "3.5.3" % "provided",
+      "io.delta" %% "delta-spark" % "4.1.0" % "provided",
+      "org.apache.spark" %% "spark-sql" % "4.1.0" % "provided",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.15.2",
       "commons-io" % "commons-io" % "2.11.0",
       // Test dependencies
-      "io.delta" %% "delta-spark" % "3.3.2" % "test",
-      "org.apache.spark" %% "spark-sql" % "3.5.3" % "test",
+      "io.delta" %% "delta-spark" % "4.1.0" % "test",
+      "org.apache.spark" %% "spark-sql" % "4.1.0" % "test",
       "org.scalatest" %% "scalatest" % "3.2.19" % "test"
     ),
-    Test / fork := true,
-    Test / javaOptions ++= Seq(
-      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-      "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
-      "--add-opens=java.base/java.lang=ALL-UNNAMED",
-      "--add-opens=java.base/java.util=ALL-UNNAMED",
-      "--add-opens=java.base/java.io=ALL-UNNAMED"
-    ),
+    Test / fork := false,
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", _*) => MergeStrategy.discard
       case _ => MergeStrategy.first
