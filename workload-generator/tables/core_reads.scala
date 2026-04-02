@@ -255,6 +255,19 @@ workload("read_negative_version", "Error: negative version", "error") { w =>
   w.snapshot(t)
 }
 
+workload("read_after_merge_target", "Read after merge - target table", "merge") { w =>
+  w.sql("CREATE TABLE target (id INT, val STRING) USING delta")
+  w.sql("INSERT INTO target VALUES (1, 'a'), (2, 'b'), (3, 'c')")
+  w.sql("CREATE TABLE src (id INT, val STRING) USING delta")
+  w.sql("INSERT INTO src VALUES (2, 'updated'), (4, 'new')")
+  w.sql("""MERGE INTO target t USING src s ON t.id = s.id
+    WHEN MATCHED THEN UPDATE SET val = s.val
+    WHEN NOT MATCHED THEN INSERT *""")
+  val t = w.table("target")
+  w.read(t)
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

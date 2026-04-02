@@ -84,6 +84,60 @@ workload("column_projection", "Column subsets", "projection") { w =>
   w.snapshot(t)
 }
 
+workload("part_date_type", "Partition with date type", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING, dt DATE) USING delta
+    PARTITIONED BY (dt)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1,'jan',DATE'2024-01-01'),(2,'jun',DATE'2024-06-01'),
+    (3,'dec',DATE'2024-12-01'),(4,'jan2',DATE'2024-01-01')""")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "dt = DATE'2024-01-01'")
+  w.read(t, predicate = "dt >= DATE'2024-06-01'")
+  w.snapshot(t)
+}
+
+workload("part_null_values", "Partition with NULL values", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
+    PARTITIONED BY (part)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a','x'),(2,'b',NULL),(3,'c','y'),(4,'d',NULL)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "part IS NULL")
+  w.read(t, predicate = "part IS NOT NULL")
+  w.snapshot(t)
+}
+
+workload("part_or_predicate", "Partition pruning with OR predicate", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
+    PARTITIONED BY (part)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a1','A'),(2,'a2','A'),(3,'b1','B'),(4,'c1','C'),(5,'c2','C')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "part = 'A' OR part = 'C'")
+  w.read(t, predicate = "part = 'B'")
+  w.snapshot(t)
+}
+
+workload("part_multi_column", "Multi-column partitioning with 3 columns", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING, a INT, b STRING, c BOOLEAN) USING delta
+    PARTITIONED BY (a, b, c)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1,'v1',1,'x',true),(2,'v2',1,'y',false),
+    (3,'v3',2,'y',true),(4,'v4',2,'z',false),
+    (5,'v5',3,'z',true)""")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "a = 1")
+  w.read(t, predicate = "a = 2 AND b = 'y'")
+  w.read(t, predicate = "a = 3 AND b = 'z' AND c = true")
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

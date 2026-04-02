@@ -281,6 +281,251 @@ workload("dv_projection_with_pred", "Predicate + projection + DV (triple combo)"
   w.snapshot(t)
 }
 
+// --- dv_* named workloads (matching acceptance_workloads directories) ---
+
+workload("dv_all_rows_deleted", "All rows in file marked deleted via DV", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+  w.sql("DELETE FROM tbl WHERE true")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_checkpoint_only_read", "Checkpoint-only table with DVs", "dv", "checkpoint") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+  w.sql("DELETE FROM tbl WHERE id = 2")
+  val loc = w.spark.sql("DESCRIBE DETAIL tbl").collect()(0).getAs[String]("location")
+  org.apache.spark.sql.delta.DeltaLog.forTable(w.spark, loc).checkpoint()
+  val t = w.table("tbl")
+  // Remove JSON commit files, leaving only checkpoint
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+      .filter(_.toString.endsWith(".json")).foreach(java.nio.file.Files.delete)
+  }
+  w.snapshot(t)
+}
+
+workload("dv_checkpoint_read", "DV table read through a checkpoint", "dv", "checkpoint") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+  w.sql("INSERT INTO tbl VALUES (4,'d'),(5,'e'),(6,'f')")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 5)")
+  val loc = w.spark.sql("DESCRIBE DETAIL tbl").collect()(0).getAs[String]("location")
+  org.apache.spark.sql.delta.DeltaLog.forTable(w.spark, loc).checkpoint()
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "id > 3")
+  w.snapshot(t)
+}
+
+workload("dv_cm_partition_combo", "DV + CM + partitioned triple combo", "dv", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
+    PARTITIONED BY (category)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+      'delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1,'fruit',10),(2,'fruit',20),(3,'fruit',30),
+    (4,'veggie',40),(5,'veggie',50),(6,'veggie',60),
+    (7,'dairy',70),(8,'dairy',80)""")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 5, 8)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "category = 'fruit'")
+  w.read(t, predicate = "category = 'veggie'")
+  w.snapshot(t)
+}
+
+workload("dv_column_mapping_read", "DV + column mapping (name mode) combined", "dv", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+      'delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1,'alice',100),(2,'bob',200)")
+  w.sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
+  w.sql("INSERT INTO tbl VALUES (3,'charlie',300),(4,'diana',400),(5,'eve',500)")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 4)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, columns = Seq("id", "full_name"))
+  w.read(t, predicate = "value > 200")
+  w.snapshot(t)
+}
+
+workload("dv_err_001_checksum", "DV checksum validation failure", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(20)")
+  w.sql("DELETE FROM tbl WHERE id < 10")
+  val t = w.table("tbl")
+  // Corrupt DV checksum by modifying last byte of DV bin files
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir).iterator().asScala
+      .filter(_.getFileName.toString.contains("deletion_vector"))
+      .foreach { f =>
+        val bytes = java.nio.file.Files.readAllBytes(f)
+        if (bytes.length > 0) { bytes(bytes.length - 1) = (bytes(bytes.length - 1) ^ 0xFF).toByte }
+        java.nio.file.Files.write(f, bytes)
+      }
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_err_002_missing_file", "Missing DV file error", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(20)")
+  w.sql("DELETE FROM tbl WHERE id < 10")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir).iterator().asScala
+      .filter(_.getFileName.toString.contains("deletion_vector"))
+      .foreach(java.nio.file.Files.delete)
+  }
+  w.read(t)
+}
+
+workload("dv_err_003_malformed_path", "Malformed DV path error", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("DELETE FROM tbl WHERE id < 5")
+  val t = w.table("tbl")
+  // Replace DV path in the commit with a malformed one
+  w.mutateTable(t) { dir =>
+    val f = dir.resolve("_delta_log/00000000000000000002.json")
+    val content = new String(java.nio.file.Files.readAllBytes(f), "UTF-8")
+    val patched = content.replace("deletion_vector_", "malformed/../../bad_dv_")
+    java.nio.file.Files.write(f, patched.getBytes)
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_inline_vs_ondisk", "Both inline and on-disk DVs in same table", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(2, 100)")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(100, 200)")
+  w.sql("DELETE FROM tbl WHERE id = 1")
+  w.sql("DELETE FROM tbl WHERE id >= 50 AND id < 100")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_multiple_dvs_same_file", "Multiple DELETE operations on same file", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e'),(6,'f'),(7,'g'),(8,'h'),(9,'i'),(10,'j')")
+  w.sql("DELETE FROM tbl WHERE id = 1")
+  w.sql("DELETE FROM tbl WHERE id = 3")
+  w.sql("DELETE FROM tbl WHERE id = 5")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_partition_pruning", "DV + partition pruning with complex predicates", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
+    PARTITIONED BY (region)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1,'east',100),(2,'east',200),(3,'east',300),
+    (4,'west',400),(5,'west',500),(6,'west',600),
+    (7,'north',700),(8,'north',800),
+    (9,'south',900)""")
+  w.sql("DELETE FROM tbl WHERE id IN (1, 5, 9)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "region = 'east'")
+  w.read(t, predicate = "region IN ('north', 'east')")
+  w.read(t, predicate = "region = 'west' AND amount > 400")
+  w.snapshot(t)
+}
+
+workload("dv_special_path_chars", "DV in table with special characters in path", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
+  w.sql("DELETE FROM tbl WHERE id = 3")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_storage_type_i", "DV with storageType i (inline base85)", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
+  w.sql("DELETE FROM tbl WHERE id <= 2")
+  w.sql("DELETE FROM tbl WHERE id <= 2")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_storage_type_p", "DV with storageType p (absolute path)", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
+  w.sql("DELETE FROM tbl WHERE id <= 2")
+  w.sql("DELETE FROM tbl WHERE id <= 2")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_storage_type_u", "DV with storageType u (UUID-relative path)", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
+  w.sql("DELETE FROM tbl WHERE id <= 3")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dv_with_cm_partitioned", "DV + column mapping (id mode) + partitioned", "dv", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, dept STRING, salary INT) USING delta
+    PARTITIONED BY (dept)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+      'delta.columnMapping.mode' = 'id',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1,'eng',100),(2,'eng',200),(3,'eng',300),
+    (4,'sales',400),(5,'sales',500),
+    (6,'hr',600),(7,'hr',700)""")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 5, 7)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "dept = 'eng'")
+  w.read(t, predicate = "dept = 'hr'")
+  w.read(t, columns = Seq("id", "salary"))
+  w.snapshot(t)
+}
+
+workload("dv_with_offset", "DV stored at non-zero offset in shared bin file", "dv") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+  w.sql("INSERT INTO tbl VALUES (4,'d'),(5,'e'),(6,'f')")
+  w.sql("INSERT INTO tbl VALUES (7,'g'),(8,'h'),(9,'i')")
+  w.sql("DELETE FROM tbl WHERE id IN (1, 4, 7)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

@@ -322,6 +322,346 @@ workload("time_travel_invalid_timestamp_error", "As of timestamp on invalid time
   w.snapshot(t)
 }
 
+// --- tt_* named workloads (matching acceptance_workloads directories) ---
+
+workload("tt_after_vacuum", "Time travel after VACUUM removes old files", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("INSERT OVERWRITE tbl SELECT id FROM range(10, 20)")
+  val t = w.table("tbl")
+  // Simulate vacuum
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    val logDir = dir.resolve("_delta_log")
+    val v1 = new String(java.nio.file.Files.readAllBytes(logDir.resolve("00000000000000000001.json")))
+    val removePattern = """"path":"([^"]+)""".r
+    removePattern.findAllMatchIn(v1).foreach { m =>
+      val f = dir.resolve(m.group(1))
+      if (java.nio.file.Files.exists(f)) java.nio.file.Files.delete(f)
+    }
+    // Write vacuum start/end commits
+    val ts = System.currentTimeMillis()
+    val v2 = s"""{"commitInfo":{"timestamp":${ts},"operation":"VACUUM START","operationParameters":{"retentionCheckEnabled":false,"defaultRetentionMillis":604800000,"specifiedRetentionMillis":0},"isolationLevel":"SnapshotIsolation","isBlindAppend":true,"operationMetrics":{},"engineInfo":"Databricks-Runtime/<unknown>"}}"""
+    java.nio.file.Files.write(logDir.resolve("00000000000000000002.json"), v2.getBytes)
+    val v3 = s"""{"commitInfo":{"timestamp":${ts+1},"operation":"VACUUM END","operationParameters":{"status":"COMPLETED"},"isolationLevel":"SnapshotIsolation","isBlindAppend":true,"operationMetrics":{},"engineInfo":"Databricks-Runtime/<unknown>"}}"""
+    java.nio.file.Files.write(logDir.resolve("00000000000000000003.json"), v3.getBytes)
+  }
+  w.read(t, version = 0)
+  w.snapshot(t)
+}
+
+workload("tt_at_syntax", "Time travel path with @ syntax", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  w.read(t, timestamp = ts0)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_checkpoint_between", "Time travel with checkpoint between versions", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '5')""")
+  for (i <- 0 until 7)
+    w.sql(s"INSERT INTO tbl SELECT id FROM range(${i*10}, ${(i+1)*10})")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 3)
+  w.read(t, version = 5)
+  w.read(t, version = 7)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_column_defaults", "Time travel support with column defaults", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id LONG) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (NULL)")
+  w.sql("ALTER TABLE tbl ALTER COLUMN id SET DEFAULT 42")
+  w.sql("INSERT INTO tbl VALUES (DEFAULT)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  w.read(t)
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.snapshot(t)
+}
+
+workload("tt_column_mapping", "Time travel with column mapping changes", "timeTravel", "columnMapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+      'delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'alice', 100), (2, 'bob', 200)")
+  w.sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
+  w.sql("INSERT INTO tbl VALUES (3, 'charlie', 300), (4, 'diana', 400), (5, 'eve', 500)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, version = 1)
+  w.read(t, version = 2)
+  w.snapshot(t)
+  w.snapshotHistory(t)
+}
+
+workload("tt_dv_between_versions", "Time travel with DV changes between versions", "timeTravel", "deletionVectors") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
+  w.sql("DELETE FROM tbl WHERE id IN (2, 4)")
+  w.sql("INSERT INTO tbl VALUES (6,'f'),(7,'g')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, version = 1)
+  w.read(t, version = 2)
+  w.read(t, version = 2, predicate = "id > 2")
+  w.snapshot(t)
+}
+
+workload("tt_exact_timestamp", "As of exact timestamp of commit", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  val ts0 = t.getTimestampForVersion(0)
+  w.read(t, timestamp = ts0)
+  w.read(t, version = 1)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_future_timestamp_error", "As of timestamp after last commit should fail", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  val t = w.table("tbl")
+  w.read(t, timestamp = "2099-12-31 23:59:59.999")
+  w.snapshot(t)
+}
+
+workload("tt_invalid_timestamp_error", "As of timestamp on invalid timestamp", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  val t = w.table("tbl")
+  w.read(t, timestamp = "not-a-timestamp")
+  w.snapshot(t)
+}
+
+workload("tt_multi_version_scans", "Scans on different versions of same table", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (key BIGINT, value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id, id * 10 FROM range(3)")
+  w.sql("INSERT INTO tbl SELECT id, id * 10 FROM range(3, 5)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  w.read(t, timestamp = ts0)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_non_existent_version", "Time travel to non-existent version", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
+  val t = w.table("tbl")
+  w.read(t, version = 5)
+  w.snapshot(t)
+}
+
+workload("tt_nonexistent_version_error", "As of with versions - non-existent version", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
+  val t = w.table("tbl")
+  w.read(t, version = 3)
+  w.snapshot(t)
+}
+
+workload("tt_partition_evolution", "Time travel with partition changes", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT, part5 BIGINT) USING delta
+    PARTITIONED BY (part5)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id, id % 5 FROM range(10)")
+  w.sql("INSERT OVERWRITE tbl SELECT id, id % 2 as part2 FROM range(10)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.snapshot(t)
+  w.snapshotHistory(t)
+}
+
+workload("tt_partition_filter", "Time travel with partition filter", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT, part BIGINT) USING delta
+    PARTITIONED BY (part)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20)")
+  w.sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20, 40)")
+  w.sql("INSERT INTO tbl SELECT id, id % 4 FROM range(40, 60)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, version = 0, predicate = "part = 0")
+  w.read(t, version = 0, predicate = "part IN (0, 1)")
+  w.read(t, version = 1, predicate = "part = 0")
+  w.snapshot(t)
+}
+
+workload("tt_relation_caching", "Correct relation caching for queries with time travel", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (c BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  w.sql("INSERT INTO tbl VALUES (2)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  w.read(t, timestamp = ts0)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_sql_syntax", "Time travel support in SQL - underlying reads", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  w.read(t, timestamp = ts0)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_timestamp_between_commits", "Timestamp between commits resolves to earlier version", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  Thread.sleep(1100)
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  Thread.sleep(1100)
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  w.read(t, version = 2)
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_version_0", "Time travel to version 0 (initial commit)", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(20, 50)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 0, predicate = "id < 5")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_version_0_empty", "Time travel to version 0 of empty table", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.snapshot(t)
+}
+
+workload("tt_version_read", "As of with versions", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  w.read(t, version = 2)
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("tt_deleted_version_retention_error", "Deleted version due to retention - version not found", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(20, 30)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(30, 40)")
+  w.sql("INSERT INTO tbl SELECT id FROM range(40, 50)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000000.json"))
+  }
+  w.read(t, version = 0)
+  w.snapshot(t)
+}
+
+workload("tt_schema_evolution", "Time travel with schema changes", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  w.sql("ALTER TABLE tbl ADD COLUMNS (part BIGINT)")
+  w.sql("INSERT INTO tbl SELECT id, id % 2 FROM range(5, 10)")
+  val t = w.table("tbl")
+  w.read(t, version = 0)
+  w.read(t, version = 1)
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.read(t)
+  w.snapshot(t)
+  w.snapshotHistory(t)
+}
+
+workload("tt_timestamp_travel", "Basic timestamp-based time travel", "timeTravel") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(5)")
+  Thread.sleep(1100)
+  w.sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
+  val t = w.table("tbl")
+  val ts0 = t.getTimestampForVersion(0)
+  val ts1 = t.getTimestampForVersion(1)
+  w.read(t, timestamp = ts0)
+  w.read(t, timestamp = ts1)
+  w.read(t)
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

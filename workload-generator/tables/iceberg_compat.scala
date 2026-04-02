@@ -90,6 +90,29 @@ workload("ice_with_dv", "IcebergCompat + DVs", "icebergCompat", "dv") { w =>
   w.snapshot(t)
 }
 
+workload("ice_metadata", "IcebergCompat table metadata verification", "icebergCompat") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+    TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
+      'delta.enableChangeDataFeed' = 'true',
+      'delta.columnMapping.mode' = 'name')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'alice'), (2, 'bob')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("ice_nested_types", "IcebergCompat V2 with nested types", "icebergCompat") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>, attrs MAP<STRING, STRING>) USING delta
+    TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
+      'delta.columnMapping.mode' = 'name')""")
+  w.sql("INSERT INTO tbl VALUES (1, array('a','b'), map('key1','val1'))")
+  w.sql("INSERT INTO tbl VALUES (2, array('c'), map('key2','val2','key3','val3'))")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "id = 1")
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

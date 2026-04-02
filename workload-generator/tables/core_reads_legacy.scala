@@ -933,6 +933,297 @@ workload("dseSnapshotVersion", "Snapshot version read") { w =>
   w.snapshot(t)
 }
 
+// --- Missing ds*/dse* workloads (matching acceptance_workloads directories) ---
+
+workload("dsReadAfterVacuum", "Read after VACUUM") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id + 1 FROM range(10)")
+  w.sql("INSERT OVERWRITE tbl SELECT id + 11 FROM range(10)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    val logDir = dir.resolve("_delta_log")
+    val v1 = new String(java.nio.file.Files.readAllBytes(logDir.resolve("00000000000000000001.json")))
+    val removePattern = """"path":"([^"]+)""".r
+    removePattern.findAllMatchIn(v1).foreach { m =>
+      val f = dir.resolve(m.group(1))
+      if (java.nio.file.Files.exists(f)) java.nio.file.Files.delete(f)
+    }
+    val ts = System.currentTimeMillis()
+    java.nio.file.Files.write(logDir.resolve("00000000000000000002.json"),
+      s"""{"commitInfo":{"timestamp":${ts},"operation":"VACUUM START","operationParameters":{"retentionCheckEnabled":false,"defaultRetentionMillis":604800000,"specifiedRetentionMillis":0},"isBlindAppend":true}}""".getBytes)
+    java.nio.file.Files.write(logDir.resolve("00000000000000000003.json"),
+      s"""{"commitInfo":{"timestamp":${ts+1},"operation":"VACUUM END","operationParameters":{"status":"COMPLETED"},"isBlindAppend":true}}""".getBytes)
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadByteShortType", "Read table with byte and short integer types", "types") { w =>
+  w.sql("""CREATE TABLE tbl (bval TINYINT, sval SMALLINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1, 100), (-128, -32768), (127, 32767), (0, 0)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadCdcEnabled", "Read base table with CDC enabled", "cdc") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true',
+      'delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'alpha'), (2, 'beta'), (3, 'gamma')")
+  w.sql("UPDATE tbl SET value = 'alpha_v2' WHERE id = 1")
+  w.sql("DELETE FROM tbl WHERE id = 3")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "id = 1")
+  w.read(t, predicate = "id = 3")
+  w.snapshot(t)
+}
+
+workload("dsReadColumnReorder", "Read table where columns are in different order", "schema") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'alpha', 10.0), (2, 'beta', 20.0), (3, 'gamma', 30.0)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, columns = Seq("score", "id", "name"))
+  w.snapshot(t)
+}
+
+workload("dsReadCorruptCheckpoint", "Error reading table with corrupt checkpoint") { w =>
+  w.sql("""CREATE TABLE tbl (id INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '5')""")
+  for (i <- 0 until 6) w.sql(s"INSERT INTO tbl VALUES ($i)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+      .filter(_.toString.endsWith(".checkpoint.parquet"))
+      .foreach(f => java.nio.file.Files.write(f, Array[Byte](0, 1, 2, 3)))
+    for (i <- 0 until 5) {
+      val jf = dir.resolve("_delta_log/%020d.json".format(i))
+      if (java.nio.file.Files.exists(jf)) java.nio.file.Files.delete(jf)
+    }
+  }
+  w.read(t)
+}
+
+workload("dsReadCorruptJson", "Error: corrupt JSON in commit file") { w =>
+  w.sql("""CREATE TABLE tbl (id INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"),
+      "NOT VALID JSON{{{".getBytes)
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadDuplicateColumns", "Error: schema with duplicate column names", "error") { w =>
+  w.sql("""CREATE TABLE tbl (id INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    val v0 = new String(java.nio.file.Files.readAllBytes(
+      dir.resolve("_delta_log/00000000000000000000.json")), "UTF-8")
+    val mdLine = v0.split("\n").find(_.contains("\"metaData\"")).getOrElse("")
+    val dupSchema = mdLine.replace(
+      """{"name":"id","type":"integer""",
+      """{"name":"id","type":"integer","nullable":true,"metadata":{}},{"name":"id","type":"integer""")
+    val ci = s"""{"commitInfo":{"timestamp":${System.currentTimeMillis()},"operation":"SET TBLPROPERTIES","operationParameters":{},"isBlindAppend":true}}"""
+    java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000001.json"),
+      (dupSchema + "\n" + ci + "\n").getBytes)
+  }
+  w.read(t)
+}
+
+workload("dsReadEmptyDataFrame", "Read after writing empty DataFrame", "emptyTable") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(0)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadInvalidColumnName", "Error: predicate on non-existent column", "error") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  val t = w.table("tbl")
+  w.read(t, predicate = "nonExistentCol = 1")
+  w.snapshot(t)
+}
+
+workload("dsReadMissingCommitFile", "Error: _delta_log exists but commit file missing") { w =>
+  w.sql("CREATE TABLE tbl (id INT) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+      .filter(_.toString.endsWith(".json")).foreach(java.nio.file.Files.delete)
+  }
+  w.read(t)
+}
+
+workload("dsReadMissingDeltaLog", "Error: path exists but _delta_log is missing") { w =>
+  w.sql("CREATE TABLE tbl (id INT) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    val logDir = dir.resolve("_delta_log")
+    java.nio.file.Files.list(logDir).iterator().asScala.foreach(java.nio.file.Files.delete)
+    java.nio.file.Files.delete(logDir)
+  }
+  w.read(t)
+}
+
+workload("dsReadMixedCasePartition", "Read with mixed case partition column names", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (PartCol STRING, Value INT) USING delta
+    PARTITIONED BY (PartCol)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES ('x', 1), ('y', 2), ('x', 3)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "PartCol = 'x'")
+  w.snapshot(t)
+}
+
+workload("dsReadModifyCheckpoint", "Error: table with corrupted checkpoint") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '3')""")
+  for (i <- 0 until 10) w.sql(s"INSERT INTO tbl SELECT id FROM range(${i*10}, ${(i+1)*10})")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+      .filter(_.toString.endsWith(".checkpoint.parquet"))
+      .foreach(f => java.nio.file.Files.write(f, Array[Byte](0, 1, 2, 3)))
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadNonExistentVersion", "Error on non-existent version", "error") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  val t = w.table("tbl")
+  w.read(t, version = 99)
+}
+
+workload("dsReadRenameColumn", "Read after column mapping rename", "columnMapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+      'delta.columnMapping.mode' = 'name',
+      'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'alice')")
+  w.sql("INSERT INTO tbl VALUES (2, 'bob')")
+  w.sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+  w.sql("INSERT INTO tbl VALUES (3, 'charlie')")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadReplaceWhere", "Read after replaceWhere partition overwrite", "partitioned") { w =>
+  w.sql("""CREATE TABLE tbl (part STRING, value INT) USING delta
+    PARTITIONED BY (part)
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES ('a', 1), ('a', 2), ('b', 3), ('b', 4)")
+  w.sql("INSERT OVERWRITE tbl PARTITION (part='a') VALUES ('a', 10), ('a', 20)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "part = 'a'")
+  w.snapshot(t)
+}
+
+workload("dsReadSingleRow", "Read table with single row", "basic") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (42)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dsReadStringWithSpecialChars", "Read string values with special characters", "types") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, text STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("""INSERT INTO tbl VALUES
+    (1, 'hello\nworld'), (2, 'tab\there'),
+    (3, 'with"quotes'), (4, 'unicode\u00e9\u00f1'), (5, 'normal')""")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dseReadAfterTruncate", "Read after TRUNCATE (DELETE all)") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  w.sql("DELETE FROM tbl WHERE true")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dseReadCoalesced", "Read after coalesce write") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(100)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dseReadInvalidTableProperty", "Error: unsupported protocol version") { w =>
+  w.sql("""CREATE TABLE tbl (value BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT id FROM range(10)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    val ts = System.currentTimeMillis()
+    val v1Meta = """{"metaData":{"id":"test","format":{"provider":"parquet","options":{}},"schemaString":"{\"type\":\"struct\",\"fields\":[{\"name\":\"value\",\"type\":\"long\",\"nullable\":true,\"metadata\":{}}]}","partitionColumns":[],"configuration":{"delta.enableDeletionVectors":"true"}}}"""
+    val v1Proto = """{"protocol":{"minReaderVersion":99,"minWriterVersion":99}}"""
+    val ci = s"""{"commitInfo":{"timestamp":${ts},"operation":"SET TBLPROPERTIES","operationParameters":{},"isBlindAppend":true}}"""
+    java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000001.json"),
+      (v1Meta + "\n" + v1Proto + "\n" + ci + "\n").getBytes)
+  }
+  w.read(t)
+}
+
+workload("dseReadNonDeltaPath", "Error reading non-delta path as delta") { w =>
+  w.sql("CREATE TABLE tbl (id INT) USING delta")
+  w.sql("INSERT INTO tbl VALUES (1)")
+  val t = w.table("tbl")
+  w.mutateTable(t) { dir =>
+    import scala.collection.JavaConverters._
+    val logDir = dir.resolve("_delta_log")
+    java.nio.file.Files.list(logDir).iterator().asScala.foreach(java.nio.file.Files.delete)
+    java.nio.file.Files.delete(logDir)
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
+workload("dseReadSortedData", "Read table written with sorted data") { w =>
+  w.sql("""CREATE TABLE tbl (id BIGINT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl SELECT 99 - id FROM range(100)")
+  val t = w.table("tbl")
+  w.read(t)
+  w.read(t, predicate = "id >= 90")
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)

@@ -415,6 +415,24 @@ workload("cm_select_after_drop", "Explicit projection after column drop (CM name
   w.snapshotHistory(t)
 }
 
+workload("cm_err_003_invalid_mode", "Column mapping with unsupported mode in metadata", "column_mapping") { w =>
+  w.sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  w.sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")
+  val t = w.table("tbl")
+  // Patch metadata to use invalid column mapping mode
+  w.mutateTable(t) { dir =>
+    val f = dir.resolve("_delta_log/00000000000000000000.json")
+    val content = new String(java.nio.file.Files.readAllBytes(f), "UTF-8")
+    val patched = content.replace(
+      """"configuration":{""",
+      """"configuration":{"delta.columnMapping.mode":"bogus",""")
+    java.nio.file.Files.write(f, patched.getBytes)
+  }
+  w.read(t)
+  w.snapshot(t)
+}
+
 generateAll(
   sys.env.getOrElse("WORKLOAD_OUTPUT_DIR", "/tmp/workloads"),
   force = sys.env.getOrElse("WORKLOAD_FORCE", "false").toBoolean)
