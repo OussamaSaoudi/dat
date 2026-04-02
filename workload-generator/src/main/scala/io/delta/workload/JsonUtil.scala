@@ -95,6 +95,8 @@ object JsonUtil {
     if (expected != actual) {
       val missing = expected.keySet -- actual.keySet
       val extra = actual.keySet -- expected.keySet
+      val countMismatches = (expected.keySet & actual.keySet).filter(k =>
+        expected(k) != actual(k))
       val details = new StringBuilder()
       if (missing.nonEmpty) {
         details.append(s"\n  Missing rows: ${missing.size}")
@@ -103,6 +105,12 @@ object JsonUtil {
       if (extra.nonEmpty) {
         details.append(s"\n  Extra rows: ${extra.size}")
         extra.take(3).foreach(r => details.append(s"\n    $r"))
+      }
+      if (countMismatches.nonEmpty) {
+        details.append(s"\n  Count mismatches: ${countMismatches.size}")
+        countMismatches.take(3).foreach { r =>
+          details.append(s"\n    expected ${expected(r)}x, got ${actual(r)}x: $r")
+        }
       }
       throw new RuntimeException(
         s"Validation FAILED for $specName: row-level mismatch" +

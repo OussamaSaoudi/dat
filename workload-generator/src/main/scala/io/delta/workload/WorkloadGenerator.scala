@@ -76,7 +76,7 @@ object WorkloadGenerator {
     // Process each workload sequentially: body → resolve → generate → cleanup
     // This ensures table names don't collide between workloads.
     val results = registry.values.toSeq.flatMap { wd =>
-      val ctx = new WorkloadContext(spark, wd.name)
+      val ctx = new WorkloadContext(spark, wd.name, wd.tags)
       try {
         wd.body(ctx)
         // Single-table workloads: use workload name as directory name
@@ -130,9 +130,10 @@ object WorkloadGenerator {
     val scriptPath = resolveSourceScript(sourceScript)
     val scriptContent = scriptPath.map(p => new String(Files.readAllBytes(p), "UTF-8"))
 
-    val ctx = new WorkloadContext(spark, name)
+    val wd = registry(name)
+    val ctx = new WorkloadContext(spark, name, wd.tags)
     try {
-      registry(name).body(ctx)
+      wd.body(ctx)
       ctx.tableSpecs.map(ts => generateTable(spark, ts, Paths.get(outputDir), scriptContent)).toSeq
     } finally {
       ctx.cleanup()
@@ -516,7 +517,7 @@ class TableHandle private[workload] (
         else throw new RuntimeException(s"No timestamp in commitInfo for version $version")
       }.next()
     val fmt = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-    fmt.setTimeZone(java.util.TimeZone.getDefault)
+    fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
     fmt.format(new java.util.Date(tsMillis))
   }
 }
@@ -527,10 +528,14 @@ class TableHandle private[workload] (
 
 class WorkloadContext private[workload] (
     val spark: SparkSession,
-    val workloadName: String) {
+    val workloadName: String,
+    private[workload] val tags: Seq[String] = Seq.empty) {
 
   private val _createdTables = mutable.ArrayBuffer[String]()
   private[workload] val tableSpecs = mutable.ArrayBuffer[TableSpec]()
+
+  /** Convert nullable java.lang.Long to Option[Long]. */
+  private def opt(v: java.lang.Long): Option[Long] = Option(v).map(_.longValue())
 
   // Per-table state: spec names must be unique within each table
   private val _tableSpecNames = mutable.HashMap[String, mutable.HashSet[String]]()
@@ -578,11 +583,11 @@ class WorkloadContext private[workload] (
       columns: Seq[String] = null,
       name: String = null): Unit = {
     val specName = if (name != null) name else autoReadName(
-      Option(predicate), Option(version).map(_.longValue()),
+      Option(predicate), opt(version),
       Option(timestamp), Option(columns))
     requireUnique(table, specName)
     getTableSpec(table).readSpecs += ReadSpecConfig(
-      specName, Option(predicate), Option(version).map(_.longValue()),
+      specName, Option(predicate), opt(version),
       Option(timestamp), Option(columns))
   }
 
@@ -592,7 +597,7 @@ class WorkloadContext private[workload] (
       version: java.lang.Long = null,
       timestamp: String = null): Unit = {
     getTableSpec(table).snapshotSpecs += SnapshotSpecConfig(
-      Option(version).map(_.longValue()), Option(timestamp))
+      opt(version), Option(timestamp))
   }
 
   /** Snapshot at every version (0 to latest). */
@@ -611,14 +616,14 @@ class WorkloadContext private[workload] (
       columns: Seq[String] = null,
       name: String = null): Unit = {
     val specName = if (name != null) name else autoCdfName(
-      Option(startVersion).map(_.longValue()),
-      Option(endVersion).map(_.longValue()),
+      opt(startVersion),
+      opt(endVersion),
       Option(startTimestamp), Option(endTimestamp))
     requireUnique(table, specName)
     getTableSpec(table).cdfSpecs += CdfSpecConfig(
       specName,
-      Option(startVersion).map(_.longValue()),
-      Option(endVersion).map(_.longValue()),
+      opt(startVersion),
+      opt(endVersion),
       Option(startTimestamp), Option(endTimestamp),
       Option(predicate), Option(columns))
   }
@@ -635,7 +640,7 @@ class WorkloadContext private[workload] (
     requireUnique(table, specName)
     getTableSpec(table).domainMetadataSpecs += DomainMetadataSpecConfig(
       specName, domain, configuration, removed,
-      Option(version).map(_.longValue()))
+      opt(version))
   }
 
   /** SetTransaction spec. */
@@ -649,7 +654,7 @@ class WorkloadContext private[workload] (
     requireUnique(table, specName)
     getTableSpec(table).txnSpecs += TxnSpecConfig(
       specName, appId, txnVersion,
-      Option(version).map(_.longValue()))
+      opt(version))
   }
 
   // ---- Table mutations (applied to copied table before spec capture) ----
@@ -736,7 +741,7 @@ class WorkloadContext private[workload] (
       tableSpecs += new TableSpec(
         outputName = outputName,
         description = s"$workloadName — ${handle.tableName}",
-        tags = registry.get(workloadName).map(_.tags).getOrElse(Seq.empty),
+        tags = tags,
         sourcePath = handle.sourcePath
       )
       _tableSpecNames(outputName) = mutable.HashSet[String]()
@@ -782,8 +787,6 @@ class WorkloadContext private[workload] (
     }
   }
 
-  // Access registry for tags
-  private def registry = WorkloadGenerator.registry
 }
 
 // ---------------------------------------------------------------------------

@@ -71,10 +71,13 @@ object TableInfoWriter {
 
       val numActions = try {
         val deltaLogDir = tablePath.resolve("_delta_log")
-        Files.list(deltaLogDir).iterator().asScala
-          .filter(p => p.toString.endsWith(".json") && !p.toString.contains("checkpoint"))
-          .map(p => Files.readAllLines(p).size().toLong)
-          .sum
+        val stream = Files.list(deltaLogDir)
+        try {
+          stream.iterator().asScala
+            .filter(p => p.toString.endsWith(".json") && !p.toString.contains("checkpoint"))
+            .map(p => Files.readAllLines(p).size().toLong)
+            .sum
+        } finally { stream.close() }
       } catch { case _: Exception => 0L }
       logInfoMap.put("numActions", numActions)
 
@@ -83,14 +86,17 @@ object TableInfoWriter {
 
       val lastCrcVersion = try {
         val deltaLogDir = tablePath.resolve("_delta_log")
-        Files.list(deltaLogDir).iterator().asScala
-          .map(_.getFileName.toString)
-          .filter(_.endsWith(".crc"))
-          .flatMap { name =>
-            try { Some(name.stripSuffix(".crc").toLong) }
-            catch { case _: NumberFormatException => None }
-          }
-          .toSeq.sorted.lastOption.getOrElse(-1L)
+        val stream = Files.list(deltaLogDir)
+        try {
+          stream.iterator().asScala
+            .map(_.getFileName.toString)
+            .filter(_.endsWith(".crc"))
+            .flatMap { name =>
+              try { Some(name.stripSuffix(".crc").toLong) }
+              catch { case _: NumberFormatException => None }
+            }
+            .toSeq.sorted.lastOption.getOrElse(-1L)
+        } finally { stream.close() }
       } catch { case _: Exception => -1L }
       logInfoMap.put("lastCrcVersion", lastCrcVersion)
 

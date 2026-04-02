@@ -92,11 +92,8 @@ class WorkloadSuite(val suiteName: String) {
     val results = mutable.ArrayBuffer[TestResult]()
 
     for (td <- tests) {
-      val ctx = new WorkloadContext(spark, td.name)
+      val ctx = new WorkloadContext(spark, td.name, td.tags)
       try {
-        WorkloadGenerator.registry(td.name) = WorkloadDef(
-          td.name, td.description, td.tags, td.body)
-
         td.body(ctx)
 
         if (ctx.tableSpecs.isEmpty) {
@@ -143,7 +140,6 @@ class WorkloadSuite(val suiteName: String) {
             Seq(e.getMessage))
       } finally {
         ctx.cleanup()
-        WorkloadGenerator.registry.remove(td.name)
       }
     }
 
