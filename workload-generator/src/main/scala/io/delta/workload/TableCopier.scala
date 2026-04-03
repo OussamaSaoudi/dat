@@ -23,16 +23,26 @@ import scala.util.control.NonFatal
 
 import org.apache.commons.io.FileUtils
 
-/** Copies a Delta table directory for portable workload output. */
+/** Moves (or copies) a Delta table directory for portable workload output. */
 object TableCopier {
 
   /**
-   * Copy a Delta table to the output directory.
+   * Move a Delta table to the output directory. Falls back to copy if move
+   * fails (e.g., cross-filesystem). The source table is consumed — the caller
+   * should not read from sourceTablePath after this call.
+   *
    * @param syncTimestamps If true, sync commit file mtimes to commitInfo.timestamp
    */
   def copyTable(sourceTablePath: Path, destTablePath: Path, syncTimestamps: Boolean = false): Unit = {
     require(Files.exists(sourceTablePath), s"Source not found: $sourceTablePath")
-    copyDirectory(sourceTablePath, destTablePath)
+    if (Files.exists(destTablePath)) FileUtils.deleteDirectory(destTablePath.toFile)
+    try {
+      Files.move(sourceTablePath, destTablePath)
+    } catch {
+      case _: java.io.IOException =>
+        // Cross-filesystem or other move failure — fall back to copy
+        copyDirectory(sourceTablePath, destTablePath)
+    }
     if (syncTimestamps) syncCommitFileTimestamps(destTablePath)
   }
 

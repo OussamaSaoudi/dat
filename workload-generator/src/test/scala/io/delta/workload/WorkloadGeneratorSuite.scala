@@ -181,6 +181,43 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(all.values.sum == 4, "All should have 4 rows")
   }
 
+  test("read: data skipping with multi-file predicates") {
+    val results = run() { s =>
+      s.test("t_r_skip", "data skipping") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        // 3 separate inserts → 3 files with non-overlapping ranges
+        w.sql("INSERT INTO tbl VALUES (1),(2),(3)")      // file 1: min=1, max=3
+        w.sql("INSERT INTO tbl VALUES (10),(11),(12)")    // file 2: min=10, max=12
+        w.sql("INSERT INTO tbl VALUES (100),(101),(102)") // file 3: min=100, max=102
+        val t = w.table("tbl")
+        w.read(t)                              // all 9 rows
+        w.read(t, predicate = "id < 5")        // only file 1: 3 rows
+        w.read(t, predicate = "id >= 100")     // only file 3: 3 rows
+        w.read(t, predicate = "id > 3 AND id < 100") // only file 2: 3 rows
+        w.read(t, predicate = "id = 11")       // only file 2: 1 row
+        w.read(t, predicate = "id > 200")      // no files match: 0 rows
+      }
+    }
+    assertPassed(results)
+
+    // Verify exact row counts for each predicate
+    def rowCount(specSuffix: String): Int = {
+      val p = expected("t_r_skip").resolve(s"t_r_skip_$specSuffix/expected_data")
+      if (!Files.exists(p)) 0
+      else JsonUtil.toRowMultiset(spark.read.parquet(p.toString)).values.sum
+    }
+    assert(rowCount("read") == 9, "All rows")
+    assert(rowCount("read_id_lt_5") == 3, "id < 5 → 3 rows from file 1")
+    assert(rowCount("read_id_gte_100") == 3, "id >= 100 → 3 rows from file 3")
+    assert(rowCount("read_id_gt_3_and_id_lt_100") == 3, "3 < id < 100 → 3 rows from file 2")
+    assert(rowCount("read_id_eq_11") == 1, "id = 11 → 1 row")
+
+    // Verify the zero-match predicate produces an error spec or empty data
+    val zeroSpec = readSpec("t_r_skip", "read_id_gt_200")
+    val zeroExpected = zeroSpec.get("expected")
+    assert(zeroExpected.get("rowCount").asInt() == 0, "id > 200 → 0 rows")
+  }
+
   test("read: empty table") {
     val results = run() { s =>
       s.test("t_r6", "empty table read") { w =>
