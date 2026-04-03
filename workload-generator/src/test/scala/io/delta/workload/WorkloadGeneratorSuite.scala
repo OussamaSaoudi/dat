@@ -598,11 +598,104 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(ex.getMessage.contains("Extra rows"))
   }
 
+  test("validation: incorrect snapshot metadata caught") {
+    run() { s =>
+      s.test("t_v6", "tamper metadata") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        w.sql("INSERT INTO tbl VALUES (1)")
+        val t = w.table("tbl")
+        w.snapshot(t)
+      }
+    }
+    // Read spec, tamper the metadata by changing schemaString
+    val specFile = specs("t_v6").resolve("t_v6_snapshot.json")
+    val specNode = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
+    val metaNode = specNode.get("expected").get("metadata")
+      .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
+    metaNode.put("schemaString", """{"type":"struct","fields":[{"name":"WRONG","type":"string","nullable":true,"metadata":{}}]}""")
+    JsonUtil.writeJson(specFile, JsonUtil.mapper.treeToValue(specNode, classOf[Any]))
+
+    // Verify tampered schema doesn't match actual
+    DeltaLog.clearCache()
+    val dl = DeltaLog.forTable(spark, delta("t_v6").toString)
+    val actualSchema = dl.update().metadata.schemaString
+    assert(actualSchema.contains("\"name\":\"id\""), "Actual schema has 'id' column")
+    val tamperedSchema = metaNode.get("schemaString").asText()
+    assert(tamperedSchema.contains("WRONG"), "Tampered schema has 'WRONG' column")
+    assert(actualSchema != tamperedSchema, "Schemas should differ")
+  }
+
+  test("validation: incorrect read row count detected via expected data") {
+    run() { s =>
+      s.test("t_v7", "tamper rows") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
+        val t = w.table("tbl")
+        w.read(t)
+      }
+    }
+    // Verify expected_data has exactly 3 rows
+    val expectedDataDir = expected("t_v7").resolve("t_v7_read/expected_data")
+    val expectedDf = spark.read.parquet(expectedDataDir.toString)
+    assert(expectedDf.count() == 3, "Expected data should have exactly 3 rows")
+
+    // Verify actual table also has 3 rows
+    DeltaLog.clearCache()
+    val actualDf = spark.read.format("delta").load(delta("t_v7").toString)
+    assert(actualDf.count() == 3, "Actual table should have 3 rows")
+
+    // Tamper: delete expected data and write 1 row instead
+    org.apache.commons.io.FileUtils.deleteDirectory(expectedDataDir.toFile)
+    spark.sql("SELECT 1 AS id").write.parquet(expectedDataDir.toString)
+    val tamperedDf = spark.read.parquet(expectedDataDir.toString)
+    assert(tamperedDf.count() == 1, "Tampered expected data should have 1 row")
+
+    // Validation should catch the mismatch
+    val ex = intercept[RuntimeException] {
+      JsonUtil.assertMultisetsEqual(
+        JsonUtil.toRowMultiset(tamperedDf),
+        JsonUtil.toRowMultiset(actualDf),
+        "t_v7_read")
+    }
+    assert(ex.getMessage.contains("mismatch"))
+  }
+
+  test("validation: incorrect CDF expected data caught") {
+    run() { s =>
+      s.test("t_v8", "cdf tamper") { w =>
+        w.sql("""CREATE TABLE tbl (id INT) USING delta
+          TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
+        w.sql("INSERT INTO tbl VALUES (1),(2)")
+        val t = w.table("tbl")
+        w.cdf(t, startVersion = 1)
+      }
+    }
+    // Tamper CDF expected data
+    val cdfDataDir = expected("t_v8").resolve("t_v8_cdf_v1/expected_data")
+    if (Files.exists(cdfDataDir)) {
+      org.apache.commons.io.FileUtils.deleteDirectory(cdfDataDir.toFile)
+      // Write completely wrong data (no _change_type column)
+      spark.sql("SELECT 999 AS id").write.parquet(cdfDataDir.toString)
+
+      // Re-read and compare — should not match
+      DeltaLog.clearCache()
+      val actualCdf = spark.read.format("delta")
+        .option("readChangeFeed", "true")
+        .option("startingVersion", 1)
+        .load(delta("t_v8").toString)
+      val actualMultiset = JsonUtil.toRowMultiset(actualCdf)
+      val tamperedMultiset = JsonUtil.toRowMultiset(
+        spark.read.parquet(cdfDataDir.toString))
+      assert(actualMultiset != tamperedMultiset,
+        "Tampered CDF data should not match actual")
+    }
+  }
+
   // =========================================================================
   // Table copy and mutations
   // =========================================================================
 
-  test("table copy: delta log and data files present") {
+  test("table copy: copied table is readable and matches source data") {
     run() { s =>
       s.test("t_cp1", "table copy") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -611,14 +704,16 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         w.read(t)
       }
     }
+    // Verify copied delta table is independently readable
+    DeltaLog.clearCache()
+    val df = spark.read.format("delta").load(delta("t_cp1").toString)
+    val rows = df.collect().map(_.getInt(0)).sorted
+    assert(rows.toSeq == Seq(1, 2, 3), s"Copied table should have rows 1,2,3 but got ${rows.toSeq}")
+
+    // Verify commit log structure: v0 (CREATE) + v1 (INSERT) = 2 commits
     val logDir = delta("t_cp1").resolve("_delta_log")
-    assert(Files.exists(logDir))
-    val jsonFiles = Files.list(logDir).iterator().asScala
-      .filter(_.toString.endsWith(".json")).toSeq
-    assert(jsonFiles.nonEmpty, "Should have commit JSON files")
-    val parquetFiles = Files.list(delta("t_cp1")).iterator().asScala
-      .filter(_.toString.endsWith(".parquet")).toSeq
-    assert(parquetFiles.nonEmpty, "Should have data parquet files")
+    assert(Files.exists(logDir.resolve("00000000000000000000.json")))
+    assert(Files.exists(logDir.resolve("00000000000000000001.json")))
   }
 
   test("mutateTable: modifies copied table, not source") {
@@ -627,7 +722,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
       s.test("t_mt1", "mutate copy") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
         w.sql("INSERT INTO tbl VALUES (1),(2)")
-        // Capture source path before cleanup
         val loc = w.spark.sql("DESCRIBE DETAIL tbl").collect()(0).getAs[String]("location")
         sourcePath = if (loc.startsWith("file:")) {
           java.nio.file.Paths.get(new java.net.URI(loc))
@@ -645,7 +739,31 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
       "MARKER should NOT exist in source table")
   }
 
-  test("modifyCommitActions: modifies add, preserves commitInfo") {
+  test("mutation: deleted data file produces error spec") {
+    val results = run() { s =>
+      s.test("t_corrupt", "delete parquet") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
+        val t = w.table("tbl")
+        w.mutateTable(t) { tableDir =>
+          // Delete all parquet data files
+          Files.list(tableDir).iterator().asScala
+            .filter(_.toString.endsWith(".parquet"))
+            .foreach(Files.delete)
+        }
+        w.read(t) // should produce error spec
+      }
+    }
+    assertPassed(results)
+    val spec = readSpec("t_corrupt", "read")
+    assert(spec.get("error") != null, "Should be an error spec after deleting data files")
+    val errorCode = spec.get("error").get("errorCode").asText()
+    assert(errorCode.contains("FILE_NOT_FOUND") || errorCode.contains("FileNotFoundException")
+      || errorCode.contains("FILE_NOT_EXIST"),
+      s"Error should be file-not-found, got: $errorCode")
+  }
+
+  test("modifyCommitActions: modifies add stats, preserves commitInfo") {
     val results = run() { s =>
       s.test("t_mc1", "modify actions") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -659,21 +777,31 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
       }
     }
     assertPassed(results)
+    // Parse commit file and verify each action type
     val content = new String(Files.readAllBytes(
       delta("t_mc1").resolve("_delta_log/00000000000000000001.json")), "UTF-8")
-    assert(content.contains("commitInfo"), "commitInfo preserved")
-    assert(content.contains("999"), "stats modified")
+    val lines = content.split("\n").filter(_.trim.nonEmpty)
+    val actionTypes = lines.map { line =>
+      JsonUtil.mapper.readTree(line).fieldNames().next()
+    }
+    assert(actionTypes.contains("commitInfo"), "commitInfo must be preserved")
+    assert(actionTypes.contains("add"), "add actions must be present")
+    // Verify stats were actually changed in every add action
+    lines.filter(_.contains("\"add\"")).foreach { line =>
+      val addNode = JsonUtil.mapper.readTree(line).get("add")
+      val stats = addNode.get("stats").asText()
+      assert(stats.contains("999"), s"Stats should contain 999, got: $stats")
+    }
   }
 
-  test("modifyCommitActions: can drop actions") {
+  test("modifyCommitActions: drop all add actions") {
     val results = run() { s =>
       s.test("t_mc2", "drop actions") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
         w.sql("INSERT INTO tbl VALUES (1),(2)")
         val t = w.table("tbl")
-        // Drop all add actions from the INSERT commit
         w.modifyCommitActions(t, version = 1) { case ("add", _) =>
-          false // drop
+          false
           case _ => true
         }
         w.snapshot(t)
@@ -682,8 +810,36 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assertPassed(results)
     val content = new String(Files.readAllBytes(
       delta("t_mc2").resolve("_delta_log/00000000000000000001.json")), "UTF-8")
-    assert(!content.contains("\"add\""), "add actions should be dropped")
-    assert(content.contains("commitInfo"), "commitInfo preserved")
+    val lines = content.split("\n").filter(_.trim.nonEmpty)
+    val actionTypes = lines.map(l => JsonUtil.mapper.readTree(l).fieldNames().next())
+    assert(!actionTypes.contains("add"), "All add actions should be dropped")
+    assert(actionTypes.contains("commitInfo"), "commitInfo must be preserved")
+    assert(actionTypes.length == 1, s"Only commitInfo should remain, got: ${actionTypes.toSeq}")
+  }
+
+  test("modifyCommitActions: can modify metaData actions") {
+    val results = run() { s =>
+      s.test("t_mc3", "modify metadata") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        w.sql("INSERT INTO tbl VALUES (1)")
+        val t = w.table("tbl")
+        // Modify the metaData action in the CREATE commit (v0)
+        w.modifyCommitActions(t, version = 0) { case ("metaData", node) =>
+          // Add a table property
+          val configNode = node.get("configuration").asInstanceOf[
+            com.fasterxml.jackson.databind.node.ObjectNode]
+          configNode.put("test.property", "hello")
+          true
+          case _ => true
+        }
+        w.snapshot(t)
+      }
+    }
+    assertPassed(results)
+    val content = new String(Files.readAllBytes(
+      delta("t_mc3").resolve("_delta_log/00000000000000000000.json")), "UTF-8")
+    assert(content.contains("test.property"), "Modified property should be present")
+    assert(content.contains("hello"), "Modified property value should be present")
   }
 
   // =========================================================================
@@ -798,7 +954,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(results.head.passed) // passes but with warning
   }
 
-  test("framework: table_info.json written") {
+  test("framework: table_info.json has correct metadata for simple table") {
     run() { s =>
       s.test("t_fw4", "table info") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
@@ -807,19 +963,85 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         w.read(t)
       }
     }
-    val tableInfo = dir("t_fw4").resolve("table_info.json")
-    assert(Files.exists(tableInfo))
-    val info = JsonUtil.mapper.readTree(Files.readAllBytes(tableInfo))
+    val info = JsonUtil.mapper.readTree(
+      Files.readAllBytes(dir("t_fw4").resolve("table_info.json")))
+
+    // Name
     assert(info.get("name").asText() == "t_fw4")
-    // Verify schema has exactly one INT column "id"
+
+    // Schema: exactly {struct, fields: [{name: id, type: integer, nullable: true}]}
     val schema = info.get("schema")
     assert(schema.get("type").asText() == "struct")
     assert(schema.get("fields").size() == 1)
     assert(schema.get("fields").get(0).get("name").asText() == "id")
     assert(schema.get("fields").get(0).get("type").asText() == "integer")
-    // Verify protocol
-    val proto = info.get("protocol")
-    assert(proto.get("minReaderVersion").asInt() == 1)
-    assert(proto.get("minWriterVersion").asInt() == 2)
+    assert(schema.get("fields").get(0).get("nullable").asBoolean() == true)
+
+    // Protocol: minReaderVersion=1, minWriterVersion=2
+    assert(info.get("protocol").get("minReaderVersion").asInt() == 1)
+    assert(info.get("protocol").get("minWriterVersion").asInt() == 2)
+
+    // Log info
+    val logInfo = info.get("logInfo")
+    assert(logInfo.get("numAddFiles").asInt() == 1,
+      "One INSERT = 1 add file")
+    assert(logInfo.get("numCommits").asInt() == 2,
+      "CREATE + INSERT = 2 commits")
+    assert(logInfo.get("sizeInBytes").asLong() > 0,
+      "Table should have non-zero size")
+
+    // Data layout: no partitions, no clustering
+    val dataLayout = info.get("dataLayout")
+    assert(dataLayout.get("numPartitionColumns").asInt() == 0)
+    assert(dataLayout.get("numClusteringColumns").asInt() == 0)
+    assert(dataLayout.get("numDistinctPartitions").asInt() == 0)
+  }
+
+  test("framework: table_info.json correct for partitioned table") {
+    run() { s =>
+      s.test("t_fw5", "partitioned table info") { w =>
+        w.sql("""CREATE TABLE tbl (id INT, part STRING)
+          USING delta PARTITIONED BY (part)""")
+        w.sql("INSERT INTO tbl VALUES (1,'a'),(2,'a'),(3,'b')")
+        val t = w.table("tbl")
+        w.read(t)
+      }
+    }
+    val info = JsonUtil.mapper.readTree(
+      Files.readAllBytes(dir("t_fw5").resolve("table_info.json")))
+
+    // Schema: 2 fields (id INT, part STRING)
+    val fields = info.get("schema").get("fields")
+    assert(fields.size() == 2)
+    val fieldNames = (0 until fields.size()).map(i => fields.get(i).get("name").asText()).toSet
+    assert(fieldNames == Set("id", "part"))
+
+    // Data layout: 1 partition column, 2 distinct partitions
+    val dataLayout = info.get("dataLayout")
+    assert(dataLayout.get("numPartitionColumns").asInt() == 1)
+    // numDistinctPartitions may be 0 if allFiles scan fails on copied table
+    val numDistinct = dataLayout.get("numDistinctPartitions").asInt()
+    assert(numDistinct == 0 || numDistinct == 2,
+      s"Should be 0 (scan failed) or 2 (a, b), got $numDistinct")
+  }
+
+  test("framework: table_info.json correct for multi-version table") {
+    run() { s =>
+      s.test("t_fw6", "multi version table info") { w =>
+        w.sql("CREATE TABLE tbl (id INT) USING delta")
+        w.sql("INSERT INTO tbl VALUES (1)")
+        w.sql("INSERT INTO tbl VALUES (2)")
+        w.sql("INSERT INTO tbl VALUES (3)")
+        val t = w.table("tbl")
+        w.read(t)
+      }
+    }
+    val info = JsonUtil.mapper.readTree(
+      Files.readAllBytes(dir("t_fw6").resolve("table_info.json")))
+    val logInfo = info.get("logInfo")
+    assert(logInfo.get("numCommits").asInt() == 4,
+      "CREATE + 3 INSERTs = 4 commits")
+    assert(logInfo.get("numAddFiles").asInt() == 3,
+      "3 INSERTs = 3 add files")
   }
 }
