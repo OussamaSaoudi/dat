@@ -161,7 +161,7 @@ class WriteSpecBuilder {
   }
 
   /** Capture data files added in a specific commit version. */
-  private def captureDataFiles(tablePath: Path, version: Long, dataDir: Path): Seq[String] = {
+  def captureDataFiles(tablePath: Path, version: Long, dataDir: Path): Seq[String] = {
     val commitFile = tablePath.resolve("_delta_log").resolve(f"$version%020d.json")
     if (!Files.exists(commitFile)) return Seq.empty
 
@@ -188,5 +188,143 @@ class WriteSpecBuilder {
       }
       s"data/commit_$version/$fileName"
     }.toSeq
+  }
+}
+
+/** Static methods for building write specs directly from the delta log. */
+object WriteSpecCapture {
+
+  /**
+   * Build write_spec.json by analyzing the delta log commit-by-commit.
+   * Used when no structured ops were recorded (the "auto" path).
+   * Reads commitInfo.operation from each commit to determine the operation type,
+   * and captures data files for each commit that has AddFile actions.
+   *
+   * @param sqlStatements Optional list of SQL statements executed (for the sql field)
+   */
+  def buildSpecFromLog(
+      spark: SparkSession,
+      tablePath: Path,
+      outputDir: Path,
+      specsDir: Path,
+      sqlStatements: Seq[String] = Seq.empty): Unit = {
+    DeltaLog.clearCache()
+    val dl = DeltaLog.forTable(spark, tablePath.toString)
+    val latestVersion = dl.update().version
+
+    val dataDir = outputDir.resolve("data")
+    val commits = new java.util.ArrayList[Any]()
+    val builder = new WriteSpecBuilder()
+
+    for (version <- 0L to latestVersion) {
+      val commitFile = tablePath.resolve("_delta_log").resolve(f"$version%020d.json")
+      if (Files.exists(commitFile)) {
+        val lines = new String(Files.readAllBytes(commitFile), "UTF-8")
+          .split("\n").filter(_.trim.nonEmpty)
+
+        // Extract operation from commitInfo
+        val operation = lines.flatMap { line =>
+          val node = JsonUtil.mapper.readTree(line)
+          if (node.has("commitInfo")) {
+            val ci = node.get("commitInfo")
+            if (ci.has("operation")) Some(ci.get("operation").asText()) else None
+          } else None
+        }.headOption.getOrElse("UNKNOWN")
+
+        // Map Spark operation names to write spec operation types
+        val opType = operation match {
+          case "CREATE TABLE" | "CREATE TABLE AS SELECT" | "CREATE OR REPLACE TABLE" =>
+            "create_table"
+          case "WRITE" | "APPEND" | "Append" => "insert"
+          case "DELETE" => "delete"
+          case "UPDATE" => "update"
+          case "MERGE" => "merge"
+          case "TRUNCATE" => "truncate"
+          case "SET TBLPROPERTIES" | "CHANGE COLUMN" | "ADD COLUMNS" |
+               "RENAME COLUMN" | "DROP COLUMNS" | "UPGRADE PROTOCOL" =>
+            "alter_table"
+          case "OPTIMIZE" => "optimize"
+          case "RESTORE" => "restore"
+          case "VACUUM START" | "VACUUM END" => "vacuum"
+          case "CHECKPOINT" => "checkpoint"
+          case "REPLACE WHERE" => "insert_overwrite"
+          case "OVERWRITE" => "insert_overwrite"
+          case _ => operation.toLowerCase.replaceAll("\\s+", "_")
+        }
+
+        val commit = new java.util.LinkedHashMap[String, Any]()
+        commit.put("operation", opType)
+
+        // Add SQL if we have it (matched by index)
+        if (version < sqlStatements.length) {
+          commit.put("sql", sqlStatements(version.toInt))
+        }
+
+        // For create_table, capture schema from snapshot
+        if (opType == "create_table") {
+          try {
+            val snapshot = dl.getSnapshotAt(version)
+            commit.put("schema",
+              JsonUtil.mapper.readValue(snapshot.metadata.schemaString, classOf[Any]))
+            val partCols = snapshot.metadata.partitionColumns
+            if (partCols.nonEmpty) {
+              commit.put("partitionColumns",
+                scala.collection.JavaConverters.seqAsJavaListConverter(partCols).asJava)
+            }
+            val props = snapshot.metadata.configuration
+            if (props.nonEmpty) {
+              commit.put("properties",
+                scala.collection.JavaConverters.mapAsJavaMapConverter(props).asJava)
+            }
+          } catch { case _: Exception => }
+        }
+
+        // Extract predicates from commitInfo.operationParameters
+        lines.foreach { line =>
+          val node = JsonUtil.mapper.readTree(line)
+          if (node.has("commitInfo")) {
+            val ci = node.get("commitInfo")
+            if (ci.has("operationParameters")) {
+              val params = ci.get("operationParameters")
+              if (params.has("predicate") && !params.get("predicate").isNull) {
+                val pred = params.get("predicate").asText()
+                if (pred.nonEmpty && pred != "[]" && pred != "true") {
+                  commit.put("predicate", pred)
+                }
+              }
+            }
+          }
+        }
+
+        // Capture data files
+        val dataFiles = builder.captureDataFiles(tablePath, version, dataDir)
+        if (dataFiles.nonEmpty) {
+          commit.put("dataFiles",
+            scala.collection.JavaConverters.seqAsJavaListConverter(dataFiles).asJava)
+        }
+
+        commits.add(commit)
+      }
+    }
+
+    // Verification list from specs directory
+    val verification = new java.util.ArrayList[String]()
+    if (Files.exists(specsDir)) {
+      val stream = Files.list(specsDir)
+      try {
+        scala.collection.JavaConverters.asScalaIteratorConverter(stream.iterator()).asScala
+          .filter(_.toString.endsWith(".json"))
+          .map(_.getFileName.toString)
+          .toSeq.sorted
+          .foreach(verification.add)
+      } finally { stream.close() }
+    }
+
+    val writeSpec = new java.util.LinkedHashMap[String, Any]()
+    writeSpec.put("type", "write")
+    writeSpec.put("commits", commits)
+    writeSpec.put("verification", verification)
+
+    JsonUtil.writeJson(outputDir.resolve("write_spec.json"), writeSpec)
   }
 }

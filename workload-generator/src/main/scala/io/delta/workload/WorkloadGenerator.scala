@@ -404,9 +404,9 @@ object WorkloadGenerator {
             case Some(builder) =>
               builder.buildSpec(spark, destTablePath, testOutputDir, specsDir)
             case None =>
-              // Legacy: w.writeSpec(t) without structured *Op methods
-              // Not recommended — predicates may have Spark internal format
-              println(s"  WARN: $dirName uses legacy writeSpec (no structured ops)")
+              // Auto-build write spec from delta log
+              WriteSpecCapture.buildSpecFromLog(
+                spark, destTablePath, testOutputDir, specsDir, ts.sqlStatements)
           }
         } catch {
           case e: Exception => warnings += s"WriteSpec: ${e.getMessage}"
