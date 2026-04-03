@@ -457,54 +457,58 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   // Validation catches wrong output
   // =========================================================================
 
-  test("validation: tampered expected data detected") {
+  test("validation: tampered read expected_data caught by validateCapturedRead") {
+    // Generate valid read, then tamper expected_data, then call validation directly
     run() { s =>
-      s.test("t_v1", "tamper target") { w =>
+      s.test("t_v1", "read to tamper") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1), (2), (3)")
+        w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
         val t = w.table("tbl")
         w.read(t)
       }
     }
+    // Tamper: replace expected_data with wrong rows
     val dataDir = expected("t_v1").resolve("t_v1_read/expected_data")
     org.apache.commons.io.FileUtils.deleteDirectory(dataDir.toFile)
     spark.sql("SELECT 100 AS id UNION ALL SELECT 200")
       .write.parquet(dataDir.toString)
 
+    // Call the actual validation function — should throw
     DeltaLog.clearCache()
-    val actual = JsonUtil.toRowMultiset(
-      spark.read.format("delta").load(delta("t_v1").toString))
-    val tampered = JsonUtil.toRowMultiset(spark.read.parquet(dataDir.toString))
     val ex = intercept[RuntimeException] {
-      JsonUtil.assertMultisetsEqual(tampered, actual, "t_v1_read")
+      ReadCapture.validateCapturedRead(
+        spark, delta("t_v1"), expected("t_v1").resolve("t_v1_read"),
+        "t_v1_read", version = None, timestamp = None,
+        predicate = None, columns = None, originalAddFilesJson = Seq.empty)
     }
-    assert(ex.getMessage.contains("mismatch"))
+    assert(ex.getMessage.contains("mismatch"),
+      s"Should report row mismatch, got: ${ex.getMessage}")
   }
 
-  test("validation: tampered snapshot protocol detected") {
+  test("validation: tampered snapshot protocol caught by SnapshotCapture.validate") {
+    // Generate valid snapshot, then tamper protocol in spec, call validate directly
     run() { s =>
-      s.test("t_v2", "tamper snapshot") { w =>
+      s.test("t_v2", "snapshot to tamper") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
         w.sql("INSERT INTO tbl VALUES (1)")
         val t = w.table("tbl")
         w.snapshot(t)
       }
     }
+    // Tamper: change minReaderVersion to 99 in spec JSON
     val specFile = specs("t_v2").resolve("t_v2_snapshot.json")
     val content = new String(Files.readAllBytes(specFile), "UTF-8")
-    // Replace minReaderVersion with 99 regardless of original value
     val tampered = content.replaceAll(
       """"minReaderVersion"\s*:\s*\d+""", """"minReaderVersion":99""")
-    assert(tampered != content, "Tamper should have changed something")
+    assert(tampered != content, "Tamper should have changed minReaderVersion")
     Files.write(specFile, tampered.getBytes("UTF-8"))
 
-    DeltaLog.clearCache()
-    val dl = DeltaLog.forTable(spark, delta("t_v2").toString)
-    val actualProto = JsonUtil.mapper.readTree(dl.update().protocol.json).get("protocol")
-    val tamperedProto = JsonUtil.mapper.readTree(
-      Files.readAllBytes(specFile)).get("expected").get("protocol")
-    assert(!actualProto.equals(tamperedProto),
-      "Tampered protocol (minReaderVersion=99) should not match actual")
+    // Call the actual validation function — should throw
+    val ex = intercept[IllegalArgumentException] {
+      SnapshotCapture.validate(spark, "t_v2_snapshot", delta("t_v2"), specs("t_v2"))
+    }
+    assert(ex.getMessage.contains("protocol mismatch"),
+      s"Should report protocol mismatch, got: ${ex.getMessage}")
   }
 
   test("validation: domain metadata config mismatch caught") {
@@ -551,28 +555,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(results.head.errors.exists(_.contains("version")))
   }
 
-  test("validation: extra rows in expected data detected") {
-    run() { s =>
-      s.test("t_v5", "extra rows") { w =>
-        w.sql("CREATE TABLE tbl (id INT) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1)")
-        val t = w.table("tbl")
-        w.read(t)
-      }
-    }
-    val dataDir = expected("t_v5").resolve("t_v5_read/expected_data")
-    spark.sql("SELECT 50 AS id UNION ALL SELECT 51")
-      .write.mode("append").parquet(dataDir.toString)
-
-    DeltaLog.clearCache()
-    val actual = JsonUtil.toRowMultiset(
-      spark.read.format("delta").load(delta("t_v5").toString))
-    val tampered = JsonUtil.toRowMultiset(spark.read.parquet(dataDir.toString))
-    intercept[Exception] {
-      JsonUtil.assertMultisetsEqual(tampered, actual, "t_v5_read")
-    }
-  }
-
   test("validation: assertMultisetsEqual reports count mismatches") {
     val ex = intercept[RuntimeException] {
       JsonUtil.assertMultisetsEqual(
@@ -598,71 +580,59 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(ex.getMessage.contains("Extra rows"))
   }
 
-  test("validation: incorrect snapshot metadata caught") {
+  test("validation: tampered snapshot metadata caught by SnapshotCapture.validate") {
     run() { s =>
-      s.test("t_v6", "tamper metadata") { w =>
+      s.test("t_v6", "snapshot for metadata tamper") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
         w.sql("INSERT INTO tbl VALUES (1)")
         val t = w.table("tbl")
         w.snapshot(t)
       }
     }
-    // Read spec, tamper the metadata by changing schemaString
+    // Tamper: change schemaString in spec to have wrong column
     val specFile = specs("t_v6").resolve("t_v6_snapshot.json")
     val specNode = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
     val metaNode = specNode.get("expected").get("metadata")
       .asInstanceOf[com.fasterxml.jackson.databind.node.ObjectNode]
-    metaNode.put("schemaString", """{"type":"struct","fields":[{"name":"WRONG","type":"string","nullable":true,"metadata":{}}]}""")
+    metaNode.put("schemaString",
+      """{"type":"struct","fields":[{"name":"WRONG","type":"string","nullable":true,"metadata":{}}]}""")
     JsonUtil.writeJson(specFile, JsonUtil.mapper.treeToValue(specNode, classOf[Any]))
 
-    // Verify tampered schema doesn't match actual
-    DeltaLog.clearCache()
-    val dl = DeltaLog.forTable(spark, delta("t_v6").toString)
-    val actualSchema = dl.update().metadata.schemaString
-    assert(actualSchema.contains("\"name\":\"id\""), "Actual schema has 'id' column")
-    val tamperedSchema = metaNode.get("schemaString").asText()
-    assert(tamperedSchema.contains("WRONG"), "Tampered schema has 'WRONG' column")
-    assert(actualSchema != tamperedSchema, "Schemas should differ")
+    val ex = intercept[IllegalArgumentException] {
+      SnapshotCapture.validate(spark, "t_v6_snapshot", delta("t_v6"), specs("t_v6"))
+    }
+    assert(ex.getMessage.contains("metadata mismatch"),
+      s"Should report metadata mismatch, got: ${ex.getMessage}")
   }
 
-  test("validation: incorrect read row count detected via expected data") {
+  test("validation: tampered read extra rows caught by validateCapturedRead") {
     run() { s =>
-      s.test("t_v7", "tamper rows") { w =>
+      s.test("t_v7", "read for extra rows tamper") { w =>
         w.sql("CREATE TABLE tbl (id INT) USING delta")
         w.sql("INSERT INTO tbl VALUES (1),(2),(3)")
         val t = w.table("tbl")
         w.read(t)
       }
     }
-    // Verify expected_data has exactly 3 rows
-    val expectedDataDir = expected("t_v7").resolve("t_v7_read/expected_data")
-    val expectedDf = spark.read.parquet(expectedDataDir.toString)
-    assert(expectedDf.count() == 3, "Expected data should have exactly 3 rows")
+    // Tamper: append extra rows to expected_data
+    val dataDir = expected("t_v7").resolve("t_v7_read/expected_data")
+    spark.sql("SELECT 50 AS id UNION ALL SELECT 51")
+      .write.mode("append").parquet(dataDir.toString)
 
-    // Verify actual table also has 3 rows
     DeltaLog.clearCache()
-    val actualDf = spark.read.format("delta").load(delta("t_v7").toString)
-    assert(actualDf.count() == 3, "Actual table should have 3 rows")
-
-    // Tamper: delete expected data and write 1 row instead
-    org.apache.commons.io.FileUtils.deleteDirectory(expectedDataDir.toFile)
-    spark.sql("SELECT 1 AS id").write.parquet(expectedDataDir.toString)
-    val tamperedDf = spark.read.parquet(expectedDataDir.toString)
-    assert(tamperedDf.count() == 1, "Tampered expected data should have 1 row")
-
-    // Validation should catch the mismatch
     val ex = intercept[RuntimeException] {
-      JsonUtil.assertMultisetsEqual(
-        JsonUtil.toRowMultiset(tamperedDf),
-        JsonUtil.toRowMultiset(actualDf),
-        "t_v7_read")
+      ReadCapture.validateCapturedRead(
+        spark, delta("t_v7"), expected("t_v7").resolve("t_v7_read"),
+        "t_v7_read", version = None, timestamp = None,
+        predicate = None, columns = None, originalAddFilesJson = Seq.empty)
     }
-    assert(ex.getMessage.contains("mismatch"))
+    assert(ex.getMessage.contains("mismatch"),
+      s"Should report row mismatch, got: ${ex.getMessage}")
   }
 
-  test("validation: incorrect CDF expected data caught") {
+  test("validation: tampered CDF expected_data caught by validateCapturedCdf") {
     run() { s =>
-      s.test("t_v8", "cdf tamper") { w =>
+      s.test("t_v8", "cdf for tamper") { w =>
         w.sql("""CREATE TABLE tbl (id INT) USING delta
           TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
         w.sql("INSERT INTO tbl VALUES (1),(2)")
@@ -670,24 +640,22 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
         w.cdf(t, startVersion = 1)
       }
     }
-    // Tamper CDF expected data
+    // Tamper: replace CDF expected_data with wrong rows
     val cdfDataDir = expected("t_v8").resolve("t_v8_cdf_v1/expected_data")
     if (Files.exists(cdfDataDir)) {
       org.apache.commons.io.FileUtils.deleteDirectory(cdfDataDir.toFile)
-      // Write completely wrong data (no _change_type column)
       spark.sql("SELECT 999 AS id").write.parquet(cdfDataDir.toString)
 
-      // Re-read and compare — should not match
       DeltaLog.clearCache()
-      val actualCdf = spark.read.format("delta")
-        .option("readChangeFeed", "true")
-        .option("startingVersion", 1)
-        .load(delta("t_v8").toString)
-      val actualMultiset = JsonUtil.toRowMultiset(actualCdf)
-      val tamperedMultiset = JsonUtil.toRowMultiset(
-        spark.read.parquet(cdfDataDir.toString))
-      assert(actualMultiset != tamperedMultiset,
-        "Tampered CDF data should not match actual")
+      val ex = intercept[RuntimeException] {
+        CdfCapture.validateCapturedCdf(
+          spark, delta("t_v8"), expected("t_v8").resolve("t_v8_cdf_v1"),
+          "t_v8_cdf_v1", startVersion = Some(1L), endVersion = None,
+          startTimestamp = None, endTimestamp = None,
+          predicate = None, columns = None, expectedCount = 2)
+      }
+      assert(ex.getMessage.contains("mismatch"),
+        s"Should report CDF mismatch, got: ${ex.getMessage}")
     }
   }
 

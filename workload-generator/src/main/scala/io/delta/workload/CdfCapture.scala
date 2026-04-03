@@ -159,7 +159,7 @@ object CdfCapture {
         s"original errorCode=[$originalErrorCode] but re-read errorCode=[$reErrorCode]")
   }
 
-  private def validateCapturedCdf(
+  private[workload] def validateCapturedCdf(
       spark: SparkSession, tablePath: Path, expectedDir: Path, specName: String,
       startVersion: Option[Long], endVersion: Option[Long],
       startTimestamp: Option[String], endTimestamp: Option[String],

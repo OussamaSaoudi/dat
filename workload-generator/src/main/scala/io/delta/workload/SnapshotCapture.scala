@@ -154,7 +154,7 @@ object SnapshotCapture {
   }
 
   /** Validate a captured snapshot spec by re-loading and comparing. */
-  private def validate(
+  private[workload] def validate(
       spark: SparkSession,
       specName: String,
       tablePath: Path,
