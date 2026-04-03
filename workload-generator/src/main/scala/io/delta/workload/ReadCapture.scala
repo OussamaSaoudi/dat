@@ -65,7 +65,7 @@ object ReadCapture {
           val tsValue = java.sql.Timestamp.valueOf(ts)
           deltaLog.getSnapshotAt(
             deltaLog.history.getActiveCommitAtTime(
-              tsValue, None, canReturnLastCommit = true,
+              tsValue, canReturnLastCommit = true,
               mustBeRecreatable = false, canReturnEarliestCommit = false).version)
         case _ => deltaLog.update()
       }
