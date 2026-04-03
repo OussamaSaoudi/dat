@@ -1054,142 +1054,103 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
   // Write spec generation
   // =========================================================================
 
-  test("writeSpec: basic create + insert produces write_spec.json") {
+  test("writeSpec: basic create + insert via structured ops") {
     val results = run() { s =>
       s.test("t_ws1", "write spec") { w =>
-        w.sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")
-        w.sql("INSERT INTO tbl VALUES (3, 'c')")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT"), Col("name", "STRING")))
+        w.insertOp(t, Seq(Map("id" -> 1, "name" -> "a"), Map("id" -> 2, "name" -> "b")))
+        w.insertOp(t, Seq(Map("id" -> 3, "name" -> "c")))
         w.read(t)
         w.snapshot(t)
       }
     }
     assertPassed(results)
 
-    // write_spec.json exists
     val specFile = dir("t_ws1").resolve("write_spec.json")
     assert(Files.exists(specFile), "write_spec.json should exist")
-
     val spec = JsonUtil.mapper.readTree(Files.readAllBytes(specFile))
     assert(spec.get("type").asText() == "write")
-
-    // Should have 3 commits: CREATE + 2 INSERTs
     val commits = spec.get("commits")
     assert(commits.size() == 3, s"Expected 3 commits, got ${commits.size()}")
-
-    // Commit 0: create_table
-    val c0 = commits.get(0)
-    assert(c0.get("operation").asText() == "create_table",
-      s"Commit 0 should be create_table, got ${c0.get("operation").asText()}")
-    assert(c0.has("schema"), "create_table should have schema")
-
-    // Commit 1: insert
-    val c1 = commits.get(1)
-    assert(c1.get("operation").asText() == "insert",
-      s"Commit 1 should be insert, got ${c1.get("operation").asText()}")
-    assert(c1.has("dataFiles"), "insert should have dataFiles")
-    assert(c1.get("dataFiles").size() > 0, "insert should have at least 1 data file")
-
-    // Commit 2: insert
-    val c2 = commits.get(2)
-    assert(c2.get("operation").asText() == "insert")
-
-    // Verification list includes read and snapshot specs
-    val verification = spec.get("verification")
-    assert(verification.size() >= 2, "Should have at least read + snapshot verification specs")
-
-    // Data files actually exist on disk
-    c1.get("dataFiles").elements().asScala.foreach { df =>
-      val dataPath = dir("t_ws1").resolve(df.asText())
-      assert(Files.exists(dataPath), s"Data file should exist: $dataPath")
-    }
+    assert(commits.get(0).get("operation").asText() == "create_table")
+    assert(commits.get(0).get("schema").get("fields").size() == 2)
+    assert(commits.get(1).get("operation").asText() == "insert")
+    assert(commits.get(1).get("dataFiles").size() > 0)
+    assert(commits.get(2).get("operation").asText() == "insert")
   }
 
-  test("writeSpec: delete produces delete operation") {
+  test("writeSpec: delete has clean predicate") {
     val results = run() { s =>
       s.test("t_ws2", "write spec delete") { w =>
-        w.sql("""CREATE TABLE tbl (id INT) USING delta
-          TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-        w.sql("INSERT INTO tbl VALUES (1),(2),(3),(4),(5)")
-        w.sql("DELETE FROM tbl WHERE id > 3")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT")),
+          properties = Map("delta.enableDeletionVectors" -> "true"))
+        w.insertOp(t, Seq(Map("id" -> 1), Map("id" -> 2), Map("id" -> 3), Map("id" -> 4), Map("id" -> 5)))
+        w.deleteOp(t, predicate = "id > 3")
         w.read(t)
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws2").resolve("write_spec.json")))
     val commits = spec.get("commits")
     assert(commits.size() == 3)
     assert(commits.get(2).get("operation").asText() == "delete")
-    assert(commits.get(2).get("predicate").asText().contains("3"),
-      "Delete predicate should reference 3")
+    assert(commits.get(2).get("predicate").asText() == "id > 3",
+      "Predicate should be clean SQL, not Spark internal format")
   }
 
-  test("writeSpec: alter table produces alter_table operation") {
+  test("writeSpec: setProperties produces alter_table") {
     val results = run() { s =>
       s.test("t_ws3", "write spec alter") { w =>
-        w.sql("CREATE TABLE tbl (id INT) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1)")
-        w.sql("ALTER TABLE tbl SET TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+        val t = w.createTableOp("tbl", schema = Seq(Col("id", "INT")))
+        w.insertOp(t, Seq(Map("id" -> 1)))
+        w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
         w.snapshot(t)
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws3").resolve("write_spec.json")))
     val commits = spec.get("commits")
-    // CREATE + INSERT + ALTER = 3 commits (ALTER may produce 1 or 2 commits depending on protocol upgrade)
-    assert(commits.size() >= 3, s"Expected at least 3 commits, got ${commits.size()}")
-
-    // Find the alter_table commit
+    assert(commits.size() >= 3)
     val alterCommit = (0 until commits.size()).map(commits.get)
       .find(_.get("operation").asText() == "alter_table")
-    assert(alterCommit.isDefined, "Should have an alter_table commit")
+    assert(alterCommit.isDefined)
+    assert(alterCommit.get.get("setProperties").get("delta.enableDeletionVectors").asText() == "true")
   }
 
-  test("writeSpec: update produces update operation") {
+  test("writeSpec: update has clean predicate and set") {
     val results = run() { s =>
       s.test("t_ws4", "write spec update") { w =>
-        w.sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
-        w.sql("UPDATE tbl SET name = 'updated' WHERE id = 2")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT"), Col("name", "STRING")))
+        w.insertOp(t, Seq(Map("id" -> 1, "name" -> "a"), Map("id" -> 2, "name" -> "b")))
+        w.updateOp(t, predicate = "id = 2", set = Map("name" -> "'updated'"))
         w.read(t)
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws4").resolve("write_spec.json")))
-    val commits = spec.get("commits")
-    assert(commits.size() == 3)
-    assert(commits.get(2).get("operation").asText() == "update")
+    assert(spec.get("commits").get(2).get("operation").asText() == "update")
+    assert(spec.get("commits").get(2).get("predicate").asText() == "id = 2")
+    assert(spec.get("commits").get(2).get("set").get("name").asText() == "'updated'")
   }
 
-  test("writeSpec: schema fields are correct") {
+  test("writeSpec: schema captured from delta log") {
     val results = run() { s =>
       s.test("t_ws5", "schema check") { w =>
-        w.sql("CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta")
-        w.sql("INSERT INTO tbl VALUES (1, 'a', 1.0)")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT"), Col("name", "STRING"), Col("score", "DOUBLE")))
+        w.insertOp(t, Seq(Map("id" -> 1, "name" -> "a", "score" -> 1.0)))
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws5").resolve("write_spec.json")))
-    val createCommit = spec.get("commits").get(0)
-    val schema = createCommit.get("schema")
+    val schema = spec.get("commits").get(0).get("schema")
     assert(schema.get("type").asText() == "struct")
     val fields = schema.get("fields")
     assert(fields.size() == 3)
@@ -1197,47 +1158,39 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
     assert(fieldNames == Set("id", "name", "score"))
   }
 
-  test("writeSpec: partitioned table includes partitionColumns") {
+  test("writeSpec: partitioned table") {
     val results = run() { s =>
-      s.test("t_ws6", "partitioned write spec") { w =>
-        w.sql("""CREATE TABLE tbl (id INT, region STRING)
-          USING delta PARTITIONED BY (region)""")
-        w.sql("INSERT INTO tbl VALUES (1, 'us'), (2, 'eu')")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+      s.test("t_ws6", "partitioned") { w =>
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT"), Col("region", "STRING")),
+          partitionColumns = Seq("region"))
+        w.insertOp(t, Seq(Map("id" -> 1, "region" -> "us"), Map("id" -> 2, "region" -> "eu")))
         w.read(t)
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws6").resolve("write_spec.json")))
-    val createCommit = spec.get("commits").get(0)
-    assert(createCommit.get("operation").asText() == "create_table")
-    val partCols = createCommit.get("partitionColumns")
-    assert(partCols != null, "Should have partitionColumns")
-    assert(partCols.size() == 1)
-    assert(partCols.get(0).asText() == "region")
+    val c0 = spec.get("commits").get(0)
+    assert(c0.get("operation").asText() == "create_table")
+    assert(c0.get("partitionColumns").get(0).asText() == "region")
   }
 
-  test("writeSpec: table properties captured") {
+  test("writeSpec: table properties") {
     val results = run() { s =>
-      s.test("t_ws7", "properties write spec") { w =>
-        w.sql("""CREATE TABLE tbl (id INT) USING delta
-          TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
-                         'delta.enableChangeDataFeed' = 'true')""")
-        w.sql("INSERT INTO tbl VALUES (1)")
-        val t = w.table("tbl")
-        w.writeSpec(t)
+      s.test("t_ws7", "properties") { w =>
+        val t = w.createTableOp("tbl",
+          schema = Seq(Col("id", "INT")),
+          properties = Map(
+            "delta.enableDeletionVectors" -> "true",
+            "delta.enableChangeDataFeed" -> "true"))
+        w.insertOp(t, Seq(Map("id" -> 1)))
       }
     }
     assertPassed(results)
-
     val spec = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_ws7").resolve("write_spec.json")))
-    val createCommit = spec.get("commits").get(0)
-    val props = createCommit.get("properties")
-    assert(props != null, "Should have properties")
+    val props = spec.get("commits").get(0).get("properties")
     assert(props.get("delta.enableDeletionVectors").asText() == "true")
     assert(props.get("delta.enableChangeDataFeed").asText() == "true")
   }

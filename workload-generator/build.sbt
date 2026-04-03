@@ -31,7 +31,14 @@ lazy val root = (project in file("."))
       "org.apache.spark" %% "spark-sql" % "3.5.3" % "test",
       "org.scalatest" %% "scalatest" % "3.2.19" % "test"
     ),
-    Test / fork := false,
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+      "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang=ALL-UNNAMED",
+      "--add-opens=java.base/java.util=ALL-UNNAMED",
+      "--add-opens=java.base/java.io=ALL-UNNAMED"
+    ),
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", _*) => MergeStrategy.discard
       case _ => MergeStrategy.first

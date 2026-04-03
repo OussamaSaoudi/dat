@@ -400,7 +400,14 @@ object WorkloadGenerator {
       // Write spec (if requested)
       if (ts.generateWriteSpec) {
         try {
-          WriteSpecCapture.capture(spark, destTablePath, testOutputDir, dirName)
+          ts.writeBuilder match {
+            case Some(builder) =>
+              builder.buildSpec(spark, destTablePath, testOutputDir, specsDir)
+            case None =>
+              // Legacy: w.writeSpec(t) without structured *Op methods
+              // Not recommended — predicates may have Spark internal format
+              println(s"  WARN: $dirName uses legacy writeSpec (no structured ops)")
+          }
         } catch {
           case e: Exception => warnings += s"WriteSpec: ${e.getMessage}"
         }
@@ -543,6 +550,7 @@ class WorkloadContext private[workload] (
 
   private val _createdTables = mutable.ArrayBuffer[String]()
   private[workload] val tableSpecs = mutable.ArrayBuffer[TableSpec]()
+  private[workload] val sqlStatements = mutable.ArrayBuffer[String]()
 
   /** Convert nullable java.lang.Long to Option[Long]. */
   private def opt(v: java.lang.Long): Option[Long] = Option(v).map(_.longValue())
@@ -552,12 +560,13 @@ class WorkloadContext private[workload] (
 
   // ---- SQL ----
 
-  /** Execute SQL. Tracks CREATE TABLE for cleanup. */
+  /** Execute SQL. Tracks CREATE TABLE for cleanup and records SQL for write specs. */
   def sql(statement: String): Unit = {
     val pat = """(?i)CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\S+)""".r
     pat.findFirstMatchIn(statement).foreach { m =>
       _createdTables += m.group(1).replace("`", "")
     }
+    sqlStatements += statement.trim
     spark.sql(statement)
   }
 
@@ -669,7 +678,91 @@ class WorkloadContext private[workload] (
 
   /** Generate write spec for this table (captures commit history as write_spec.json). */
   def writeSpec(table: TableHandle): Unit = {
+    val ts = getTableSpec(table)
+    ts.generateWriteSpec = true
+    ts.sqlStatements = sqlStatements.toSeq
+  }
+
+  // ---- Structured write operations ----
+
+  private val _writeBuilders = mutable.HashMap[String, WriteSpecBuilder]()
+
+  private def getWriteBuilder(table: TableHandle): WriteSpecBuilder = {
+    val key = s"${workloadName}_${table.tableName}"
+    val builder = _writeBuilders.getOrElseUpdate(key, new WriteSpecBuilder())
+    getTableSpec(table).writeBuilder = Some(builder)
     getTableSpec(table).generateWriteSpec = true
+    builder
+  }
+
+  /** Create a table and return a handle. One SQL, one commit. */
+  def createTableOp(
+      name: String,
+      schema: Seq[Col],
+      properties: Map[String, String] = Map.empty,
+      partitionColumns: Seq[String] = Seq.empty): TableHandle = {
+    val colDefs = schema.map { col =>
+      val nullStr = if (col.nullable) "" else " NOT NULL"
+      s"${col.name} ${col.dataType}$nullStr"
+    }.mkString(", ")
+    val partClause = if (partitionColumns.nonEmpty)
+      s" PARTITIONED BY (${partitionColumns.mkString(", ")})" else ""
+    val propsClause = if (properties.nonEmpty) {
+      val propStr = properties.map { case (k, v) => s"'$k' = '$v'" }.mkString(", ")
+      s" TBLPROPERTIES ($propStr)"
+    } else ""
+    sql(s"CREATE TABLE $name ($colDefs) USING delta$partClause$propsClause")
+    val handle = table(name)
+    getWriteBuilder(handle).recordCreateTable(schema, properties, partitionColumns)
+    handle
+  }
+
+  /** Insert rows. One SQL, one commit. */
+  def insertOp(table: TableHandle, data: Seq[Map[String, Any]]): Unit = {
+    val valueRows = data.map { row =>
+      val values = row.values.map {
+        case s: String => s"'$s'"
+        case null => "NULL"
+        case v => v.toString
+      }
+      s"(${values.mkString(",")})"
+    }.mkString(",")
+    val cols = data.head.keys.mkString(",")
+    sql(s"INSERT INTO ${table.tableName} ($cols) VALUES $valueRows")
+    getWriteBuilder(table).recordInsert()
+  }
+
+  /** Delete rows matching predicate. One SQL, one commit. */
+  def deleteOp(table: TableHandle, predicate: String): Unit = {
+    sql(s"DELETE FROM ${table.tableName} WHERE $predicate")
+    getWriteBuilder(table).recordDelete(predicate)
+  }
+
+  /** Update rows matching predicate. One SQL, one commit. */
+  def updateOp(table: TableHandle, predicate: String, set: Map[String, String]): Unit = {
+    val setClause = set.map { case (k, v) => s"$k = $v" }.mkString(", ")
+    sql(s"UPDATE ${table.tableName} SET $setClause WHERE $predicate")
+    getWriteBuilder(table).recordUpdate(predicate, set)
+  }
+
+  /** Set table properties. One SQL, one commit. */
+  def setPropertiesOp(table: TableHandle, properties: Map[String, String]): Unit = {
+    val propsStr = properties.map { case (k, v) => s"'$k' = '$v'" }.mkString(", ")
+    sql(s"ALTER TABLE ${table.tableName} SET TBLPROPERTIES ($propsStr)")
+    getWriteBuilder(table).recordSetProperties(properties)
+  }
+
+  /** Add a column. One SQL, one commit. */
+  def addColumnOp(table: TableHandle, col: Col): Unit = {
+    val nullStr = if (col.nullable) "" else " NOT NULL"
+    sql(s"ALTER TABLE ${table.tableName} ADD COLUMN ${col.name} ${col.dataType}$nullStr")
+    getWriteBuilder(table).recordAddColumn(col)
+  }
+
+  /** Truncate table. One SQL, one commit. */
+  def truncateOp(table: TableHandle): Unit = {
+    sql(s"TRUNCATE TABLE ${table.tableName}")
+    getWriteBuilder(table).recordTruncate()
   }
 
   // ---- Table mutations (applied to copied table before spec capture) ----
@@ -835,6 +928,8 @@ private[workload] class TableSpec(
   val mutations = mutable.ArrayBuffer[Path => Unit]()
   var snapshotAllVersions: Boolean = false
   var generateWriteSpec: Boolean = false
+  var sqlStatements: Seq[String] = Seq.empty
+  var writeBuilder: Option[WriteSpecBuilder] = None
 }
 
 private[workload] case class WorkloadDef(
