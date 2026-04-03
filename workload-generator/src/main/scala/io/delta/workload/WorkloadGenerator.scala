@@ -397,6 +397,15 @@ object WorkloadGenerator {
         }
       }
 
+      // Write spec (if requested)
+      if (ts.generateWriteSpec) {
+        try {
+          WriteSpecCapture.capture(spark, destTablePath, testOutputDir, dirName)
+        } catch {
+          case e: Exception => warnings += s"WriteSpec: ${e.getMessage}"
+        }
+      }
+
       // table_info.json
       TableInfoWriter.write(spark, destTablePath, testOutputDir,
         name = dirName, description = ts.description, tags = ts.tags)
@@ -658,6 +667,11 @@ class WorkloadContext private[workload] (
       opt(version))
   }
 
+  /** Generate write spec for this table (captures commit history as write_spec.json). */
+  def writeSpec(table: TableHandle): Unit = {
+    getTableSpec(table).generateWriteSpec = true
+  }
+
   // ---- Table mutations (applied to copied table before spec capture) ----
 
   /** Mutate the copied table's filesystem before specs are captured. */
@@ -820,6 +834,7 @@ private[workload] class TableSpec(
   val txnSpecs = mutable.ArrayBuffer[TxnSpecConfig]()
   val mutations = mutable.ArrayBuffer[Path => Unit]()
   var snapshotAllVersions: Boolean = false
+  var generateWriteSpec: Boolean = false
 }
 
 private[workload] case class WorkloadDef(
