@@ -100,6 +100,8 @@ new WorkloadSuite("write_basic") {
     w.sql("UPDATE tbl SET value = value + 1000 WHERE id <= 2")
     val t = w.table("tbl")
     w.writeSpec(t)
+    w.read(t, version = 1, name = "read_initial_insert")
+    w.read(t, version = 3, name = "read_before_update")
     w.read(t, name = "read_all")
     w.read(t, predicate = "value > 1000", name = "read_updated")
     // CDF only available from version 3 onward (after enableChangeDataFeed was set)
