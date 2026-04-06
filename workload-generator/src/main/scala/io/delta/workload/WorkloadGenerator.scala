@@ -429,6 +429,10 @@ object WorkloadGenerator {
               WriteSpecCapture.buildSpecFromLog(
                 spark, destTablePath, testOutputDir, specsDir, ts.sqlStatements)
           }
+          // Replay-validate: re-execute the write spec against a fresh table
+          // and compare the result against the original table
+          val replayWarnings = WriteSpecValidator.validate(spark, testOutputDir, dirName)
+          warnings ++= replayWarnings
         } catch {
           case e: Exception => warnings += s"WriteSpec: ${e.getMessage}"
         }
