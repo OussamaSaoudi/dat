@@ -26,7 +26,7 @@ new WorkloadSuite("write_alter") {
       "write", "alter_table", "properties") { w =>
     val t = w.createTableOp("tbl",
       schema = Seq(Col("v1", "INT"), Col("v2", "STRING")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.checkpointInterval" -> "20",
       "key" -> "value"))
     w.writeSpec(t)
@@ -39,7 +39,7 @@ new WorkloadSuite("write_alter") {
       "write", "alter_table", "properties") { w =>
     val t = w.createTableOp("tbl",
       schema = Seq(Col("v1", "INT"), Col("v2", "STRING")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.checkpointInterval" -> "20",
       "key" -> "value"))
     w.sql("ALTER TABLE tbl UNSET TBLPROPERTIES ('delta.checkpointInterval', 'key')")
@@ -54,7 +54,7 @@ new WorkloadSuite("write_alter") {
       "write", "alter_table", "properties") { w =>
     val t = w.createTableOp("tbl",
       schema = Seq(Col("v1", "INT")))
-    w.setPropertiesOp(t, Map("comment" -> "test table"))
+    w.updatePropertiesOp(t, setProps = Map("comment" -> "test table"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -70,8 +70,8 @@ new WorkloadSuite("write_alter") {
       "write", "alter_table", "schema") { w =>
     val t = w.createTableOp("tbl",
       schema = Seq(Col("v1", "INT"), Col("v2", "STRING")))
-    w.addColumnOp(t, Col("v3", "LONG"))
-    w.addColumnOp(t, Col("v4", "DOUBLE"))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("v3", "LONG")))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("v4", "DOUBLE")))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -85,8 +85,8 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "alice"),
       Map("id" -> 2, "name" -> "bob")))
-    w.addColumnOp(t, Col("age", "INT"))
-    w.addColumnOp(t, Col("active", "BOOLEAN"))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("age", "INT")))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("active", "BOOLEAN")))
     w.sql("INSERT INTO tbl VALUES (3, 'carol', 30, true)")
     w.writeSpec(t)
     w.read(t, name = "read_all")
@@ -113,8 +113,8 @@ new WorkloadSuite("write_alter") {
     val t = w.createTableOp("tbl",
       schema = Seq(Col("id", "INT"), Col("name", "STRING")))
     w.insertOp(t, Seq(Map("id" -> 1, "name" -> "alice")))
-    w.addColumnOp(t, Col("age", "INT"))
-    w.addColumnOp(t, Col("email", "STRING"))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("age", "INT")))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("email", "STRING")))
     w.sql("INSERT INTO tbl VALUES (2, 'bob', 25, 'bob@test.com')")
     w.writeSpec(t)
     w.read(t, name = "read_all")
@@ -136,7 +136,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "data" -> "a"),
       Map("id" -> 2, "data" -> "b")))
-    w.setPropertiesOp(t, Map("delta.enableChangeDataFeed" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableChangeDataFeed" -> "true"))
     w.sql("UPDATE tbl SET data = 'updated' WHERE id = 1")
     w.writeSpec(t)
     w.read(t, name = "read_all")
@@ -243,7 +243,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "alice"),
       Map("id" -> 2, "name" -> "bob")))
-    w.addColumnOp(t, Col("age", "INT"))
+    w.evolveSchemaOp(t, addColumns = Seq(Col("age", "INT")))
     w.sql("INSERT INTO tbl VALUES (3, 'charlie', 30)")
     w.writeSpec(t)
     w.read(t, name = "read_all")
@@ -320,7 +320,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "alice", "value" -> 10.0),
       Map("id" -> 2, "name" -> "bob", "value" -> 20.0)))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.columnMapping.mode" -> "name",
       "delta.minReaderVersion" -> "2",
       "delta.minWriterVersion" -> "5"))
@@ -345,7 +345,7 @@ new WorkloadSuite("write_alter") {
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b"),
       Map("id" -> 3, "name" -> "c")))
-    w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableDeletionVectors" -> "true"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -360,7 +360,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map("delta.enableChangeDataFeed" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableChangeDataFeed" -> "true"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -375,7 +375,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map("delta.enableRowTracking" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableRowTracking" -> "true"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -390,7 +390,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "value" -> 10),
       Map("id" -> 2, "value" -> 20)))
-    w.setPropertiesOp(t, Map("delta.enableTypeWidening" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableTypeWidening" -> "true"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -405,7 +405,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.columnMapping.mode" -> "name",
       "delta.minReaderVersion" -> "2",
       "delta.minWriterVersion" -> "5"))
@@ -423,7 +423,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.minWriterVersion" -> "5",
       "delta.minReaderVersion" -> "2"))
     w.writeSpec(t)
@@ -440,7 +440,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.minReaderVersion" -> "1",
       "delta.minWriterVersion" -> "4"))
     w.writeSpec(t)
@@ -457,7 +457,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map("delta.appendOnly" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.appendOnly" -> "true"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -473,7 +473,7 @@ new WorkloadSuite("write_alter") {
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b"),
       Map("id" -> 3, "name" -> "c")))
-    w.setPropertiesOp(t, Map(
+    w.updatePropertiesOp(t, setProps = Map(
       "delta.enableDeletionVectors" -> "true",
       "delta.enableChangeDataFeed" -> "true"))
     w.writeSpec(t)
@@ -490,7 +490,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableDeletionVectors" -> "true"))
     w.insertOp(t, Seq(
       Map("id" -> 3, "name" -> "c"),
       Map("id" -> 4, "name" -> "d")))
@@ -509,7 +509,7 @@ new WorkloadSuite("write_alter") {
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b"),
       Map("id" -> 3, "name" -> "c")))
-    w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableDeletionVectors" -> "true"))
     // Source data for merge
     w.sql("CREATE OR REPLACE TEMP VIEW source_pu011 AS SELECT * FROM VALUES (2, 'updated_b'), (4, 'd') AS t(id, name)")
     w.sql("""MERGE INTO tbl t
@@ -530,7 +530,7 @@ new WorkloadSuite("write_alter") {
     w.insertOp(t, Seq(
       Map("id" -> 1, "value" -> 10),
       Map("id" -> 2, "value" -> 20)))
-    w.setPropertiesOp(t, Map("delta.feature.checkConstraints" -> "supported"))
+    w.updatePropertiesOp(t, setProps = Map("delta.feature.checkConstraints" -> "supported"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
@@ -538,20 +538,20 @@ new WorkloadSuite("write_alter") {
   }
 
   test("pu_014_upgrade_table_features",
-      "Upgrade to table features protocol (writer 7 then reader 3)",
+      "Upgrade to table features protocol (writer 7 + reader 3 in one step)",
       "write", "protocol") { w =>
     val t = w.createTableOp("tbl",
       schema = Seq(Col("id", "INT"), Col("name", "STRING")))
     w.insertOp(t, Seq(
       Map("id" -> 1, "name" -> "a"),
       Map("id" -> 2, "name" -> "b")))
-    w.setPropertiesOp(t, Map("delta.minWriterVersion" -> "7"))
-    w.setPropertiesOp(t, Map("delta.minReaderVersion" -> "3"))
+    w.updatePropertiesOp(t, setProps = Map(
+      "delta.minWriterVersion" -> "7",
+      "delta.minReaderVersion" -> "3"))
     w.writeSpec(t)
     w.read(t)
     w.snapshot(t)
-    w.snapshot(t, version = 1)  // before first upgrade
-    w.snapshot(t, version = 2)  // after writer upgrade, before reader upgrade
+    w.snapshot(t, version = 1)  // before upgrade
   }
 
   test("pu_015_upgrade_partitioned",
@@ -565,7 +565,7 @@ new WorkloadSuite("write_alter") {
       Map("id" -> 2, "category" -> "x", "value" -> 20.0),
       Map("id" -> 3, "category" -> "y", "value" -> 30.0),
       Map("id" -> 4, "category" -> "y", "value" -> 40.0)))
-    w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
+    w.updatePropertiesOp(t, setProps = Map("delta.enableDeletionVectors" -> "true"))
     w.writeSpec(t)
     w.read(t, name = "read_all")
     w.read(t, predicate = "category = 'x'", name = "read_cat_x")

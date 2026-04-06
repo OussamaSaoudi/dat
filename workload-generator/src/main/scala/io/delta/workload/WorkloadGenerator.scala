@@ -397,6 +397,27 @@ object WorkloadGenerator {
         }
       }
 
+      // Checkpoint specs
+      for (cs <- ts.checkpointSpecs) {
+        try {
+          CheckpointCapture.capture(spark, dirName, destTablePath,
+            testOutputDir, specsDir, cs.version)
+        } catch {
+          case e: Exception =>
+            warnings += s"Checkpoint v${cs.version}: ${e.getMessage}"
+        }
+      }
+
+      // CRC specs
+      for (cs <- ts.crcSpecs) {
+        try {
+          CrcCapture.capture(spark, dirName, destTablePath, specsDir, cs.version)
+        } catch {
+          case e: Exception =>
+            warnings += s"CRC v${cs.version}: ${e.getMessage}"
+        }
+      }
+
       // Write spec (if requested)
       if (ts.generateWriteSpec) {
         try {
@@ -421,7 +442,8 @@ object WorkloadGenerator {
       saveRepro(testOutputDir, scriptContent)
 
       val total = snapshotNames.size + readNames.size + cdfNames.size +
-        ts.domainMetadataSpecs.size + ts.txnSpecs.size
+        ts.domainMetadataSpecs.size + ts.txnSpecs.size +
+        ts.checkpointSpecs.size + ts.crcSpecs.size
       println(s"  $dirName: $total specs")
 
       WorkloadResult(testOutputDir.toString, dirName, total,
@@ -683,6 +705,16 @@ class WorkloadContext private[workload] (
     ts.sqlStatements = sqlStatements.toSeq
   }
 
+  /** Checkpoint verification spec at a specific version. */
+  def checkpoint(table: TableHandle, version: Long): Unit = {
+    getTableSpec(table).checkpointSpecs += CheckpointSpecConfig(version)
+  }
+
+  /** CRC verification spec at a specific version. */
+  def crc(table: TableHandle, version: Long): Unit = {
+    getTableSpec(table).crcSpecs += CrcSpecConfig(version)
+  }
+
   // ---- Structured write operations ----
 
   private val _writeBuilders = mutable.HashMap[String, WriteSpecBuilder]()
@@ -746,17 +778,38 @@ class WorkloadContext private[workload] (
   }
 
   /** Set table properties. One SQL, one commit. */
-  def setPropertiesOp(table: TableHandle, properties: Map[String, String]): Unit = {
-    val propsStr = properties.map { case (k, v) => s"'$k' = '$v'" }.mkString(", ")
-    sql(s"ALTER TABLE ${table.tableName} SET TBLPROPERTIES ($propsStr)")
-    getWriteBuilder(table).recordSetProperties(properties)
+  def updatePropertiesOp(
+      table: TableHandle,
+      setProps: Map[String, String] = Map.empty,
+      removeProps: Seq[String] = Seq.empty): Unit = {
+    if (setProps.nonEmpty) {
+      val propsStr = setProps.map { case (k, v) => s"'$k' = '$v'" }.mkString(", ")
+      sql(s"ALTER TABLE ${table.tableName} SET TBLPROPERTIES ($propsStr)")
+    }
+    if (removeProps.nonEmpty) {
+      val propsStr = removeProps.map(k => s"'$k'").mkString(", ")
+      sql(s"ALTER TABLE ${table.tableName} UNSET TBLPROPERTIES ($propsStr)")
+    }
+    getWriteBuilder(table).recordUpdateProperties(setProps, removeProps)
   }
 
-  /** Add a column. One SQL, one commit. */
-  def addColumnOp(table: TableHandle, col: Col): Unit = {
-    val nullStr = if (col.nullable) "" else " NOT NULL"
-    sql(s"ALTER TABLE ${table.tableName} ADD COLUMN ${col.name} ${col.dataType}$nullStr")
-    getWriteBuilder(table).recordAddColumn(col)
+  /** Evolve schema: add/rename/drop columns. One SQL per change, one logical commit. */
+  def evolveSchemaOp(
+      table: TableHandle,
+      addColumns: Seq[Col] = Seq.empty,
+      renameColumns: Map[String, String] = Map.empty,
+      dropColumns: Seq[String] = Seq.empty): Unit = {
+    addColumns.foreach { col =>
+      val nullStr = if (col.nullable) "" else " NOT NULL"
+      sql(s"ALTER TABLE ${table.tableName} ADD COLUMN ${col.name} ${col.dataType}$nullStr")
+    }
+    renameColumns.foreach { case (oldName, newName) =>
+      sql(s"ALTER TABLE ${table.tableName} RENAME COLUMN $oldName TO $newName")
+    }
+    dropColumns.foreach { colName =>
+      sql(s"ALTER TABLE ${table.tableName} DROP COLUMN $colName")
+    }
+    getWriteBuilder(table).recordEvolveSchema(addColumns, renameColumns, dropColumns)
   }
 
   /** Truncate table. One SQL, one commit. */
@@ -925,6 +978,8 @@ private[workload] class TableSpec(
   val cdfSpecs = mutable.ArrayBuffer[CdfSpecConfig]()
   val domainMetadataSpecs = mutable.ArrayBuffer[DomainMetadataSpecConfig]()
   val txnSpecs = mutable.ArrayBuffer[TxnSpecConfig]()
+  val checkpointSpecs = mutable.ArrayBuffer[CheckpointSpecConfig]()
+  val crcSpecs = mutable.ArrayBuffer[CrcSpecConfig]()
   val mutations = mutable.ArrayBuffer[Path => Unit]()
   var snapshotAllVersions: Boolean = false
   var generateWriteSpec: Boolean = false
@@ -966,3 +1021,7 @@ private[workload] case class DomainMetadataSpecConfig(
 
 private[workload] case class TxnSpecConfig(
     name: String, appId: String, txnVersion: Long, version: Option[Long])
+
+private[workload] case class CheckpointSpecConfig(version: Long)
+
+private[workload] case class CrcSpecConfig(version: Long)

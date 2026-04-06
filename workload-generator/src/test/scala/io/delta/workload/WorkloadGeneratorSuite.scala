@@ -1101,12 +1101,12 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
       "Predicate should be clean SQL, not Spark internal format")
   }
 
-  test("writeSpec: setProperties produces alter_table") {
+  test("writeSpec: updateProperties produces update_properties") {
     val results = run() { s =>
       s.test("t_ws3", "write spec alter") { w =>
         val t = w.createTableOp("tbl", schema = Seq(Col("id", "INT")))
         w.insertOp(t, Seq(Map("id" -> 1)))
-        w.setPropertiesOp(t, Map("delta.enableDeletionVectors" -> "true"))
+        w.updatePropertiesOp(t, setProps = Map("delta.enableDeletionVectors" -> "true"))
         w.snapshot(t)
       }
     }
@@ -1115,10 +1115,10 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll {
       Files.readAllBytes(dir("t_ws3").resolve("write_spec.json")))
     val commits = spec.get("commits")
     assert(commits.size() >= 3)
-    val alterCommit = (0 until commits.size()).map(commits.get)
-      .find(_.get("operation").asText() == "alter_table")
-    assert(alterCommit.isDefined)
-    assert(alterCommit.get.get("setProperties").get("delta.enableDeletionVectors").asText() == "true")
+    val updatePropsCommit = (0 until commits.size()).map(commits.get)
+      .find(_.get("operation").asText() == "update_properties")
+    assert(updatePropsCommit.isDefined)
+    assert(updatePropsCommit.get.get("set").get("delta.enableDeletionVectors").asText() == "true")
   }
 
   test("writeSpec: update has clean predicate and set") {

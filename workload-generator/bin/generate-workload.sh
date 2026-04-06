@@ -17,8 +17,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 JAR_PATH="$PROJECT_DIR/target/scala-2.13/delta-workload-generator-assembly-0.1.0.jar"
+SHIM_JAR="$PROJECT_DIR/shim/target/scala-2.13/workload-generator-dbr-shim_2.13-0.1.0.jar"
 
-# Auto-build if needed
+# Detect environment: DBR vs OSS
+if [[ -n "${DATABRICKS_RUNTIME_VERSION:-}" ]] || [[ -f "/databricks/spark/conf/spark-defaults.conf" ]]; then
+  ENV="dbr"
+else
+  ENV="oss"
+fi
+
+# Auto-build main jar if needed
 if [[ ! -f "$JAR_PATH" ]]; then
   echo "Building workload generator jar..."
   (cd "$PROJECT_DIR" && sbt -batch assembly)
@@ -32,6 +40,14 @@ if [[ ! -f "$JAR_PATH" ]]; then
   exit 1
 fi
 
+# Auto-build shim on DBR if needed
+if [[ "$ENV" == "dbr" && ! -f "$SHIM_JAR" ]]; then
+  echo "Building DBR shim jar..."
+  (cd "$PROJECT_DIR/shim" && sbt -batch package) || {
+    echo "WARN: Could not build shim. DBR may fail to resolve Delta types."
+  }
+fi
+
 # Find spark-shell: prefer SPARK_HOME, then PATH
 SPARK_SHELL="${SPARK_HOME:-}/bin/spark-shell"
 if [[ ! -x "$SPARK_SHELL" ]]; then
@@ -42,12 +58,28 @@ if [[ -z "$SPARK_SHELL" || ! -x "$SPARK_SHELL" ]]; then
   exit 1
 fi
 
-SPARK_CONF=(
-  --packages "io.delta:delta-spark_2.13:3.3.2"
-  --conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension"
-  --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
-  --jars "$JAR_PATH"
-)
+# Configure classpath based on environment
+if [[ "$ENV" == "dbr" ]]; then
+  echo "Detected: Databricks Runtime"
+  JARS="$JAR_PATH"
+  [[ -f "$SHIM_JAR" ]] && JARS="$JAR_PATH,$SHIM_JAR"
+  SPARK_CONF=(
+    --jars "$JARS"
+  )
+else
+  echo "Detected: OSS Spark"
+  DELTA_SPARK_JAR="$(find ~/.cache/coursier -name 'delta-spark_2.13-*.jar' -path '*/4.1.0/*' 2>/dev/null | head -1)"
+  DELTA_STORAGE_JAR="$(find ~/.cache/coursier -name 'delta-storage-*.jar' -path '*/4.1.0/*' 2>/dev/null | head -1)"
+  if [[ -z "$DELTA_SPARK_JAR" || -z "$DELTA_STORAGE_JAR" ]]; then
+    echo "ERROR: Delta jars not found in coursier cache. Run: cd $PROJECT_DIR && sbt compile"
+    exit 1
+  fi
+  SPARK_CONF=(
+    --conf "spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension"
+    --conf "spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog"
+    --jars "$JAR_PATH,$DELTA_SPARK_JAR,$DELTA_STORAGE_JAR"
+  )
+fi
 
 if [[ "${1:-}" == "--interactive" ]]; then
   echo "Launching spark-shell with WorkloadGenerator..."

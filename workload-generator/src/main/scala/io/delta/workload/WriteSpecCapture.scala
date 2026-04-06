@@ -80,20 +80,34 @@ class WriteSpecBuilder {
     ops += OpRecord("update", fields)
   }
 
-  def recordSetProperties(properties: Map[String, String]): Unit = {
+  def recordUpdateProperties(
+      setProps: Map[String, String],
+      removeProps: Seq[String] = Seq.empty): Unit = {
     val fields = new java.util.LinkedHashMap[String, Any]()
-    fields.put("setProperties", properties.asJava)
-    ops += OpRecord("alter_table", fields)
+    if (setProps.nonEmpty) fields.put("set", setProps.asJava)
+    if (removeProps.nonEmpty) fields.put("remove", removeProps.asJava)
+    ops += OpRecord("update_properties", fields)
   }
 
-  def recordAddColumn(col: Col): Unit = {
+  def recordEvolveSchema(
+      addColumns: Seq[Col] = Seq.empty,
+      renameColumns: Map[String, String] = Map.empty,
+      dropColumns: Seq[String] = Seq.empty): Unit = {
     val fields = new java.util.LinkedHashMap[String, Any]()
-    val colMap = new java.util.LinkedHashMap[String, Any]()
-    colMap.put("name", col.name)
-    colMap.put("type", col.dataType.toLowerCase)
-    colMap.put("nullable", col.nullable)
-    fields.put("addColumns", java.util.Collections.singletonList(colMap))
-    ops += OpRecord("alter_table", fields)
+    if (addColumns.nonEmpty) {
+      val cols = new java.util.ArrayList[Any]()
+      addColumns.foreach { col =>
+        val colMap = new java.util.LinkedHashMap[String, Any]()
+        colMap.put("name", col.name)
+        colMap.put("type", col.dataType.toLowerCase)
+        colMap.put("nullable", col.nullable)
+        cols.add(colMap)
+      }
+      fields.put("addColumns", cols)
+    }
+    if (renameColumns.nonEmpty) fields.put("renameColumns", renameColumns.asJava)
+    if (dropColumns.nonEmpty) fields.put("dropColumns", dropColumns.asJava)
+    ops += OpRecord("evolve_schema", fields)
   }
 
   def recordTruncate(): Unit = {
@@ -233,20 +247,18 @@ object WriteSpecCapture {
 
         // Map Spark operation names to write spec operation types
         val opType = operation match {
-          case "CREATE TABLE" | "CREATE TABLE AS SELECT" | "CREATE OR REPLACE TABLE" =>
-            "create_table"
+          case "CREATE TABLE" | "CREATE TABLE AS SELECT" => "create_table"
+          case "CREATE OR REPLACE TABLE" => "replace_table"
           case "WRITE" | "APPEND" | "Append" => "insert"
           case "DELETE" => "delete"
           case "UPDATE" => "update"
           case "MERGE" => "merge"
           case "TRUNCATE" => "truncate"
-          case "SET TBLPROPERTIES" | "CHANGE COLUMN" | "ADD COLUMNS" |
-               "RENAME COLUMN" | "DROP COLUMNS" | "UPGRADE PROTOCOL" =>
-            "alter_table"
-          case "OPTIMIZE" => "optimize"
+          case "SET TBLPROPERTIES" | "UPGRADE PROTOCOL" => "update_properties"
+          case "ADD COLUMNS" | "CHANGE COLUMN" | "RENAME COLUMN" | "DROP COLUMNS" =>
+            "evolve_schema"
           case "RESTORE" => "restore"
           case "VACUUM START" | "VACUUM END" => "vacuum"
-          case "CHECKPOINT" => "checkpoint"
           case "REPLACE WHERE" => "insert_overwrite"
           case "OVERWRITE" => "insert_overwrite"
           case _ => operation.toLowerCase.replaceAll("\\s+", "_")
@@ -255,43 +267,77 @@ object WriteSpecCapture {
         val commit = new java.util.LinkedHashMap[String, Any]()
         commit.put("operation", opType)
 
-        // Add SQL if we have it (matched by index)
-        if (version < sqlStatements.length) {
-          commit.put("sql", sqlStatements(version.toInt))
+        // Extract commitInfo and operationParameters for structured fields
+        val (commitInfoOpt, operationParams) = {
+          var ci: com.fasterxml.jackson.databind.JsonNode = null
+          var params: com.fasterxml.jackson.databind.JsonNode = null
+          lines.foreach { line =>
+            val node = JsonUtil.mapper.readTree(line)
+            if (node.has("commitInfo")) {
+              ci = node.get("commitInfo")
+              if (ci.has("operationParameters")) params = ci.get("operationParameters")
+            }
+          }
+          (Option(ci), Option(params))
         }
 
-        // For create_table, capture schema from snapshot
-        if (opType == "create_table") {
+        // For create_table/replace_table, capture schema, partitioning/clustering, properties
+        if (opType == "create_table" || opType == "replace_table") {
           try {
             val snapshot = dl.getSnapshotAt(version)
             commit.put("schema",
               JsonUtil.mapper.readValue(snapshot.metadata.schemaString, classOf[Any]))
             val partCols = snapshot.metadata.partitionColumns
             if (partCols.nonEmpty) {
-              commit.put("partitionColumns",
-                scala.collection.JavaConverters.seqAsJavaListConverter(partCols).asJava)
+              commit.put("partitionColumns", partCols.asJava)
+            }
+            // Check for clustering columns in domain metadata
+            extractClusteringColumns(tablePath, version).foreach { cols =>
+              if (cols.nonEmpty) commit.put("clusteringColumns", cols.asJava)
             }
             val props = snapshot.metadata.configuration
             if (props.nonEmpty) {
-              commit.put("properties",
-                scala.collection.JavaConverters.mapAsJavaMapConverter(props).asJava)
+              commit.put("properties", props.asJava)
             }
           } catch { case _: Exception => }
         }
 
-        // Extract predicates from commitInfo.operationParameters
-        lines.foreach { line =>
-          val node = JsonUtil.mapper.readTree(line)
-          if (node.has("commitInfo")) {
-            val ci = node.get("commitInfo")
-            if (ci.has("operationParameters")) {
-              val params = ci.get("operationParameters")
-              if (params.has("predicate") && !params.get("predicate").isNull) {
-                val pred = params.get("predicate").asText()
-                if (pred.nonEmpty && pred != "[]" && pred != "true") {
-                  commit.put("predicate", pred)
-                }
+        // For evolve_schema, capture schema changes
+        if (opType == "evolve_schema") {
+          extractSchemaEvolution(dl, version, operation, operationParams).foreach {
+            case (k, v) => commit.put(k, v)
+          }
+        }
+
+        // For update_properties, capture property changes
+        if (opType == "update_properties") {
+          extractPropertyChanges(dl, version, operationParams).foreach {
+            case (k, v) => commit.put(k, v)
+          }
+        }
+
+        // Extract predicates from operationParameters
+        operationParams.foreach { params =>
+          if (params.has("predicate") && !params.get("predicate").isNull) {
+            val pred = params.get("predicate").asText()
+            if (pred.nonEmpty && pred != "[]" && pred != "true") {
+              commit.put("predicate", pred)
+            }
+          }
+        }
+
+        // For update operations, extract SET clause from operationParameters
+        if (opType == "update") {
+          operationParams.foreach { params =>
+            if (params.has("set") && !params.get("set").isNull) {
+              val setNode = params.get("set")
+              val setMap = new java.util.LinkedHashMap[String, String]()
+              val iter = setNode.fields()
+              while (iter.hasNext) {
+                val entry = iter.next()
+                setMap.put(entry.getKey, entry.getValue.asText())
               }
+              if (!setMap.isEmpty) commit.put("set", setMap)
             }
           }
         }
@@ -326,5 +372,155 @@ object WriteSpecCapture {
     writeSpec.put("verification", verification)
 
     JsonUtil.writeJson(outputDir.resolve("write_spec.json"), writeSpec)
+  }
+
+  /** Extract clustering columns from delta.clustering domain metadata at a version. */
+  private def extractClusteringColumns(
+      tablePath: Path, version: Long): Option[Seq[String]] = {
+    val commitFile = tablePath.resolve("_delta_log").resolve(f"$version%020d.json")
+    if (!Files.exists(commitFile)) return None
+    val lines = new String(Files.readAllBytes(commitFile), "UTF-8")
+      .split("\n").filter(_.trim.nonEmpty)
+    lines.flatMap { line =>
+      val node = JsonUtil.mapper.readTree(line)
+      if (node.has("domainMetadata")) {
+        val dm = node.get("domainMetadata")
+        if (dm.has("domain") && dm.get("domain").asText() == "delta.clustering") {
+          val config = dm.get("configuration").asText()
+          try {
+            val configNode = JsonUtil.mapper.readTree(config)
+            if (configNode.has("columns")) {
+              val cols = configNode.get("columns")
+              Some(scala.jdk.CollectionConverters.IteratorHasAsScala(cols.elements()).asScala
+                .map(_.asText()).toSeq)
+            } else None
+          } catch { case _: Exception => None }
+        } else None
+      } else None
+    }.headOption
+  }
+
+  /** Extract schema evolution fields by comparing metadata before/after this version. */
+  private def extractSchemaEvolution(
+      dl: DeltaLog,
+      version: Long,
+      operation: String,
+      operationParams: Option[com.fasterxml.jackson.databind.JsonNode]
+  ): Seq[(String, Any)] = {
+    val fields = mutable.ArrayBuffer[(String, Any)]()
+    try {
+      operation match {
+        case "ADD COLUMNS" =>
+          operationParams.foreach { params =>
+            if (params.has("columns")) {
+              val colsNode = params.get("columns")
+              val addCols = new java.util.ArrayList[Any]()
+              val iter = colsNode.elements()
+              while (iter.hasNext) {
+                val colNode = iter.next()
+                val col = new java.util.LinkedHashMap[String, Any]()
+                if (colNode.isTextual) {
+                  // Simple format: "name TYPE"
+                  val parts = colNode.asText().split("\\s+", 2)
+                  col.put("name", parts(0))
+                  if (parts.length > 1) col.put("type", parts(1).toLowerCase)
+                  col.put("nullable", true)
+                } else if (colNode.isObject) {
+                  if (colNode.has("name")) col.put("name", colNode.get("name").asText())
+                  if (colNode.has("type")) col.put("type", colNode.get("type").asText().toLowerCase)
+                  col.put("nullable",
+                    if (colNode.has("nullable")) colNode.get("nullable").asBoolean() else true)
+                }
+                addCols.add(col)
+              }
+              if (!addCols.isEmpty) fields += ("addColumns" -> addCols)
+            }
+          }
+        case "DROP COLUMNS" =>
+          operationParams.foreach { params =>
+            if (params.has("columns")) {
+              val colsNode = params.get("columns")
+              val dropCols = new java.util.ArrayList[String]()
+              val iter = colsNode.elements()
+              while (iter.hasNext) dropCols.add(iter.next().asText())
+              if (!dropCols.isEmpty) fields += ("dropColumns" -> dropCols)
+            }
+          }
+        case "RENAME COLUMN" =>
+          operationParams.foreach { params =>
+            if (params.has("oldColumnName") && params.has("newColumnName")) {
+              val renames = new java.util.LinkedHashMap[String, String]()
+              renames.put(params.get("oldColumnName").asText(),
+                params.get("newColumnName").asText())
+              fields += ("renameColumns" -> renames)
+            }
+          }
+        case "CHANGE COLUMN" =>
+          // Type change / nullability change — capture as schema diff
+          operationParams.foreach { params =>
+            if (params.has("column")) {
+              val colName = params.get("column").asText()
+              // Get the new type from the post-change metadata
+              try {
+                val snapshot = dl.getSnapshotAt(version)
+                val schema = snapshot.metadata.schema
+                schema.find(_.name == colName).foreach { field =>
+                  val change = new java.util.LinkedHashMap[String, Any]()
+                  change.put("name", field.name)
+                  change.put("type", field.dataType.simpleString)
+                  change.put("nullable", field.nullable)
+                  val changes = new java.util.ArrayList[Any]()
+                  changes.add(change)
+                  fields += ("changeColumns" -> changes)
+                }
+              } catch { case _: Exception => }
+            }
+          }
+        case _ => // Unknown schema evolution op
+      }
+    } catch { case _: Exception => }
+    fields.toSeq
+  }
+
+  /** Extract property changes from operationParameters or metadata diff. */
+  private def extractPropertyChanges(
+      dl: DeltaLog,
+      version: Long,
+      operationParams: Option[com.fasterxml.jackson.databind.JsonNode]
+  ): Seq[(String, Any)] = {
+    val fields = mutable.ArrayBuffer[(String, Any)]()
+    try {
+      // Try to get set/removed properties from operationParameters
+      operationParams.foreach { params =>
+        if (params.has("properties")) {
+          val propsNode = params.get("properties")
+          val setProps = new java.util.LinkedHashMap[String, String]()
+          val iter = propsNode.fields()
+          while (iter.hasNext) {
+            val entry = iter.next()
+            setProps.put(entry.getKey, entry.getValue.asText())
+          }
+          if (!setProps.isEmpty) fields += ("set" -> setProps)
+        }
+      }
+
+      // If we couldn't get from params, diff the metadata
+      if (fields.isEmpty && version > 0) {
+        val prevProps = dl.getSnapshotAt(version - 1).metadata.configuration
+        val currProps = dl.getSnapshotAt(version).metadata.configuration
+
+        val setProps = new java.util.LinkedHashMap[String, String]()
+        currProps.foreach { case (k, v) =>
+          if (!prevProps.contains(k) || prevProps(k) != v) setProps.put(k, v)
+        }
+        val removedProps = new java.util.ArrayList[String]()
+        prevProps.keys.foreach { k =>
+          if (!currProps.contains(k)) removedProps.add(k)
+        }
+        if (!setProps.isEmpty) fields += ("set" -> setProps)
+        if (!removedProps.isEmpty) fields += ("remove" -> removedProps)
+      }
+    } catch { case _: Exception => }
+    fields.toSeq
   }
 }

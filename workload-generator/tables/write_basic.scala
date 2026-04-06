@@ -109,11 +109,12 @@ new WorkloadSuite("write_basic") {
     w.snapshot(t)
   }
 
-  test("truncate_table", "Insert rows then truncate to empty table",
+  test("truncate_table", "Insert rows then delete all to empty table",
       "write", "truncate") { w =>
-    w.sql("""CREATE TABLE tbl (id INT, data STRING) USING delta""")
+    w.sql("""CREATE TABLE tbl (id INT, data STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     w.sql("INSERT INTO tbl VALUES (1,'first'),(2,'second'),(3,'third'),(4,'fourth')")
-    w.sql("TRUNCATE TABLE tbl")
+    w.sql("DELETE FROM tbl")
     val t = w.table("tbl")
     w.writeSpec(t)
     w.read(t, name = "read_after_truncate")
