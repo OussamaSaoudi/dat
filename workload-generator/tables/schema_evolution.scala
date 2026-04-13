@@ -1,0 +1,625 @@
+new WorkloadSuite("schema_evolution") {
+
+  test("schema_add_column", "ADD COLUMN", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
+    sql("INSERT INTO tbl VALUES (1, 'before')")
+    sql("ALTER TABLE tbl ADD COLUMN (new_col DOUBLE)")
+    sql("INSERT INTO tbl VALUES (2, 'after', 3.14)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    read(t, columns = Seq("id", "new_col"))
+    read(t, predicate = "new_col IS NOT NULL")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_add_nested_field", "Add field to nested struct", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta")
+    sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
+    sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+    sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25,'email','bob@test.com'))")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "info.email IS NULL")
+    read(t, predicate = "info.email IS NOT NULL")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_rename", "RENAME COLUMN", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'before')")
+    sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+    sql("INSERT INTO tbl VALUES (2, 'after')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    read(t, columns = Seq("id", "new_name"))
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_drop_column", "DROP COLUMN", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING, value STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'alice','v1'),(2,'bob','v2')")
+    sql("ALTER TABLE tbl DROP COLUMN value")
+    sql("INSERT INTO tbl VALUES (3,'charlie')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 2)
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_multiple_renames", "Chain of renames a→b→c", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, a STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'first')")
+    sql("ALTER TABLE tbl RENAME COLUMN a TO b")
+    sql("INSERT INTO tbl VALUES (2,'second')")
+    sql("ALTER TABLE tbl RENAME COLUMN b TO c")
+    sql("INSERT INTO tbl VALUES (3,'third')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "c"))
+    for (v <- 0L to 5L) snapshot(t, version = v)
+  }
+
+  test("schema_predicate_on_added", "Predicate on null-filled added column", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
+    sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3,'charlie',95),(4,'diana',88)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score > 90")
+    read(t, predicate = "score IS NULL")
+    read(t, predicate = "score IS NOT NULL")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+
+  test("schema_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
+    sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (4,'d',100),(5,'e',200),(6,'f',300)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score = 200")
+    read(t, predicate = "score = 100 OR score IS NULL")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_drop_col_pred", "Data skipping after column drop", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING, category STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'alice','A'),(2,'bob','B'),(3,'charlie','A')")
+    sql("ALTER TABLE tbl DROP COLUMN category")
+    sql("INSERT INTO tbl VALUES (4,'diana'),(5,'eve')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "id > 3")
+    read(t, predicate = "name = 'alice'")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_rename_pred", "Predicate on renamed column", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie')")
+    sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+    sql("INSERT INTO tbl VALUES (4,'diana')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "new_name = 'alice'")
+    read(t, predicate = "new_name = 'diana'")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_rename_partition", "Partition pruning on renamed partition column", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, category STRING) USING delta
+      PARTITIONED BY (category)
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'A'),(2,'B'),(3,'A'),(4,'C')")
+    sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
+    sql("INSERT INTO tbl VALUES (5,'A'),(6,'C')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "cat = 'A'")
+    read(t, predicate = "cat = 'C'")
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_drop_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'hello'),(2,'world')")
+    sql("ALTER TABLE tbl DROP COLUMN x")
+    sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+    sql("INSERT INTO tbl VALUES (3,100),(4,200)")
+    val t = registerTable("tbl")
+    read(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("schema_readd_pred", "Predicate on re-added column (new physical name)", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'old1'),(2,'old2')")
+    sql("ALTER TABLE tbl DROP COLUMN x")
+    sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+    sql("INSERT INTO tbl VALUES (3,100),(4,200)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "x = 200")
+    read(t, predicate = "x IS NULL")
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("schema_dv_pred_null", "Null-fill predicate + DVs combined", "schema_evolution", "dv") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie'),(4,'diana')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (5,'eve',90),(6,'frank',80)")
+    sql("DELETE FROM tbl WHERE id IN (2, 5)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score IS NULL")
+    read(t, predicate = "score IS NOT NULL")
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("schema_rename_read_v1", "Version read before rename", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
+      TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1,'before_rename')")
+    sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
+    sql("INSERT INTO tbl VALUES (2,'after_rename')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_nested_field_pred", "Predicate on added nested field", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, info STRUCT<name: STRING>) USING delta")
+    sql("INSERT INTO tbl VALUES (1, named_struct('name','alice'))")
+    sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+    sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','email','bob@x.com'))")
+    sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','email','charlie@y.com'))")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "info.email IS NULL")
+    read(t, predicate = "info.email IS NOT NULL")
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("schema_proj_at_old_version", "Project column at version before schema change", "schema_evolution") {
+    sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
+    sql("INSERT INTO tbl VALUES (1,'one'),(2,'two')")
+    sql("ALTER TABLE tbl ADD COLUMNS (extra INT)")
+    sql("INSERT INTO tbl VALUES (3,'three',300)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1, columns = Seq("id", "value"))
+    read(t, columns = Seq("id", "extra"))
+    for (v <- 0L to 3L) snapshot(t, version = v)
+  }
+
+  test("schema_type_coercion_insert", "INSERT with implicit type cast int to long", "schema_evolution") {
+    sql("CREATE TABLE tbl (id LONG, value LONG) USING delta")
+    sql("INSERT INTO tbl VALUES (1, 100)")
+    // Insert int values into long columns (implicit coercion)
+    sql("INSERT INTO tbl SELECT CAST(2 AS INT), CAST(200 AS INT)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "value > 150")
+    for (v <- 0L to 2L) snapshot(t, version = v)
+  }
+
+  test("schema_merge_with_evolution", "MERGE with schema evolution", "schema_evolution") {
+    sql("""CREATE TABLE target (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableTypeWidening' = 'false')""")
+    sql("INSERT INTO target VALUES (1,'alice'),(2,'bob')")
+    sql("CREATE TABLE src (id INT, name STRING, score INT) USING delta")
+    sql("INSERT INTO src VALUES (2,'bob_updated',95),(3,'charlie',88)")
+    sql("""MERGE INTO target t USING src s ON t.id = s.id
+      WHEN MATCHED THEN UPDATE SET *
+      WHEN NOT MATCHED THEN INSERT *""")
+    val t = registerTable("target")
+    read(t)
+    read(t, columns = Seq("id", "score"))
+    for (v <- 0L to 2L) snapshot(t, version = v)
+  }
+
+
+  test("se_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution", "predicate") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
+    sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score = 0")
+    read(t, predicate = "score = 95")
+    snapshot(t)
+  }
+
+  test("se_add_col_pred_null", "Predicate on null-filled column from old files", "schema_evolution", "predicate") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
+    sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score > 90")
+    read(t, predicate = "score IS NOT NULL")
+    read(t, predicate = "score IS NULL")
+    snapshot(t)
+  }
+
+  test("se_add_col_read_v1", "Time travel to version before column was added", "schema_evolution", "timeTravel") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    snapshot(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("se_add_column_with_default", "Column added then populated with explicit values", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1)")
+    sql("INSERT INTO tbl VALUES (2)")
+    sql("ALTER TABLE tbl ADD COLUMNS (status STRING)")
+    sql("INSERT INTO tbl VALUES (3, 'active')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "status"))
+    snapshot(t)
+  }
+
+  test("se_drop_column", "Read after column drop with column mapping", "schemaEvolution") {
+    sql("""CREATE TABLE tbl (id INT, name STRING, value STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice', 'v1')")
+    sql("INSERT INTO tbl VALUES (2, 'bob', 'v2')")
+    sql("ALTER TABLE tbl DROP COLUMN value")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    val t = registerTable("tbl")
+    read(t, name = "read_all")
+    snapshot(t)
+  }
+
+  test("se_drop_col_pred", "Data skipping after column drop", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice', 10)")
+    sql("INSERT INTO tbl VALUES (2, 'bob', 20)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 30)")
+    sql("ALTER TABLE tbl DROP COLUMN value")
+    sql("INSERT INTO tbl VALUES (4, 'diana')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "id > 2")
+    read(t, predicate = "name = 'alice'")
+    snapshot(t)
+    for (v <- 0L to 5L) snapshot(t, version = v)
+  }
+
+  test("se_drop_col_read_v1", "Time travel to version before column was dropped", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice', 10)")
+    sql("INSERT INTO tbl VALUES (2, 'bob', 20)")
+    sql("ALTER TABLE tbl DROP COLUMN value")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    snapshot(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("se_drop_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'hello')")
+    sql("ALTER TABLE tbl DROP COLUMN x")
+    sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+    sql("INSERT INTO tbl VALUES (2, 42)")
+    val t = registerTable("tbl")
+    read(t)
+    snapshot(t)
+  }
+
+  test("se_dv_pred_null", "Null-fill predicate + DVs combined", "schema_evolution", "dv") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (4, 'diana', 95)")
+    sql("INSERT INTO tbl VALUES (5, 'eve', 88)")
+    sql("""ALTER TABLE tbl SET TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("DELETE FROM tbl WHERE id = 2")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score IS NOT NULL")
+    read(t, predicate = "score IS NULL")
+    snapshot(t)
+  }
+
+  test("se_merge_with_evolution", "MERGE with schema evolution", "schema_evolution") {
+    sql("""CREATE TABLE target (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO target VALUES (1, 'alice')")
+    sql("INSERT INTO target VALUES (2, 'bob')")
+    sql("CREATE TABLE src (id INT, name STRING, score DOUBLE) USING delta")
+    sql("INSERT INTO src VALUES (2, 'bob_updated', 95.0), (3, 'charlie', 87.5)")
+    sql("""MERGE INTO target t USING src s ON t.id = s.id
+      WHEN MATCHED THEN UPDATE SET *
+      WHEN NOT MATCHED THEN INSERT *""")
+    val t = registerTable("target")
+    read(t)
+    read(t, columns = Seq("id", "name", "score"))
+    snapshot(t)
+  }
+
+  test("se_nested_field_pred", "Predicate on added nested field", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
+    sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25))")
+    sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+    sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "info.email IS NOT NULL")
+    read(t, predicate = "info.email IS NULL")
+    snapshot(t)
+  }
+
+  test("se_nested_field_project", "Nested struct projection with null-fill for old files", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
+    sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25))")
+    sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+    sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id"))
+    read(t, columns = Seq("id", "info"))
+    snapshot(t)
+  }
+
+  test("se_pred_on_added_col", "IS NOT NULL on added column", "schema_evolution", "predicate") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
+    sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "score IS NOT NULL")
+    snapshot(t)
+  }
+
+  test("se_proj_at_old_version", "Project column at version before schema change", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1, columns = Seq("id"))
+    read(t, version = 2, columns = Seq("id", "name"))
+    snapshot(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("se_readd_pred", "Predicate on re-added column (new physical name)", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'old')")
+    sql("ALTER TABLE tbl DROP COLUMN x")
+    sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+    sql("INSERT INTO tbl VALUES (2, 200)")
+    sql("INSERT INTO tbl VALUES (3, 300)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "x = 200")
+    read(t, predicate = "x IS NULL")
+    snapshot(t)
+    for (v <- 0L to 5L) snapshot(t, version = v)
+  }
+
+  test("se_rename_chain", "Multiple renames a -> b -> c", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, a STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'first')")
+    sql("ALTER TABLE tbl RENAME COLUMN a TO b")
+    sql("INSERT INTO tbl VALUES (2, 'second')")
+    sql("ALTER TABLE tbl RENAME COLUMN b TO c")
+    sql("INSERT INTO tbl VALUES (3, 'third')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "c"))
+    snapshot(t)
+  }
+
+  test("se_rename_column", "Read after column rename", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "full_name"))
+    snapshot(t)
+  }
+
+  test("se_rename_part_pred", "Partition pruning on renamed partition column", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
+      PARTITIONED BY (category)
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'A', 100)")
+    sql("INSERT INTO tbl VALUES (2, 'B', 200)")
+    sql("INSERT INTO tbl VALUES (3, 'A', 300)")
+    sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
+    sql("INSERT INTO tbl VALUES (4, 'C', 400)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "cat = 'A'")
+    read(t, predicate = "cat = 'C'")
+    snapshot(t)
+    for (v <- 0L to 5L) snapshot(t, version = v)
+  }
+
+  test("se_rename_partition_column", "Rename partition column", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
+      PARTITIONED BY (category)
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'A', 100)")
+    sql("INSERT INTO tbl VALUES (2, 'B', 200)")
+    sql("ALTER TABLE tbl RENAME COLUMN category TO group_name")
+    sql("INSERT INTO tbl VALUES (3, 'C', 300)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "group_name", "value"))
+    snapshot(t)
+  }
+
+  test("se_rename_pred", "Predicate on renamed column", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "full_name = 'alice'")
+    read(t, predicate = "full_name LIKE '%ob'")
+    snapshot(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("se_rename_read_v1", "Version read before rename", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
+    sql("INSERT INTO tbl VALUES (3, 'charlie')")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, version = 1)
+    snapshot(t)
+    for (v <- 0L to 4L) snapshot(t, version = v)
+  }
+
+  test("se_type_coercion_insert", "INSERT with implicit type cast int to long", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id LONG, value LONG) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, 100)")
+    sql("INSERT INTO tbl VALUES (2, 200)")
+    sql("INSERT INTO tbl VALUES (3, 300)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, predicate = "value > 150")
+    snapshot(t)
+  }
+
+  test("se_add_nested_struct_field", "Add field to nested struct", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+    sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
+    sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25))")
+    sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
+    sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
+    val t = registerTable("tbl")
+    read(t)
+    snapshot(t)
+  }
+
+  test("se_drop_and_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+    sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.columnMapping.mode' = 'name',
+        'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
+    sql("INSERT INTO tbl VALUES (1, 'hello')")
+    sql("ALTER TABLE tbl DROP COLUMN x")
+    sql("ALTER TABLE tbl ADD COLUMN (x INT)")
+    sql("INSERT INTO tbl VALUES (2, 42)")
+    val t = registerTable("tbl")
+    read(t)
+    snapshot(t)
+  }
+
+  test("se_add_top_level_column", "Add top-level column via auto merge", "schema_evolution") {
+    sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
+      TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
+        'delta.enableTypeWidening' = 'false')""")
+    sql("INSERT INTO tbl VALUES (1, 'alice')")
+    sql("INSERT INTO tbl VALUES (2, 'bob')")
+    sql("ALTER TABLE tbl ADD COLUMNS (age INT)")
+    sql("INSERT INTO tbl VALUES (3, 'charlie', 30)")
+    val t = registerTable("tbl")
+    read(t)
+    read(t, columns = Seq("id", "name", "age"))
+    snapshot(t)
+  }
+
+}
