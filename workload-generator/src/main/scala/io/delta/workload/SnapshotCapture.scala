@@ -102,10 +102,8 @@ object SnapshotCapture {
         }
         require(actualCode.isDefined,
           s"Error validation FAILED for $specName: expected operation to fail but it succeeded")
-        if (actualCode.get != err.errorCode) {
-          System.err.println(s"WARN: Error code mismatch for $specName: " +
-            s"captured '${err.errorCode}' but got '${actualCode.get}'")
-        }
+        require(actualCode.get == err.errorCode,
+          s"Error code mismatch for $specName: captured '${err.errorCode}' but got '${actualCode.get}'")
 
       case _ =>
     }
