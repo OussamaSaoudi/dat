@@ -1,4 +1,4 @@
-# Authoring Guide
+# User Guide
 
 How to write new workload suites for the Delta workload generator.
 

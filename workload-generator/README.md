@@ -11,7 +11,7 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 | **[Spec Format Reference](docs/spec-reference.md)** | Complete JSON schema for every spec type (read, snapshot, CDF, domain metadata, appTxn, checkpoint, CRC) with exhaustive examples |
 | **[Coverage Matrix](docs/coverage-matrix.md)** | All tests across 40 suites — what Delta features your engine gets tested on |
 | **[Harness Implementation Guide](docs/harness-implementation-guide.md)** | Step-by-step guide to build a test harness that runs workloads against your engine, with Rust and Python examples |
-| **[Authoring Guide](docs/authoring-guide.md)** | How to write new workload suites, patterns, recipes, and debugging tips |
+| **[User Guide](docs/user-guide.md)** | How to write new workload suites, patterns, recipes, and debugging tips |
 | **[Design Doc](docs/design-doc.md)** | Architecture decisions, alternatives considered, and rationale for each choice |
 
 ## Requirements
@@ -123,7 +123,7 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
 }
 ```
 
-See the [Authoring Guide](docs/authoring-guide.md) for the complete DSL reference, patterns, and debugging tips.
+See the [User Guide](docs/user-guide.md) for the complete DSL reference, patterns, and debugging tips.
 
 ### Test Semantics
 
