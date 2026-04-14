@@ -472,9 +472,9 @@ Spec files and expected directories share names derived from the test and spec p
 
 | API Call | Spec File Name |
 |----------|---------------|
-| `read(t)` | `<test>_read.json` |
-| `read(t, version=0)` | `<test>_read_v0.json` |
-| `read(t, predicate="id > 5")` | `<test>_read_id_gt_5.json` |
-| `read(t, columns=Seq("id"))` | `<test>_read_cols_id.json` |
-| `snapshot(t)` | `<test>_snapshot.json` |
-| `snapshot(t, version=2)` | `<test>_snapshot_v2.json` |
+| `readSpec(t)` | `<test>_read.json` |
+| `readSpec(t, version=0)` | `<test>_read_v0.json` |
+| `readSpec(t, predicate="id > 5")` | `<test>_read_id_gt_5.json` |
+| `readSpec(t, columns=Seq("id"))` | `<test>_read_cols_id.json` |
+| `snapshotSpec(t)` | `<test>_snapshot.json` |
+| `snapshotSpec(t, version=2)` | `<test>_snapshot_v2.json` |

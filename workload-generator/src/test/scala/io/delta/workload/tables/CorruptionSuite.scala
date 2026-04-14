@@ -31,8 +31,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.list(dir).iterator().asScala
         .filter(_.toString.endsWith(".parquet")).take(1).foreach(java.nio.file.Files.delete)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("corrupt_truncated_commit") {
@@ -46,7 +46,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         java.nio.file.Files.write(f, java.util.Arrays.copyOf(bytes, 10))
       }
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_no_crc") {
@@ -58,9 +58,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
         .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
-    read(t)
-    read(t, predicate = "id < 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_empty_crc") {
@@ -71,8 +71,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val crc = dir.resolve("_delta_log/00000000000000000000.crc")
       java.nio.file.Files.write(crc, Array.emptyByteArray)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("corrupt_bad_stats") {
@@ -85,9 +85,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         case other => other
       }
     }
-    read(t)
-    read(t, predicate = "id > 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 1")
+    snapshotSpec(t)
   }
 
   test("corrupt_version_gap") {
@@ -99,7 +99,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000002.json"))
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_no_protocol") {
@@ -112,7 +112,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"protocol\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_no_metadata") {
@@ -125,7 +125,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"metaData\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_stale_last_checkpoint") {
@@ -136,8 +136,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.write(dir.resolve("_delta_log/_last_checkpoint"), """{"version":999}""".getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("corrupt_invalid_last_checkpoint") {
@@ -148,8 +148,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.write(dir.resolve("_delta_log/_last_checkpoint"), "NOT VALID JSON".getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("corrupt_empty_delta_log") {
@@ -160,7 +160,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       import scala.collection.JavaConverters._
       java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala.foreach(java.nio.file.Files.delete)
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_zero_byte_commit") {
@@ -170,7 +170,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"), Array.emptyByteArray)
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_dv_garbled") {
@@ -185,7 +185,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         .filter(_.getFileName.toString.contains("deletion_vector"))
         .foreach(f => java.nio.file.Files.write(f, Array[Byte](0,1,2,3)))
     }
-    read(t)
+    readSpec(t)
   }
 
   test("corrupt_unknown_action") {
@@ -197,8 +197,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val content = new String(java.nio.file.Files.readAllBytes(f), "UTF-8")
       java.nio.file.Files.write(f, (content.trim + "\n" + """{"unknownAction":{"key":"val"}}""" + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // === Corrupt Tables Extended ===
@@ -218,8 +218,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
           java.nio.file.Files.write(f, java.util.Arrays.copyOf(bytes, 10))
         }
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_duplicate_metadata") {
@@ -234,8 +234,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val mdLine = lines.find(_.contains("\"metaData\"")).getOrElse("")
       java.nio.file.Files.write(f, (content.trim + "\n" + mdLine + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_duplicate_protocol") {
@@ -250,8 +250,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val protoLine = lines.find(_.contains("\"protocol\"")).getOrElse("")
       java.nio.file.Files.write(f, (content.trim + "\n" + protoLine + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_empty_delta_log") {
@@ -263,8 +263,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
         .foreach(java.nio.file.Files.delete)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_gap_in_versions") {
@@ -277,7 +277,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000002.json"))
     }
-    read(t)
+    readSpec(t)
   }
 
   test("ct_invalid_json") {
@@ -289,8 +289,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"),
         "NOT VALID JSON{{{".getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_missing_data_file") {
@@ -303,8 +303,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.list(dir).iterator().asScala
         .filter(_.toString.endsWith(".parquet")).foreach(java.nio.file.Files.delete)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_missing_delta_log") {
@@ -317,8 +317,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.list(logDir).iterator().asScala.foreach(java.nio.file.Files.delete)
       java.nio.file.Files.delete(logDir)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_missing_metadata") {
@@ -332,8 +332,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"metaData\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_missing_protocol") {
@@ -347,8 +347,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"protocol\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_only_remove_file") {
@@ -369,8 +369,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000001.json"),
         (removes + "\n" + ci + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_unknown_action_types") {
@@ -384,8 +384,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.write(f,
         (content.trim + "\n" + """{"unknownAction":{"key":"val"}}""" + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ct_zero_byte_commit") {
@@ -395,8 +395,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"), Array.emptyByteArray)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 
@@ -409,9 +409,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val crc = dir.resolve("_delta_log/00000000000000000000.crc")
       java.nio.file.Files.write(crc, Array.emptyByteArray)
     }
-    read(t)
-    read(t, predicate = "id >= 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_crc_negative_counts") {
@@ -427,9 +427,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         java.nio.file.Files.write(crc, patched.getBytes)
       }
     }
-    read(t)
-    read(t, predicate = "id > 7")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 7")
+    snapshotSpec(t)
   }
 
   test("corrupt_crc_no_metadata") {
@@ -441,9 +441,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val crc = dir.resolve("_delta_log/00000000000000000000.crc")
       java.nio.file.Files.write(crc, """{"tableSizeBytes":0}""".getBytes)
     }
-    read(t)
-    read(t, predicate = "id < 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 3")
+    snapshotSpec(t)
   }
 
   test("corrupt_crc_txnid_mismatch") {
@@ -459,9 +459,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         java.nio.file.Files.write(crc, patched.getBytes)
       }
     }
-    read(t)
-    read(t, predicate = "id >= 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_crc_wrong_numfiles") {
@@ -477,9 +477,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         java.nio.file.Files.write(crc, patched.getBytes)
       }
     }
-    read(t)
-    read(t, predicate = "id < 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_incomplete_multipart_checkpoint") {
@@ -487,9 +487,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '5')""")
     for (i <- 0 until 20) sql(s"INSERT INTO tbl SELECT id FROM range(${i*10}, ${(i+1)*10})")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id < 50")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 50")
+    snapshotSpec(t)
   }
 
   test("corrupt_last_checkpoint_checksum_mismatch") {
@@ -506,9 +506,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
         java.nio.file.Files.write(lc, patched.getBytes)
       }
     }
-    read(t)
-    read(t, predicate = "id >= 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_malformed_last_checkpoint") {
@@ -520,9 +520,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.write(dir.resolve("_delta_log/_last_checkpoint"), "NOT VALID JSON".getBytes)
     }
-    read(t)
-    read(t, predicate = "id >= 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_malformed_stats_json") {
@@ -536,9 +536,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val patched = content.replaceAll(""""stats":"[^"]*"""", """"stats":"{invalid json"""")
       java.nio.file.Files.write(f, patched.getBytes)
     }
-    read(t)
-    read(t, predicate = "id < 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 5")
+    snapshotSpec(t)
   }
 
   test("corrupt_missing_last_checkpoint") {
@@ -553,9 +553,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val lc = dir.resolve("_delta_log/_last_checkpoint")
       if (java.nio.file.Files.exists(lc)) java.nio.file.Files.delete(lc)
     }
-    read(t)
-    read(t, predicate = "id < 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 3")
+    snapshotSpec(t)
   }
 
   test("corrupt_stale_checkpoint_extra_files") {
@@ -566,10 +566,10 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     sql("INSERT INTO tbl SELECT id FROM range(20, 30)")
     sql("DELETE FROM tbl WHERE id >= 20")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
-    read(t, version = 3)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 2)
+    readSpec(t, version = 3)
+    snapshotSpec(t)
   }
 
   test("corrupt_truncated_commit_json") {
@@ -582,8 +582,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val bytes = java.nio.file.Files.readAllBytes(f)
       java.nio.file.Files.write(f, java.util.Arrays.copyOf(bytes, 10))
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("corrupt_wrong_last_checkpoint") {
@@ -595,9 +595,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       java.nio.file.Files.write(dir.resolve("_delta_log/_last_checkpoint"),
         """{"version":999,"size":1}""".getBytes)
     }
-    read(t)
-    read(t, predicate = "id < 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id < 5")
+    snapshotSpec(t)
   }
 
 
@@ -615,8 +615,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val removeLine = addLine.replace("\"add\"", "\"remove\"")
       java.nio.file.Files.write(f, (content.trim + "\n" + removeLine + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("err_dv_invalid_storage_type") {
@@ -631,8 +631,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val patched = content.replaceAll(""""storageType":"[iup]"""", """"storageType":"x"""")
       java.nio.file.Files.write(f, patched.getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("err_duplicate_add_same_version") {
@@ -646,8 +646,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val addLine = content.split("\n").find(_.contains("\"add\"")).getOrElse("")
       java.nio.file.Files.write(f, (content.trim + "\n" + addLine + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("err_missing_version_0") {
@@ -659,7 +659,7 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000000.json"))
     }
-    read(t)
+    readSpec(t)
   }
 
   test("err_schema_empty") {
@@ -673,8 +673,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val patched = content.replaceAll(""""schemaString":"[^"]*"""", """"schemaString":""""")
       java.nio.file.Files.write(f, patched.getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("err_schema_invalid_json") {
@@ -688,8 +688,8 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val patched = content.replaceAll(""""schemaString":"[^"]*"""", """"schemaString":"NOT VALID JSON{{{"""")
       java.nio.file.Files.write(f, patched.getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 }

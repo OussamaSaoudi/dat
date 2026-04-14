@@ -41,10 +41,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     // v5: insert int-range values
     sql("INSERT INTO tbl VALUES (32768), (2147483647)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "a > 127", name = "read_gt_max_byte")
-    read(t, predicate = "a > 32767", name = "read_gt_max_short")
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "a > 127", name = "read_gt_max_byte")
+    readSpec(t, predicate = "a > 32767", name = "read_gt_max_short")
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("tw_short_to_int") {
@@ -54,9 +54,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE INT")
     sql("INSERT INTO tbl VALUES (3, 40000), (4, 100000)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value > 32767", name = "read_gt_max_short")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value > 32767", name = "read_gt_max_short")
+    snapshotSpec(t)
   }
 
   test("tw_short_to_long") {
@@ -68,10 +68,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE LONG")
     sql("INSERT INTO tbl VALUES (5, 3000000000L), (6, 9223372036854775807L)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value > 32767", name = "read_gt_max_short")
-    read(t, predicate = "value > 2147483647", name = "read_gt_max_int")
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value > 32767", name = "read_gt_max_short")
+    readSpec(t, predicate = "value > 2147483647", name = "read_gt_max_int")
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("tw_int_to_long") {
@@ -81,10 +81,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN a TYPE LONG")
     sql("INSERT INTO tbl VALUES (2147483648L), (9223372036854775807L)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "a > 2147483647", name = "read_gt_max_int")
-    read(t, version = 1, name = "read_v1_before_widening")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "a > 2147483647", name = "read_gt_max_int")
+    readSpec(t, version = 1, name = "read_v1_before_widening")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("tw_full_numeric_chain") {
@@ -98,11 +98,11 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN a TYPE LONG")
     sql("INSERT INTO tbl VALUES (3000000000L), (9000000000000000000L)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, version = 1, name = "read_v1_byte_only")
-    read(t, version = 3, name = "read_v3_through_short")
-    read(t, version = 5, name = "read_v5_through_int")
-    for (v <- 0L to 7L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, version = 1, name = "read_v1_byte_only")
+    readSpec(t, version = 3, name = "read_v3_through_short")
+    readSpec(t, version = 5, name = "read_v5_through_int")
+    for (v <- 0L to 7L) snapshotSpec(t, version = v)
   }
 
   test("tw_float_to_double") {
@@ -112,9 +112,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE DOUBLE")
     sql("INSERT INTO tbl VALUES (3.141592653589793), (1.7976931348623157E308)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value > 100.0", name = "read_high_precision")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value > 100.0", name = "read_high_precision")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("tw_decimal_precision") {
@@ -124,9 +124,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN amount TYPE DECIMAL(10,2)")
     sql("INSERT INTO tbl VALUES (12345678.90), (99999999.99)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "amount > 1000", name = "read_large_values")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "amount > 1000", name = "read_large_values")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("tw_cross_physical_decimal") {
@@ -138,10 +138,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN amount TYPE DECIMAL(28,3)")
     sql("INSERT INTO tbl VALUES (1234567890123456789012345.678)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, version = 1, name = "read_v1_int32_only")
-    read(t, version = 3, name = "read_v3_through_int64")
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, version = 1, name = "read_v1_int32_only")
+    readSpec(t, version = 3, name = "read_v3_through_int64")
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("tw_date_to_timestamp_ntz") {
@@ -151,9 +151,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN a TYPE TIMESTAMP_NTZ")
     sql("INSERT INTO tbl VALUES (TIMESTAMP_NTZ'2024-12-31 23:59:59'), (TIMESTAMP_NTZ'2025-01-01 12:30:00')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, version = 1, name = "read_v1_before_widening")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, version = 1, name = "read_v1_before_widening")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   // Nested, array, and map type widening
@@ -166,9 +166,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN data.count TYPE LONG")
     sql("INSERT INTO tbl VALUES (named_struct('id', 3, 'count', 3000000000L))")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "data.count > 2147483647", name = "read_large_count")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "data.count > 2147483647", name = "read_large_count")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("tw_array_element") {
@@ -179,8 +179,8 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN values.element TYPE LONG")
     sql("INSERT INTO tbl VALUES (array(3000000000L, 9000000000000L))")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("tw_map_key_value_widening") {
@@ -201,9 +201,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN s.a TYPE INT")
     sql("INSERT INTO tbl VALUES (named_struct('a', 50000), map(50000, 100000), array(50000, 60000))")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, version = 1, name = "read_v1_before_widening")
-    for (v <- 0L to 6L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, version = 1, name = "read_v1_before_widening")
+    for (v <- 0L to 6L) snapshotSpec(t, version = v)
   }
 
   // Type widening with other features
@@ -216,9 +216,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("INSERT INTO tbl VALUES (6, 40000), (7, 50000)")
     sql("DELETE FROM tbl WHERE id IN (2, 4)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value > 32767", name = "read_wide_values")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value > 32767", name = "read_wide_values")
+    snapshotSpec(t)
   }
 
   test("tw_with_partition") {
@@ -228,10 +228,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE INT")
     sql("INSERT INTO tbl VALUES (4, 40000, 'A'), (5, 50000, 'B')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "category = 'A'", name = "read_partition_A")
-    read(t, predicate = "value > 32767", name = "read_wide_values")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "category = 'A'", name = "read_partition_A")
+    readSpec(t, predicate = "value > 32767", name = "read_wide_values")
+    snapshotSpec(t)
   }
 
   test("tw_with_column_mapping") {
@@ -245,10 +245,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN score TYPE LONG")
     sql("INSERT INTO tbl VALUES (3, 3000000000L), (4, 9000000000000L)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "score > 2147483647", name = "filter_on_widened")
-    read(t, columns = Seq("id", "score"), name = "project_renamed_widened")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "score > 2147483647", name = "filter_on_widened")
+    readSpec(t, columns = Seq("id", "score"), name = "project_renamed_widened")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("tw_colmap_rename") {
@@ -261,10 +261,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl RENAME COLUMN val TO amount")
     sql("INSERT INTO tbl VALUES (3, 40000), (4, 100000)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "amount > 32767", name = "filter_wide")
-    read(t, columns = Seq("id", "amount"), name = "project_renamed")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "amount > 32767", name = "filter_wide")
+    readSpec(t, columns = Seq("id", "amount"), name = "project_renamed")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("tw_change_tracking_across_widening") {
@@ -275,9 +275,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN amount TYPE INT")
     sql("INSERT INTO tbl VALUES (3, 40000), (4, 50000)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, version = 1, name = "read_original")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, version = 1, name = "read_original")
+    snapshotSpec(t)
   }
 
   test("tw_row_tracking_combo") {
@@ -289,9 +289,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN score TYPE INT")
     sql("INSERT INTO tbl VALUES (3, 40000), (4, 50000)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "score > 32767", name = "read_wide_values")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "score > 32767", name = "read_wide_values")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   // Data skipping and projections with type widening
@@ -304,10 +304,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE LONG")
     sql("INSERT INTO tbl VALUES (5, 3000000000L), (6, 9000000000000L)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value > 2147483647", name = "read_large_values_only")
-    read(t, predicate = "value > 150 AND value < 350", name = "read_with_predicate_on_widened")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value > 2147483647", name = "read_large_values_only")
+    readSpec(t, predicate = "value > 150 AND value < 350", name = "read_with_predicate_on_widened")
+    snapshotSpec(t)
   }
 
   test("tw_stats_after_change") {
@@ -317,11 +317,11 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN metric TYPE INT")
     sql("INSERT INTO tbl VALUES (3, 40000), (4, 50000)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "metric <= 100", name = "predicate_old_range")
-    read(t, predicate = "metric > 32767", name = "predicate_new_range")
-    read(t, predicate = "metric >= 100 AND metric <= 40000", name = "predicate_cross_range")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "metric <= 100", name = "predicate_old_range")
+    readSpec(t, predicate = "metric > 32767", name = "predicate_new_range")
+    readSpec(t, predicate = "metric >= 100 AND metric <= 40000", name = "predicate_cross_range")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("tw_project_widened") {
@@ -331,10 +331,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE LONG")
     sql("INSERT INTO tbl VALUES (3, 3000000000L, 'c'), (4, 4000000000L, 'd')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, columns = Seq("value"), name = "project_widened_only")
-    read(t, columns = Seq("id", "value"), name = "project_widened_with_id")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, columns = Seq("value"), name = "project_widened_only")
+    readSpec(t, columns = Seq("id", "value"), name = "project_widened_with_id")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("tw_project_non_widened") {
@@ -344,9 +344,9 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE LONG")
     sql("INSERT INTO tbl VALUES (3, 3000000000L, 'c'), (4, 4000000000L, 'd')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, columns = Seq("id", "label"), name = "project_non_widened")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t, name = "read_all")
+    readSpec(t, columns = Seq("id", "label"), name = "project_non_widened")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   // Null handling
@@ -358,10 +358,10 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     sql("ALTER TABLE tbl ALTER COLUMN value TYPE INT")
     sql("INSERT INTO tbl VALUES (5, 40000), (6, CAST(NULL AS INT))")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value IS NOT NULL", name = "read_non_null")
-    read(t, predicate = "value IS NULL", name = "read_nulls_only")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value IS NOT NULL", name = "read_non_null")
+    readSpec(t, predicate = "value IS NULL", name = "read_nulls_only")
+    snapshotSpec(t)
   }
 
 }

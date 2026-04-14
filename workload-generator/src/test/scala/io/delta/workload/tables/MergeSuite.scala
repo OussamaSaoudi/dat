@@ -49,9 +49,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id >= 4", name = "filter_new_rows")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 4", name = "filter_new_rows")
+    snapshotSpec(t)
   }
 
   test("mergeBasicUpdate") {
@@ -62,9 +62,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED THEN UPDATE SET value = s.value""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeBasicDelete") {
@@ -75,8 +75,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED THEN DELETE""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeInsertUpdate") {
@@ -88,9 +88,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "filter_id_2")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "filter_id_2")
+    snapshotSpec(t)
   }
 
   test("mergeInsertDelete") {
@@ -102,8 +102,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN DELETE
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeInsertUpdateDelete") {
@@ -116,8 +116,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN DELETE
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeUpdateDelete") {
@@ -129,8 +129,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND t.val > 15 THEN UPDATE SET val = s.val
       WHEN MATCHED THEN DELETE""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeMultipleMatched") {
@@ -142,8 +142,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND t.score > 30 THEN DELETE
       WHEN MATCHED AND t.score > 10 THEN UPDATE SET score = s.score""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Conditional clauses
@@ -156,8 +156,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN NOT MATCHED AND s.id > 3 THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeConditionalUpdate") {
@@ -168,9 +168,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED AND t.score >= 10 THEN UPDATE SET status = s.status, score = s.score""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "status = 'high'", name = "filter_high")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "status = 'high'", name = "filter_high")
+    snapshotSpec(t)
   }
 
   // Star syntax
@@ -183,8 +183,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeStarUpdate") {
@@ -195,8 +195,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED THEN UPDATE SET *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Source variations
@@ -211,8 +211,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeSourceAggregation") {
@@ -225,8 +225,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET total = s.total
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Data types
@@ -240,9 +240,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET active = s.active
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "active = true", name = "filter_active")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "active = true", name = "filter_active")
+    snapshotSpec(t)
   }
 
   test("mergeDecimalValues") {
@@ -255,9 +255,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET price = s.price
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "price > 30.00", name = "filter_price")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "price > 30.00", name = "filter_price")
+    snapshotSpec(t)
   }
 
   test("mergeTimestampValues") {
@@ -271,8 +271,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET ts = s.ts
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeStringKeys") {
@@ -284,9 +284,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name = 'bob'", name = "filter_bob")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name = 'bob'", name = "filter_bob")
+    snapshotSpec(t)
   }
 
   // NULL handling
@@ -302,9 +302,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value IS NOT NULL", name = "filter_not_null")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value IS NOT NULL", name = "filter_not_null")
+    snapshotSpec(t)
   }
 
   // Complex types
@@ -320,8 +320,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET tags = s.tags
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeWithMapCol") {
@@ -335,8 +335,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET props = s.props
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeWithNestedStruct") {
@@ -353,8 +353,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET info = s.info
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Partitioned tables
@@ -369,9 +369,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "region = 'east'", name = "filter_east")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "region = 'east'", name = "filter_east")
+    snapshotSpec(t)
   }
 
   test("mergePartitionedCrossPartition") {
@@ -383,9 +383,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED THEN UPDATE SET region = s.region, amount = s.amount""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "region = 'west'", name = "filter_west")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "region = 'west'", name = "filter_west")
+    snapshotSpec(t)
   }
 
   test("mergePartitionedMultiCol") {
@@ -399,9 +399,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "country = 'US' AND year = 2024", name = "filter_us_2024")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "country = 'US' AND year = 2024", name = "filter_us_2024")
+    snapshotSpec(t)
   }
 
   // Deletion vectors (DV-enabled tables with prior deletes)
@@ -416,8 +416,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvConditionalUpdate") {
@@ -430,8 +430,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND s.amount > 200 THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED AND s.amount >= 500 THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvDeleteClause") {
@@ -443,8 +443,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND t.amount > 30 THEN DELETE
       WHEN MATCHED THEN UPDATE SET amount = s.amount""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvLargeTable") {
@@ -459,9 +459,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET name = s.name, score = s.score
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "score > 5000", name = "filterHighScore")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "score > 5000", name = "filterHighScore")
+    snapshotSpec(t)
   }
 
   test("mergeDvMultipleMatched") {
@@ -475,8 +475,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND t.amount > 50 THEN UPDATE SET value = 'also', amount = s.amount
       WHEN MATCHED THEN UPDATE SET value = 'updated', amount = s.amount""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvMultipleMerges") {
@@ -494,8 +494,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvNullHandling") {
@@ -508,8 +508,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvPartitioned") {
@@ -523,8 +523,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvSchemaEvolution") {
@@ -539,8 +539,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeDvStarSyntax") {
@@ -553,8 +553,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Low-shuffle merge variants
@@ -568,9 +568,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleConditional") {
@@ -582,9 +582,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED AND s.amount > t.amount THEN UPDATE SET value = s.value, amount = s.amount
       WHEN NOT MATCHED AND s.amount > 50 THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 5", name = "filter_conditional_insert")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 5", name = "filter_conditional_insert")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleDecimal") {
@@ -596,9 +596,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET price = s.price
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleLargeTable") {
@@ -611,9 +611,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value = 9999", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value = 9999", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleMultiClause") {
@@ -626,9 +626,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value, amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 3", name = "filter_deleted")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 3", name = "filter_deleted")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleMultiMerge") {
@@ -642,9 +642,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     sql("""MERGE INTO tbl t USING (SELECT * FROM VALUES (4,'z'),(5,'e') AS s(id, value)) s
       ON t.id = s.id WHEN MATCHED THEN UPDATE SET value = s.value WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 5", name = "filter_last_merge")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 5", name = "filter_last_merge")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleNested") {
@@ -657,8 +657,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET info = s.info
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeLowShufflePartitioned") {
@@ -671,9 +671,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 'y'", name = "filter_part_y")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 'y'", name = "filter_part_y")
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleStar") {
@@ -685,8 +685,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeLowShuffleTimestamp") {
@@ -699,9 +699,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET ts = s.ts, label = s.label
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 3", name = "filter_new")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 3", name = "filter_new")
+    snapshotSpec(t)
   }
 
   // Edge cases
@@ -714,9 +714,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id
       WHEN MATCHED THEN UPDATE SET value = s.value""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value = 'z'", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value = 'z'", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeNoMatched") {
@@ -728,9 +728,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id >= 10", name = "filter_new")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 10", name = "filter_new")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeEmptySource") {
@@ -742,8 +742,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeEdgeEmptyTarget") {
@@ -756,8 +756,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeEdgeNullJoinKey") {
@@ -770,9 +770,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id IS NULL", name = "filter_nulls")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id IS NULL", name = "filter_nulls")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeSelfMerge") {
@@ -783,9 +783,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       ON t.id = s.id AND t.amount < 25
       WHEN MATCHED THEN UPDATE SET amount = s.amount * 2""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "amount = 20", name = "filter_doubled")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "amount = 20", name = "filter_doubled")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeSourceAlias") {
@@ -797,9 +797,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     ) s ON t.id = s.src_id
       WHEN MATCHED THEN UPDATE SET value = s.src_value""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeMultiJoin") {
@@ -811,9 +811,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET amount = s.amount
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2 AND amount = 999", name = "filter_updated")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2 AND amount = 999", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("mergeEdgeLargePayload") {
@@ -830,8 +830,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET ${(1 to 20).map(i => s"col_$i = s.col_$i").mkString(",")}
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeEdgeDuplicateSourceKeys") {
@@ -845,8 +845,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
         WHEN MATCHED THEN UPDATE SET value = s.value""")
     } catch { case _: Exception => /* expected failure */ }
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Error cases (table unchanged after failed merge)
@@ -861,8 +861,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
         WHEN MATCHED THEN UPDATE SET value = value""")
     } catch { case _: Exception => /* expected: ambiguous column reference */ }
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeErrDuplicateSource") {
@@ -875,8 +875,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
         WHEN MATCHED THEN UPDATE SET value = s.value""")
     } catch { case _: Exception => /* expected: duplicate source */ }
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeErrNoMatchCondition") {
@@ -889,8 +889,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
         WHEN MATCHED THEN UPDATE SET value = s.value""")
     } catch { case _: Exception => /* expected: parse error */ }
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mergeErrTypeMismatch") {
@@ -903,8 +903,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
         WHEN MATCHED THEN UPDATE SET value = s.value""")
     } catch { case _: Exception => /* expected: type mismatch */ }
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Schema evolution - basic column addition
@@ -920,9 +920,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "extra IS NOT NULL", name = "readNewCol")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "extra IS NOT NULL", name = "readNewCol")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoAddMultiCols") {
@@ -937,9 +937,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "extra1 IS NOT NULL", name = "readExtra1NotNull")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "extra1 IS NOT NULL", name = "readExtra1NotNull")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertNewCol") {
@@ -952,9 +952,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "score IS NOT NULL", name = "readWithScore")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "score IS NOT NULL", name = "readWithScore")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertMultipleNewCols") {
@@ -968,9 +968,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "col1 IS NOT NULL", name = "readNewCols")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "col1 IS NOT NULL", name = "readNewCols")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertWithDefault") {
@@ -983,9 +983,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "newcol IS NULL", name = "readNullNewCol")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "newcol IS NULL", name = "readNullNewCol")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoUpdateNewCol") {
@@ -998,9 +998,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "rating IS NOT NULL", name = "readRating")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "rating IS NOT NULL", name = "readRating")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoUpdateStarNewCol") {
@@ -1013,9 +1013,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "bonus IS NOT NULL", name = "readBonusNotNull")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "bonus IS NOT NULL", name = "readBonusNotNull")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertUpdateNewCol") {
@@ -1029,9 +1029,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "priority IS NOT NULL", name = "readPriority")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "priority IS NOT NULL", name = "readPriority")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertUpdateDiffCols") {
@@ -1046,9 +1046,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "colA IS NOT NULL", name = "readColA")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "colA IS NOT NULL", name = "readColA")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoUpdateMultipleClauses") {
@@ -1064,9 +1064,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "flag IS NOT NULL", name = "readFlag")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "flag IS NOT NULL", name = "readFlag")
+    snapshotSpec(t)
   }
 
   // Schema evolution - nested structs
@@ -1085,8 +1085,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoInsertNestedNewField") {
@@ -1100,8 +1100,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoUpdateNestedField") {
@@ -1116,8 +1116,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET details = s.details""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoNestedStructAdd") {
@@ -1131,8 +1131,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Schema evolution - complex types (arrays, maps)
@@ -1149,9 +1149,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "status IS NOT NULL", name = "readNewStatus")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "status IS NOT NULL", name = "readNewStatus")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoAddMapEntry") {
@@ -1166,8 +1166,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoArrayStructEvolution") {
@@ -1181,8 +1181,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoMapValueType") {
@@ -1197,9 +1197,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "version IS NOT NULL", name = "readVersion")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "version IS NOT NULL", name = "readVersion")
+    snapshotSpec(t)
   }
 
   // Schema evolution - struct field operations
@@ -1220,8 +1220,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoStructRemoveField") {
@@ -1235,8 +1235,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoStructReorderFields") {
@@ -1250,8 +1250,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoStructWithArray") {
@@ -1265,8 +1265,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Schema evolution - partitioned tables
@@ -1284,9 +1284,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "newcol IS NOT NULL", name = "readNewCol")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "newcol IS NOT NULL", name = "readNewCol")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoPartitionedStructEvo") {
@@ -1301,8 +1301,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Schema evolution - type widening and column mapping
@@ -1320,9 +1320,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "amount > 2000000000", name = "readLargeAmount")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "amount > 2000000000", name = "readLargeAmount")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoWithColumnMapping") {
@@ -1337,9 +1337,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "score IS NOT NULL", name = "readScore")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "score IS NOT NULL", name = "readScore")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoDvSchemaEvo") {
@@ -1354,9 +1354,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "extra IS NOT NULL", name = "readExtra")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "extra IS NOT NULL", name = "readExtra")
+    snapshotSpec(t)
   }
 
   // Schema evolution - error cases
@@ -1374,8 +1374,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     } catch { case _: Exception => /* may or may not fail */ }
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoErrIncompatibleType") {
@@ -1390,8 +1390,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     } catch { case _: Exception => /* expected: incompatible type */ }
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeSchemaEvoErrNarrowType") {
@@ -1406,8 +1406,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     } catch { case _: Exception => /* may or may not fail depending on implicit cast */ }
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // Struct evolution (deep nesting, null handling)
@@ -1424,8 +1424,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoNullableToNonNull") {
@@ -1440,8 +1440,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoNestedNullField") {
@@ -1456,8 +1456,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoMultiStructCols") {
@@ -1472,8 +1472,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoNullInKey") {
@@ -1486,8 +1486,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoArrayOfStructNull") {
@@ -1502,8 +1502,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoMapValueStructNull") {
@@ -1518,8 +1518,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoDeepNested") {
@@ -1535,8 +1535,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoMixedNull") {
@@ -1551,8 +1551,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("mergeStructEvoPartitionedStruct") {
@@ -1568,8 +1568,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   // NOT MATCHED BY SOURCE (mrb_ prefix workloads)
@@ -1584,8 +1584,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *
       WHEN NOT MATCHED BY SOURCE THEN DELETE""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mrb_not_matched_by_source_delete") {
@@ -1597,8 +1597,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED BY SOURCE THEN DELETE""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mrb_not_matched_by_source_update") {
@@ -1610,8 +1610,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED BY SOURCE THEN UPDATE SET value = 'orphan'""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mrb_with_change_tracking") {
@@ -1624,8 +1624,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mrb_with_dv") {
@@ -1637,8 +1637,8 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED BY SOURCE THEN DELETE""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("mrb_with_schema_evolution") {
@@ -1652,9 +1652,9 @@ class MergeSuite extends WorkloadTestSuite("merge") {
       WHEN NOT MATCHED THEN INSERT *""")
     sql("SET spark.delta.schema.autoMerge.enabled = false")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score IS NOT NULL", name = "read_evolved_cols")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "score IS NOT NULL", name = "read_evolved_cols")
+    snapshotSpec(t)
   }
 
   // Generate all workloads

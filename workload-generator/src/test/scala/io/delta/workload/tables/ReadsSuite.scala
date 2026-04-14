@@ -30,18 +30,18 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("CREATE TABLE tbl (value INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_partitioned") {
     sql("CREATE TABLE tbl (id BIGINT, part INT) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl SELECT id, CAST(id % 5 AS INT) FROM range(100)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 0")
-    read(t, predicate = "part = 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 0")
+    readSpec(t, predicate = "part = 3")
+    snapshotSpec(t)
   }
 
   test("read_empty_path") {
@@ -55,7 +55,7 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
           .forEach(p => java.nio.file.Files.deleteIfExists(p))
       }
     }
-    read(t)
+    readSpec(t)
   }
 
   test("read_append") {
@@ -63,8 +63,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl SELECT id FROM range(1, 6)")
     sql("INSERT INTO tbl SELECT id FROM range(6, 11)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_overwrite") {
@@ -72,8 +72,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
     sql("INSERT OVERWRITE tbl SELECT id FROM range(100, 106)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_multiple_types") {
@@ -84,25 +84,25 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (1,'alice',95.5,true,DATE'2024-01-01',TIMESTAMP'2024-01-01 10:00:00')")
     sql("INSERT INTO tbl VALUES (2,'bob',82.3,false,DATE'2024-02-15',TIMESTAMP'2024-02-15 14:30:00')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_predicate") {
     sql("CREATE TABLE tbl (value INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 21)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value > 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value > 5")
+    snapshotSpec(t)
   }
 
   test("read_bad_version") {
     sql("CREATE TABLE tbl (value INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 6)")
     val t = registerTable("tbl")
-    read(t, version = 99)
-    snapshot(t)
+    readSpec(t, version = 99)
+    snapshotSpec(t)
   }
 
   test("read_version_zero") {
@@ -111,10 +111,10 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl SELECT id FROM range(6, 11)")
     sql("INSERT INTO tbl SELECT id FROM range(11, 16)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("read_after_delete") {
@@ -122,8 +122,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
     sql("DELETE FROM tbl WHERE value <= 3")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_after_update") {
@@ -131,9 +131,9 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
     sql("UPDATE tbl SET value = value + 100 WHERE value <= 5")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value > 100")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value > 100")
+    snapshotSpec(t)
   }
 
   test("read_after_merge") {
@@ -145,8 +145,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       WHEN MATCHED THEN UPDATE SET val = s.val
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("target")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_nulls") {
@@ -155,18 +155,18 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (2,null,null,null)")
     sql("INSERT INTO tbl VALUES (null,'charlie',88.0,false)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("read_empty_partition") {
     sql("CREATE TABLE tbl (id BIGINT, part INT) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl SELECT id, CAST(id % 3 AS INT) FROM range(50)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 99")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 99")
+    snapshotSpec(t)
   }
 
   test("read_nested_struct") {
@@ -176,8 +176,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30,'address',named_struct('city','NYC','zip','10001')))")
     sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25,'address',named_struct('city','LA','zip','90001')))")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_array") {
@@ -186,8 +186,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (2,array('x'),array(99))")
     sql("INSERT INTO tbl VALUES (3,array(),array())")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_map") {
@@ -196,8 +196,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (2,map('color','blue'))")
     sql("INSERT INTO tbl VALUES (3,map())")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_large_schema") {
@@ -206,17 +206,17 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     val colExprs = (1 to 24).map(i => s"id * $i AS col_$i").mkString(", ")
     sql(s"INSERT INTO tbl SELECT id, $colExprs FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_special_chars") {
     sql("CREATE TABLE tbl (id INT, category STRING) USING delta PARTITIONED BY (category)")
     sql("INSERT INTO tbl VALUES (1,'hello world'),(2,'foo=bar'),(3,'a/b')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "category = 'hello world'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "category = 'hello world'")
+    snapshotSpec(t)
   }
 
   test("read_schema_evolution") {
@@ -225,10 +225,10 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
     sql("INSERT INTO tbl VALUES (6,'alice'),(7,'bob')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name IS NOT NULL")
+    readSpec(t)
+    readSpec(t, predicate = "name IS NOT NULL")
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("read_rename_column") {
@@ -239,43 +239,43 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (3,'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_decimal") {
     sql("CREATE TABLE tbl (id INT, price DECIMAL(10,2), ratio DECIMAL(18,8)) USING delta")
     sql("INSERT INTO tbl VALUES (1,99.99,0.12345678),(2,1234.56,3.14159265),(3,0.01,0.00000001)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "price > 100")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "price > 100")
+    snapshotSpec(t)
   }
 
   test("read_projection") {
     sql("CREATE TABLE tbl (id INT, name STRING, score DOUBLE, category STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'alice',95.5,'A'),(2,'bob',82.3,'B'),(3,'charlie',91.0,'A')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "name"))
-    read(t, columns = Seq("score"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "name"))
+    readSpec(t, columns = Seq("score"))
+    snapshotSpec(t)
   }
 
   test("read_binary") {
     sql("CREATE TABLE tbl (id INT, data BINARY) USING delta")
     sql("INSERT INTO tbl VALUES (1,X'48454C4C4F'),(2,X'574F524C44'),(3,X'')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("read_negative_version") {
     sql("CREATE TABLE tbl (value INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 6)")
     val t = registerTable("tbl")
-    read(t, version = -1)
-    snapshot(t)
+    readSpec(t, version = -1)
+    snapshotSpec(t)
   }
 
   test("read_after_merge_target") {
@@ -287,8 +287,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       WHEN MATCHED THEN UPDATE SET val = s.val
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("target")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // === Core Reads Extended ===
@@ -297,24 +297,24 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("CREATE TABLE tbl (b BYTE) USING delta")
     sql("INSERT INTO tbl VALUES (-128), (0), (127)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_short_boundaries") {
     sql("CREATE TABLE tbl (s SHORT) USING delta")
     sql("INSERT INTO tbl VALUES (-32768), (0), (32767)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_date_boundaries") {
     sql("CREATE TABLE tbl (d DATE) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'0001-01-01'), (DATE'2024-06-15'), (DATE'9999-12-31')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_timestamp_boundaries") {
@@ -324,8 +324,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       (TIMESTAMP'2024-06-15 12:30:45.123456'),
       (TIMESTAMP'2262-04-11 23:47:16.854775')""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_decimal_max_precision") {
@@ -335,8 +335,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       (-12345678901234567890.123456789012345678),
       (0.000000000000000001)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_decimal_zero_scale") {
@@ -346,44 +346,44 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       (-99999999999999999999999999999999999999),
       (0)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_float_nan") {
     sql("CREATE TABLE tbl (f FLOAT) USING delta")
     sql("INSERT INTO tbl VALUES (CAST('NaN' AS FLOAT)), (1.5), (NULL)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "f IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "f IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("cr_float_infinity") {
     sql("CREATE TABLE tbl (f FLOAT) USING delta")
     sql("INSERT INTO tbl VALUES (CAST('Infinity' AS FLOAT)), (CAST('-Infinity' AS FLOAT)), (0.0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "f > 0")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "f > 0")
+    snapshotSpec(t)
   }
 
   test("cr_double_nan") {
     sql("CREATE TABLE tbl (d DOUBLE) USING delta")
     sql("INSERT INTO tbl VALUES (CAST('NaN' AS DOUBLE)), (2.5), (NULL)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "d IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "d IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("cr_double_infinity") {
     sql("CREATE TABLE tbl (d DOUBLE) USING delta")
     sql("INSERT INTO tbl VALUES (CAST('Infinity' AS DOUBLE)), (CAST('-Infinity' AS DOUBLE)), (0.0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "d > 0")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "d > 0")
+    snapshotSpec(t)
   }
 
   test("cr_deeply_nested_struct") {
@@ -393,8 +393,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("""INSERT INTO tbl VALUES (
       named_struct('l1', named_struct('l2', named_struct('l3', named_struct('value', 42)))))""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_struct_all_null") {
@@ -402,8 +402,8 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (named_struct('a', CAST(NULL AS INT), 'b', CAST(NULL AS STRING), 'c', CAST(NULL AS DOUBLE)))")
     sql("INSERT INTO tbl VALUES (named_struct('a', 1, 'b', 'hello', 'c', 3.14))")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_array_of_arrays") {
@@ -411,16 +411,16 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (array(array(1,2), array(3,4)))")
     sql("INSERT INTO tbl VALUES (array(array(), array(5)))")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_map_complex_value") {
     sql("CREATE TABLE tbl (m MAP<STRING, STRUCT<x: INT, y: STRING>>) USING delta")
     sql("INSERT INTO tbl VALUES (map('key1', named_struct('x', 1, 'y', 'a'), 'key2', named_struct('x', 2, 'y', 'b')))")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_wide_schema") {
@@ -429,53 +429,53 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     val colExprs = (1 to 100).map(i => s"$i").mkString(", ")
     sql(s"INSERT INTO tbl VALUES ($colExprs)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cr_empty_vs_null_string") {
     sql("CREATE TABLE tbl (id INT, s STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, ''), (2, NULL), (3, 'hello')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "s IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "s IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("cr_binary_readback") {
     sql("CREATE TABLE tbl (id INT, data BINARY) USING delta")
     sql("INSERT INTO tbl VALUES (1, X'DEADBEEF'), (2, X''), (3, NULL)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "data IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "data IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("cr_boolean_filter") {
     sql("CREATE TABLE tbl (id INT, flag BOOLEAN) USING delta")
     sql("INSERT INTO tbl VALUES (1, true), (2, false), (3, NULL)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "flag = true")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "flag = true")
+    snapshotSpec(t)
   }
 
   test("cr_zero_matching_rows") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = registerTable("tbl")
-    read(t, predicate = "id > 999")
-    read(t, predicate = "id = -1")
-    snapshot(t)
+    readSpec(t, predicate = "id > 999")
+    readSpec(t, predicate = "id = -1")
+    snapshotSpec(t)
   }
 
   test("cr_projection_reorder") {
     sql("CREATE TABLE tbl (a INT, b STRING, c DOUBLE) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'hello', 3.14), (2, 'world', 2.72)")
     val t = registerTable("tbl")
-    read(t, columns = Seq("c", "a"))
-    read(t, columns = Seq("b"))
-    snapshot(t)
+    readSpec(t, columns = Seq("c", "a"))
+    readSpec(t, columns = Seq("b"))
+    snapshotSpec(t)
   }
 
   test("cr_multi_partition") {
@@ -483,19 +483,19 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
       USING delta PARTITIONED BY (year, region)""")
     sql("INSERT INTO tbl VALUES (1, 2024, 'us'), (2, 2024, 'eu'), (3, 2025, 'us')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "year = 2024")
-    read(t, predicate = "year = 2024 AND region = 'us'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "year = 2024")
+    readSpec(t, predicate = "year = 2024 AND region = 'us'")
+    snapshotSpec(t)
   }
 
   test("cr_partition_null") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, NULL), (3, 'b')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part IS NULL")
+    snapshotSpec(t)
   }
 
   // Note: The remaining ~100 tests from reads.scala would follow the same pattern.

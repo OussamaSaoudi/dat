@@ -29,10 +29,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (value) VALUES (20)")
     sql("INSERT INTO tbl (value) VALUES (30)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id >= 1000 AND id <= 1200")
-    read(t, columns = Seq("id"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 1000 AND id <= 1200")
+    readSpec(t, columns = Seq("id"))
+    snapshotSpec(t)
   }
 
   test("ic_002_default_config") {
@@ -43,9 +43,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (value) VALUES (100)")
     sql("INSERT INTO tbl (value) VALUES (200)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 1")
+    snapshotSpec(t)
   }
 
   test("ic_003_multiple_identity_cols") {
@@ -58,10 +58,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (value) VALUES ('b')")
     sql("INSERT INTO tbl (id1, value) VALUES (2, 'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id2 < 100")
-    read(t, columns = Seq("id1", "id2"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id2 < 100")
+    readSpec(t, columns = Seq("id1", "id2"))
+    snapshotSpec(t)
   }
 
   test("ic_004_with_generated_col") {
@@ -73,9 +73,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (value) VALUES (10)")
     sql("INSERT INTO tbl (value) VALUES (20)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "id_plus_one"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "id_plus_one"))
+    snapshotSpec(t)
   }
 
   test("ic_005_identity_not_exposed") {
@@ -89,10 +89,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (part, value) VALUES (2, 20)")
     sql("INSERT INTO tbl (id, part, value) VALUES (3, 1, 30)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 1")
-    read(t, columns = Seq("id", "part", "value"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 1")
+    readSpec(t, columns = Seq("id", "part", "value"))
+    snapshotSpec(t)
   }
 
   test("ic_006_ctas_no_inherit") {
@@ -105,9 +105,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')
       AS SELECT * FROM src""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id"))
+    snapshotSpec(t)
   }
 
   test("ic_007_replace_resets_watermark") {
@@ -123,10 +123,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (value) VALUES ('new')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
+    readSpec(t)
+    readSpec(t, version = 2)
     val N = 4L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_008_restore_positive_step") {
@@ -138,10 +138,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("RESTORE TABLE tbl TO VERSION AS OF 3")
     sql("INSERT INTO tbl (value) VALUES (99)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 3)
+    readSpec(t)
+    readSpec(t, version = 3)
     val N = 8L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_009_restore_negative_step") {
@@ -153,10 +153,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("RESTORE TABLE tbl TO VERSION AS OF 3")
     sql("INSERT INTO tbl (value) VALUES (99)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id < 0")
+    readSpec(t)
+    readSpec(t, predicate = "id < 0")
     val N = 8L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_010_restore_partitioned") {
@@ -170,11 +170,11 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("RESTORE TABLE tbl TO VERSION AS OF 1")
     sql("INSERT INTO tbl (value) VALUES (5),(6)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value = 1")
-    read(t, version = 1)
+    readSpec(t)
+    readSpec(t, predicate = "value = 1")
+    readSpec(t, version = 1)
     val N = 4L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_011_generated_by_default") {
@@ -186,9 +186,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (id, value) VALUES (999, 20)")
     sql("INSERT INTO tbl (value) VALUES (30)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 999")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 999")
+    snapshotSpec(t)
   }
 
   test("ic_012_time_travel") {
@@ -200,11 +200,11 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (value) VALUES (20)")
     sql("INSERT INTO tbl (value) VALUES (30)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, version = 2)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_013_column_mapping") {
@@ -217,9 +217,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("INSERT INTO tbl (name) VALUES ('alice')")
     sql("INSERT INTO tbl (name) VALUES ('bob')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name = 'alice'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name = 'alice'")
+    snapshotSpec(t)
   }
 
   test("ic_014_delete") {
@@ -232,10 +232,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("DELETE FROM tbl WHERE value = 1")
     sql("INSERT INTO tbl (value) VALUES (3)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
+    readSpec(t)
+    readSpec(t, version = 2)
     val N = 4L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_015_merge") {
@@ -250,10 +250,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
       WHEN MATCHED THEN UPDATE SET value = s.value * 10
       WHEN NOT MATCHED THEN INSERT (value) VALUES (s.value)""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
+    readSpec(t)
+    readSpec(t, version = 1)
     val N = 2L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_016_update") {
@@ -266,11 +266,11 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     for (i <- 1 to 6) sql(s"INSERT INTO tbl (value) VALUES (${i * 10})")
     sql("UPDATE tbl SET value = value + 100 WHERE id < 3")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value >= 100")
-    read(t, version = 6)
+    readSpec(t)
+    readSpec(t, predicate = "value >= 100")
+    readSpec(t, version = 6)
     val N = 7L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ic_bigint_type") {
@@ -280,9 +280,9 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (value) SELECT CAST(id AS INT) FROM range(100)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value >= 50")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value >= 50")
+    snapshotSpec(t)
   }
 
   test("ic_negative_step") {
@@ -292,8 +292,8 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (value) VALUES (10),(20),(30)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ic_partitioned") {
@@ -305,10 +305,10 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (value, category) VALUES (10,'A'),(20,'B'),(30,'A'),(40,'B'),(50,'A')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "category = 'A'")
-    read(t, predicate = "category = 'B'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "category = 'A'")
+    readSpec(t, predicate = "category = 'B'")
+    snapshotSpec(t)
   }
 
   test("ic_with_schema_evolution") {
@@ -320,11 +320,11 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     sql("ALTER TABLE tbl ADD COLUMN (extra STRING)")
     sql("INSERT INTO tbl (value, extra) VALUES (30, 'hello'),(40, 'world')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "extra IS NOT NULL")
-    read(t, version = 1)
+    readSpec(t)
+    readSpec(t, predicate = "extra IS NOT NULL")
+    readSpec(t, version = 1)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
 }

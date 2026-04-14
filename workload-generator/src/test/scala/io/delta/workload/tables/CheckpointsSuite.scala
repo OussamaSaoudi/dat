@@ -33,9 +33,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(201, 301)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 250")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 250")
+    snapshotSpec(t)
   }
 
   test("cp_multi_version") {
@@ -45,21 +45,21 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     checkpoint("tbl")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(101, 151)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
   }
 
   test("cp_last_checkpoint") {
     sql("CREATE TABLE tbl (id INT, val STRING) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '5')")
     for (i <- 1 to 7) sql(s"INSERT INTO tbl VALUES ($i, 'v$i')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 5)
-    snapshot(t)
-    snapshot(t, version = 5)
+    readSpec(t)
+    readSpec(t, version = 5)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 5)
   }
 
   test("cp_schema_evolution") {
@@ -69,10 +69,10 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
     sql("INSERT INTO tbl SELECT id, 'test' FROM range(50, 100)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
+    readSpec(t)
+    readSpec(t, version = 0)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("cp_partitioned") {
@@ -81,10 +81,10 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl SELECT id, CAST(id % 5 AS INT) FROM range(100, 200)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 0")
-    read(t, predicate = "part = 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 0")
+    readSpec(t, predicate = "part = 3")
+    snapshotSpec(t)
   }
 
   // New workloads: 32 more to match existing acceptance_workloads/cp_* & ckp_*
@@ -96,17 +96,17 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     checkpoint("tbl")
     sql("INSERT INTO tbl VALUES (6,'f')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("cp_empty_table") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_many_commits") {
@@ -114,9 +114,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     for (i <- 1 to 20) sql(s"INSERT INTO tbl VALUES ($i)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 15")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 15")
+    snapshotSpec(t)
   }
 
   test("cp_multipart") {
@@ -126,13 +126,13 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     // Force multi-part checkpoint via partSize property
     checkpointAt("tbl")
     val t = registerTable("tbl")
-    read(t, name = "read_latest")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, version = 3)
-    read(t, version = 4)
-    snapshot(t)
+    readSpec(t, name = "read_latest")
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, version = 3)
+    readSpec(t, version = 4)
+    snapshotSpec(t)
   }
 
   test("cp_multiple") {
@@ -143,11 +143,11 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     checkpoint("tbl")
     sql("INSERT INTO tbl VALUES (6)")
     val t = registerTable("tbl")
-    read(t, name = "read_latest")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t, name = "read_latest")
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
   }
 
   test("cp_read_after_version_delete") {
@@ -163,8 +163,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       val jsonFile = logDir.resolve("00000000000000000003.json")
       if (java.nio.file.Files.exists(jsonFile)) java.nio.file.Files.delete(jsonFile)
     }
-    read(t, name = "read_at_checkpoint")
-    snapshot(t)
+    readSpec(t, name = "read_at_checkpoint")
+    snapshotSpec(t)
   }
 
   test("cp_checkpoint_only_table") {
@@ -182,8 +182,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
         iter.filter(_.toString.endsWith(".json")).foreach(java.nio.file.Files.delete)
       } finally { stream.close() }
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 
@@ -195,9 +195,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (4,'d'),(5,'e')")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 3")
+    snapshotSpec(t)
   }
 
   test("cp_v2_json") {
@@ -207,8 +207,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (1,'x'),(2,'y')")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_v2_compat") {
@@ -219,9 +219,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     checkpoint("tbl")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(100, 200)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("cp_v2_compat_json") {
@@ -232,9 +232,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     checkpoint("tbl")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(50, 100)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("cp_v2_after_dml") {
@@ -246,9 +246,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("UPDATE tbl SET name = 'updated' WHERE id = 3")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 2")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 2")
+    snapshotSpec(t)
   }
 
   test("cp_v2_all_actions_in_manifest") {
@@ -259,8 +259,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_v2_all_actions_in_manifest_parquet") {
@@ -270,8 +270,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_v2_multipart_sidecar") {
@@ -281,13 +281,13 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
         'delta.enableDeletionVectors' = 'true')""")
     for (i <- 0 to 6) sql(s"INSERT INTO tbl SELECT CAST(id AS INT) FROM range(${i*15}, ${(i+1)*15})")
     val t = registerTable("tbl")
-    read(t, name = "read_latest")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2, name = "read_v2_two_sidecars")
-    read(t, version = 4, name = "read_v4_four_sidecars")
-    read(t, version = 5, name = "read_v5_part_size_100")
-    snapshot(t)
+    readSpec(t, name = "read_latest")
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2, name = "read_v2_two_sidecars")
+    readSpec(t, version = 4, name = "read_v4_four_sidecars")
+    readSpec(t, version = 5, name = "read_v5_part_size_100")
+    snapshotSpec(t)
   }
 
   test("cp_v2_multipart_sidecar_json") {
@@ -297,15 +297,15 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
         'delta.enableDeletionVectors' = 'true')""")
     for (i <- 0 to 6) sql(s"INSERT INTO tbl SELECT CAST(id AS INT) FROM range(${i*10}, ${(i+1)*10})")
     val t = registerTable("tbl")
-    read(t, name = "read_latest")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2, name = "read_v2_two_sidecars")
-    read(t, version = 3)
-    read(t, version = 4, name = "read_v4_four_sidecars")
-    read(t, version = 5, name = "read_v5_part_size_100")
-    read(t, version = 6)
-    snapshot(t)
+    readSpec(t, name = "read_latest")
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2, name = "read_v2_two_sidecars")
+    readSpec(t, version = 3)
+    readSpec(t, version = 4, name = "read_v4_four_sidecars")
+    readSpec(t, version = 5, name = "read_v5_part_size_100")
+    readSpec(t, version = 6)
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_dvs") {
@@ -316,8 +316,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("DELETE FROM tbl WHERE id IN (2, 4)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t, name = "read_all_from_checkpoint")
-    snapshot(t)
+    readSpec(t, name = "read_all_from_checkpoint")
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_dvs_json") {
@@ -328,8 +328,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("DELETE FROM tbl WHERE id IN (3, 7, 15)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t, name = "read_all_from_checkpoint")
-    snapshot(t)
+    readSpec(t, name = "read_all_from_checkpoint")
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_column_mapping") {
@@ -340,9 +340,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("name"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("name"))
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_row_tracking") {
@@ -354,8 +354,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (4,'d')")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_struct_stats") {
@@ -365,8 +365,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (1, 1.5),(2, 2.5),(3, 3.5)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cp_v2_with_type_widening") {
@@ -379,9 +379,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     sql("INSERT INTO tbl VALUES (3, 3000000000)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
 
@@ -391,9 +391,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     for (i <- 0 until 105) sql(s"INSERT INTO tbl VALUES ($i)")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 100")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 100")
+    snapshotSpec(t)
   }
 
   test("ckp_multipart_10_parts") {
@@ -403,9 +403,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     for (i <- 0 to 5) sql(s"INSERT INTO tbl SELECT CAST(id AS INT) FROM range(${i*50}, ${(i+1)*50})")
     checkpointAt("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 200")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 200")
+    snapshotSpec(t)
   }
 
   test("ckp_struct_array_map") {
@@ -420,9 +420,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       (2, named_struct('name','bob','age',25), array('c'), map('y',2,'z',3))""")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("info", "tags"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("info", "tags"))
+    snapshotSpec(t)
   }
 
   test("ckp_v2_multiple_sidecars") {
@@ -433,9 +433,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
     for (i <- 0 to 9) sql(s"INSERT INTO tbl SELECT CAST(id AS INT), CONCAT('val', CAST(id AS STRING)) FROM range(${i*20}, ${(i+1)*20})")
     checkpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 150")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 150")
+    snapshotSpec(t)
   }
 
 
@@ -453,9 +453,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       // Remove Hadoop checksum sidecar to avoid ChecksumException on OSS Spark
       java.nio.file.Files.deleteIfExists(logDir.resolve("._last_checkpoint.crc"))
     }
-    read(t)
-    read(t, predicate = "id > 3")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 3")
+    snapshotSpec(t)
   }
 
   test("ckp_missing_checkpoint_file") {
@@ -473,8 +473,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
         iter.filter(_.toString.contains(".checkpoint.")).foreach(java.nio.file.Files.delete)
       } finally { stream.close() }
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ckp_incomplete_multipart") {
@@ -494,8 +494,8 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
         if (parts.nonEmpty) java.nio.file.Files.delete(parts.head)
       } finally { stream.close() }
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ckp_wrong_version_hint") {
@@ -516,9 +516,9 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       // Remove Hadoop checksum sidecar to avoid ChecksumException on OSS Spark
       java.nio.file.Files.deleteIfExists(logDir.resolve("._last_checkpoint.crc"))
     }
-    read(t)
-    read(t, predicate = "id > 4")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 4")
+    snapshotSpec(t)
   }
 
 
@@ -537,7 +537,7 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       val cpFile = logDir.resolve("00000000000000000000.checkpoint.parquet")
       java.nio.file.Files.delete(cpFile)
     }
-    snapshot(t)
+    snapshotSpec(t)
   }
 
   test("cp_err_missing_protocol") {
@@ -553,7 +553,7 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
       val cpFile = logDir.resolve("00000000000000000000.checkpoint.parquet")
       java.nio.file.Files.delete(cpFile)
     }
-    snapshot(t)
+    snapshotSpec(t)
   }
 
 }

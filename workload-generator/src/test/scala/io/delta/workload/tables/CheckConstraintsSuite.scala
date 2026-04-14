@@ -27,9 +27,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b'),(3, 'c')")
     sql("INSERT INTO tbl VALUES (7, 'd'),(8, 'e')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 5")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 5")
+    snapshotSpec(t)
   }
 
   test("cc_002_show_tblproperties") {
@@ -39,13 +39,13 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl ADD CONSTRAINT myconstraint CHECK (x > 0)")
     sql("INSERT INTO tbl VALUES (5, 50),(6, 60)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x > 3")
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
-    snapshot(t, version = 2)
-    snapshot(t, version = 3)
+    readSpec(t)
+    readSpec(t, predicate = "x > 3")
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
+    snapshotSpec(t, version = 2)
+    snapshotSpec(t, version = 3)
   }
 
   test("cc_003_delta_history") {
@@ -57,10 +57,10 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl DROP CONSTRAINT positive")
     sql("INSERT INTO tbl VALUES (-1),(0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 3)
+    readSpec(t)
+    readSpec(t, version = 3)
     val N = 5L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("cc_004_case_insensitive_drop") {
@@ -73,10 +73,10 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     // After drop, negative values allowed
     sql("INSERT INTO tbl VALUES (-1),(0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x < 0")
+    readSpec(t)
+    readSpec(t, predicate = "x < 0")
     val N = 5L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("cc_005_varchar_constraint") {
@@ -85,9 +85,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (1, 'ab'),(2, 'cdef')")
     sql("INSERT INTO tbl VALUES (3, 'ghij')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "length(s) < 4")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "length(s) < 4")
+    snapshotSpec(t)
   }
 
   test("cc_006_basic_constraint") {
@@ -96,9 +96,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
     sql("INSERT INTO tbl VALUES (1, 'first'),(2, 'second'),(3, 'third')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 1")
+    snapshotSpec(t)
   }
 
   test("cc_007_multiple_constraints") {
@@ -111,10 +111,10 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (4, 100.00, 'active'),(5, 50.75, 'pending')")
     sql("INSERT INTO tbl VALUES (6, 200.00, 'closed')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "amount > 50")
-    read(t, predicate = "status = 'active'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "amount > 50")
+    readSpec(t, predicate = "status = 'active'")
+    snapshotSpec(t)
   }
 
   test("cc_008_nested_constraint") {
@@ -125,9 +125,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (2, named_struct('name', 'Bob', 'age', 30))")
     sql("INSERT INTO tbl VALUES (3, named_struct('name', 'Charlie', 'age', 18))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.age > 27")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "info.age > 27")
+    snapshotSpec(t)
   }
 
   test("cc_009_array_constraint") {
@@ -138,9 +138,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (2, array('x'))")
     sql("INSERT INTO tbl VALUES (3, array('p','q','r','s'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "size(tags) > 2")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "size(tags) > 2")
+    snapshotSpec(t)
   }
 
   test("cc_010_length_constraint") {
@@ -151,9 +151,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES ('FGHIJ', 'second')")
     sql("INSERT INTO tbl VALUES ('KLMNO', 'third')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "code = 'ABCDE'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "code = 'ABCDE'")
+    snapshotSpec(t)
   }
 
   test("cc_011_compound_constraint") {
@@ -164,9 +164,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES ('2024-02-01', '2024-02-28', 200.00)")
     sql("INSERT INTO tbl VALUES ('2024-03-01', '2024-03-31', 50.00)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "start_date >= '2024-02-01'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "start_date >= '2024-02-01'")
+    snapshotSpec(t)
   }
 
   test("cc_012_not_null_constraint") {
@@ -177,8 +177,8 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (2, 'also_present')")
     sql("INSERT INTO tbl VALUES (3, 'here_too')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cc_013_time_travel") {
@@ -189,10 +189,10 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl ADD CONSTRAINT positive CHECK (value > 0)")
     sql("INSERT INTO tbl VALUES (10),(20)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
+    readSpec(t)
+    readSpec(t, version = 2)
     val N = 4L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("cc_014_time_type_constraint") {
@@ -203,9 +203,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (2, '10:30:00'),(3, '14:00:00')")
     sql("INSERT INTO tbl VALUES (4, '12:00:00'),(5, '17:30:00')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "event_time >= '12:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "event_time >= '12:00:00'")
+    snapshotSpec(t)
   }
 
   test("cc_015_time_multiple_conditions") {
@@ -216,9 +216,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (2, '09:30:00', '18:00:00')")
     sql("INSERT INTO tbl VALUES (3, '06:00:00', '14:00:00')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "start_time < '10:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "start_time < '10:00:00'")
+    snapshotSpec(t)
   }
 
   test("cc_016_allowed_expressions") {
@@ -231,9 +231,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (5, 'hello', 3.14)")
     sql("INSERT INTO tbl VALUES (10, 'world', 0.0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "num > 7")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "num > 7")
+    snapshotSpec(t)
   }
 
   test("cc_017_column_mapping") {
@@ -242,9 +242,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
     sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b'),(3, 'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value = 'a'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value = 'a'")
+    snapshotSpec(t)
   }
 
   test("cc_018_drop_feature") {
@@ -256,10 +256,10 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("ALTER TABLE tbl DROP CONSTRAINT positive")
     sql("INSERT INTO tbl VALUES (-1),(0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 3)
+    readSpec(t)
+    readSpec(t, version = 3)
     val N = 5L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("cc_019_boolean_column_names") {
@@ -269,9 +269,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (1, true),(2, false)")
     sql("INSERT INTO tbl VALUES (3, true),(4, true)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "flag = true")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "flag = true")
+    snapshotSpec(t)
   }
 
   test("cc_020_decimal_constraint") {
@@ -285,9 +285,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (4, 149.99, 3)")
     sql("INSERT INTO tbl VALUES (5, 199.99, 10)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "price > 100")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "price > 100")
+    snapshotSpec(t)
   }
 
   test("cc_complex_expr") {
@@ -297,9 +297,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (25, 'Alice'),(150, 'Bob')")
     sql("INSERT INTO tbl VALUES (30, 'Charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "age > 100")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "age > 100")
+    snapshotSpec(t)
   }
 
   test("cc_null_aware") {
@@ -309,9 +309,9 @@ class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
     sql("INSERT INTO tbl VALUES (1, named_struct('name', 'Alice', 'age', 25))")
     sql("INSERT INTO tbl VALUES (2, named_struct('name', 'Bob', 'age', 30))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.age > 28")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "info.age > 28")
+    snapshotSpec(t)
   }
 
 }

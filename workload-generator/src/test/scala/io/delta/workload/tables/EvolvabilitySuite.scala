@@ -40,8 +40,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       java.nio.file.Files.write(f,
         (content.trim + "\n" + """{"unknownAction":{"key":"val"}}""" + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ev_unknown_action_type") {
@@ -54,8 +54,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       java.nio.file.Files.write(f,
         (content.trim + "\n" + """{"unknownAction":{"key":"value"}}""" + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Protocol evolvability
@@ -64,7 +64,7 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     val t = registerTable("tbl")
-    snapshot(t)
+    snapshotSpec(t)
   }
 
   test("ev_extra_protocol_fields") {
@@ -84,8 +84,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Unknown protocol features
@@ -107,7 +107,7 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    snapshot(t)
+    snapshotSpec(t)
   }
 
   test("ev_unknown_writer_feature") {
@@ -126,8 +126,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ev_unknown_reader_feature") {
@@ -147,8 +147,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Schema evolution
@@ -159,9 +159,9 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
     sql("INSERT INTO tbl VALUES (5, 'alice'), (6, 'bob')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("ev_data_types") {
@@ -171,8 +171,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
     sql("INSERT INTO tbl VALUES (1, 'alice', 95.5, true, DATE'2024-01-01')")
     sql("INSERT INTO tbl VALUES (2, 'bob', 82.3, false, DATE'2024-06-15')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Partitioned + null partition values
@@ -181,18 +181,18 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
     sql("CREATE TABLE tbl (id LONG, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 'a'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part = 'a'")
+    snapshotSpec(t)
   }
 
   test("ev_partition_null") {
     sql("CREATE TABLE tbl (id LONG, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, NULL), (3, 'b')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "part IS NULL")
+    snapshotSpec(t)
   }
 
   // CommitInfo with future fields
@@ -213,8 +213,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Missing intermediate version
@@ -236,9 +236,9 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000002.json"))
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000003.json"))
     }
-    read(t)
-    read(t, predicate = "id >= 40")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id >= 40")
+    snapshotSpec(t)
   }
 
   // Format Compatibility: unknown fields in add
@@ -262,8 +262,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: unknown field in metadata
@@ -284,8 +284,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: unknown field in protocol
@@ -306,8 +306,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: unknown action at top level
@@ -322,8 +322,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       java.nio.file.Files.write(f,
         (content.trim + "\n" + """{"futureAction":{"data":"test","version":99}}""" + "\n").getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: null fields in add action
@@ -348,8 +348,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: empty JSON line in commit file
@@ -365,8 +365,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       val withBlanks = content.split("\n").flatMap(line => Seq(line, "")).mkString("\n")
       java.nio.file.Files.write(f, withBlanks.getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Format Compatibility: extra metadata configuration keys
@@ -392,8 +392,8 @@ class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 }

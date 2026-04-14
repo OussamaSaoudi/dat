@@ -26,11 +26,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMN (new_col DOUBLE)")
     sql("INSERT INTO tbl VALUES (2, 'after', 3.14)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, columns = Seq("id", "new_col"))
-    read(t, predicate = "new_col IS NOT NULL")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, columns = Seq("id", "new_col"))
+    readSpec(t, predicate = "new_col IS NOT NULL")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_add_nested_field") {
@@ -39,10 +39,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
     sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25,'email','bob@test.com'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.email IS NULL")
-    read(t, predicate = "info.email IS NOT NULL")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "info.email IS NULL")
+    readSpec(t, predicate = "info.email IS NOT NULL")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_rename") {
@@ -53,10 +53,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (2, 'after')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, columns = Seq("id", "new_name"))
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, columns = Seq("id", "new_name"))
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_drop_column") {
@@ -67,9 +67,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl DROP COLUMN value")
     sql("INSERT INTO tbl VALUES (3,'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 2)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_multiple_renames") {
@@ -82,9 +82,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN b TO c")
     sql("INSERT INTO tbl VALUES (3,'third')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "c"))
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "c"))
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("schema_predicate_on_added") {
@@ -93,11 +93,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
     sql("INSERT INTO tbl VALUES (3,'charlie',95),(4,'diana',88)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score > 90")
-    read(t, predicate = "score IS NULL")
-    read(t, predicate = "score IS NOT NULL")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "score > 90")
+    readSpec(t, predicate = "score IS NULL")
+    readSpec(t, predicate = "score IS NOT NULL")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
 
@@ -107,10 +107,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
     sql("INSERT INTO tbl VALUES (4,'d',100),(5,'e',200),(6,'f',300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score = 200")
-    read(t, predicate = "score = 100 OR score IS NULL")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "score = 200")
+    readSpec(t, predicate = "score = 100 OR score IS NULL")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_drop_col_pred") {
@@ -121,10 +121,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl DROP COLUMN category")
     sql("INSERT INTO tbl VALUES (4,'diana'),(5,'eve')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 3")
-    read(t, predicate = "name = 'alice'")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "id > 3")
+    readSpec(t, predicate = "name = 'alice'")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_rename_pred") {
@@ -135,10 +135,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (4,'diana')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "new_name = 'alice'")
-    read(t, predicate = "new_name = 'diana'")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "new_name = 'alice'")
+    readSpec(t, predicate = "new_name = 'diana'")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_rename_partition") {
@@ -150,10 +150,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
     sql("INSERT INTO tbl VALUES (5,'A'),(6,'C')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "cat = 'A'")
-    read(t, predicate = "cat = 'C'")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "cat = 'A'")
+    readSpec(t, predicate = "cat = 'C'")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_drop_readd_same_name") {
@@ -165,8 +165,8 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMN (x INT)")
     sql("INSERT INTO tbl VALUES (3,100),(4,200)")
     val t = registerTable("tbl")
-    read(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("schema_readd_pred") {
@@ -178,10 +178,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMN (x INT)")
     sql("INSERT INTO tbl VALUES (3,100),(4,200)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x = 200")
-    read(t, predicate = "x IS NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "x = 200")
+    readSpec(t, predicate = "x IS NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("schema_dv_pred_null") {
@@ -192,10 +192,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (5,'eve',90),(6,'frank',80)")
     sql("DELETE FROM tbl WHERE id IN (2, 5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score IS NULL")
-    read(t, predicate = "score IS NOT NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "score IS NULL")
+    readSpec(t, predicate = "score IS NOT NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("schema_rename_read_v1") {
@@ -206,9 +206,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (2,'after_rename')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_nested_field_pred") {
@@ -218,10 +218,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','email','bob@x.com'))")
     sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','email','charlie@y.com'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.email IS NULL")
-    read(t, predicate = "info.email IS NOT NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "info.email IS NULL")
+    readSpec(t, predicate = "info.email IS NOT NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("schema_proj_at_old_version") {
@@ -230,10 +230,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (extra INT)")
     sql("INSERT INTO tbl VALUES (3,'three',300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1, columns = Seq("id", "value"))
-    read(t, columns = Seq("id", "extra"))
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1, columns = Seq("id", "value"))
+    readSpec(t, columns = Seq("id", "extra"))
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("schema_type_coercion_insert") {
@@ -242,9 +242,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     // Insert int values into long columns (implicit coercion)
     sql("INSERT INTO tbl SELECT CAST(2 AS INT), CAST(200 AS INT)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value > 150")
-    for (v <- 0L to 2L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "value > 150")
+    for (v <- 0L to 2L) snapshotSpec(t, version = v)
   }
 
   test("schema_merge_with_evolution") {
@@ -257,9 +257,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("target")
-    read(t)
-    read(t, columns = Seq("id", "score"))
-    for (v <- 0L to 2L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "score"))
+    for (v <- 0L to 2L) snapshotSpec(t, version = v)
   }
 
 
@@ -272,10 +272,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
     sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score = 0")
-    read(t, predicate = "score = 95")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "score = 0")
+    readSpec(t, predicate = "score = 95")
+    snapshotSpec(t)
   }
 
   test("se_add_col_pred_null") {
@@ -287,11 +287,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
     sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score > 90")
-    read(t, predicate = "score IS NOT NULL")
-    read(t, predicate = "score IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "score > 90")
+    readSpec(t, predicate = "score IS NOT NULL")
+    readSpec(t, predicate = "score IS NULL")
+    snapshotSpec(t)
   }
 
   test("se_add_col_read_v1") {
@@ -302,10 +302,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
     sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("se_add_column_with_default") {
@@ -316,9 +316,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (status STRING)")
     sql("INSERT INTO tbl VALUES (3, 'active')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "status"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "status"))
+    snapshotSpec(t)
   }
 
   test("se_drop_column") {
@@ -330,8 +330,8 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl DROP COLUMN value")
     sql("INSERT INTO tbl VALUES (3, 'charlie')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("se_drop_col_pred") {
@@ -345,11 +345,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl DROP COLUMN value")
     sql("INSERT INTO tbl VALUES (4, 'diana')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 2")
-    read(t, predicate = "name = 'alice'")
-    snapshot(t)
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "id > 2")
+    readSpec(t, predicate = "name = 'alice'")
+    snapshotSpec(t)
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("se_drop_col_read_v1") {
@@ -362,10 +362,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl DROP COLUMN value")
     sql("INSERT INTO tbl VALUES (3, 'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("se_drop_readd_same_name") {
@@ -378,8 +378,8 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMN (x INT)")
     sql("INSERT INTO tbl VALUES (2, 42)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("se_dv_pred_null") {
@@ -394,10 +394,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("""ALTER TABLE tbl SET TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("DELETE FROM tbl WHERE id = 2")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score IS NOT NULL")
-    read(t, predicate = "score IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "score IS NOT NULL")
+    readSpec(t, predicate = "score IS NULL")
+    snapshotSpec(t)
   }
 
   test("se_merge_with_evolution") {
@@ -411,9 +411,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
       WHEN MATCHED THEN UPDATE SET *
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("target")
-    read(t)
-    read(t, columns = Seq("id", "name", "score"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "name", "score"))
+    snapshotSpec(t)
   }
 
   test("se_nested_field_pred") {
@@ -424,10 +424,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
     sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.email IS NOT NULL")
-    read(t, predicate = "info.email IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "info.email IS NOT NULL")
+    readSpec(t, predicate = "info.email IS NULL")
+    snapshotSpec(t)
   }
 
   test("se_nested_field_project") {
@@ -438,10 +438,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
     sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id"))
-    read(t, columns = Seq("id", "info"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id"))
+    readSpec(t, columns = Seq("id", "info"))
+    snapshotSpec(t)
   }
 
   test("se_pred_on_added_col") {
@@ -453,9 +453,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
     sql("INSERT INTO tbl VALUES (4, 'diana', 88)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "score IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "score IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("se_proj_at_old_version") {
@@ -466,11 +466,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
     sql("INSERT INTO tbl VALUES (3, 'charlie', 95)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1, columns = Seq("id"))
-    read(t, version = 2, columns = Seq("id", "name"))
-    snapshot(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1, columns = Seq("id"))
+    readSpec(t, version = 2, columns = Seq("id", "name"))
+    snapshotSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("se_readd_pred") {
@@ -484,11 +484,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (2, 200)")
     sql("INSERT INTO tbl VALUES (3, 300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x = 200")
-    read(t, predicate = "x IS NULL")
-    snapshot(t)
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "x = 200")
+    readSpec(t, predicate = "x IS NULL")
+    snapshotSpec(t)
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("se_rename_chain") {
@@ -502,9 +502,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN b TO c")
     sql("INSERT INTO tbl VALUES (3, 'third')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "c"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "c"))
+    snapshotSpec(t)
   }
 
   test("se_rename_column") {
@@ -517,9 +517,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
     sql("INSERT INTO tbl VALUES (3, 'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "full_name"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "full_name"))
+    snapshotSpec(t)
   }
 
   test("se_rename_part_pred") {
@@ -534,11 +534,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
     sql("INSERT INTO tbl VALUES (4, 'C', 400)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "cat = 'A'")
-    read(t, predicate = "cat = 'C'")
-    snapshot(t)
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "cat = 'A'")
+    readSpec(t, predicate = "cat = 'C'")
+    snapshotSpec(t)
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("se_rename_partition_column") {
@@ -552,9 +552,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN category TO group_name")
     sql("INSERT INTO tbl VALUES (3, 'C', 300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "group_name", "value"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "group_name", "value"))
+    snapshotSpec(t)
   }
 
   test("se_rename_pred") {
@@ -567,11 +567,11 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
     sql("INSERT INTO tbl VALUES (3, 'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "full_name = 'alice'")
-    read(t, predicate = "full_name LIKE '%ob'")
-    snapshot(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "full_name = 'alice'")
+    readSpec(t, predicate = "full_name LIKE '%ob'")
+    snapshotSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("se_rename_read_v1") {
@@ -584,10 +584,10 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
     sql("INSERT INTO tbl VALUES (3, 'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    snapshot(t)
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("se_type_coercion_insert") {
@@ -597,9 +597,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("INSERT INTO tbl VALUES (2, 200)")
     sql("INSERT INTO tbl VALUES (3, 300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "value > 150")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "value > 150")
+    snapshotSpec(t)
   }
 
   test("se_add_nested_struct_field") {
@@ -610,8 +610,8 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
     sql("INSERT INTO tbl VALUES (3, named_struct('name','charlie','age',35,'email','c@test.com'))")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("se_drop_and_readd_same_name") {
@@ -624,8 +624,8 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMN (x INT)")
     sql("INSERT INTO tbl VALUES (2, 42)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("se_add_top_level_column") {
@@ -637,9 +637,9 @@ class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
     sql("ALTER TABLE tbl ADD COLUMNS (age INT)")
     sql("INSERT INTO tbl VALUES (3, 'charlie', 30)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "name", "age"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "name", "age"))
+    snapshotSpec(t)
   }
 
 }

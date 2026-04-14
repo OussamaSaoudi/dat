@@ -36,9 +36,9 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     sql("DELETE FROM tbl WHERE id = 2")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2", name = "read_deleted")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2", name = "read_deleted")
+    snapshotSpec(t)
   }
 
   // Log replay: checkpoint supersedes log
@@ -53,8 +53,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000000.json"))
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000001.json"))
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Log replay: no checkpoint, full replay from v0
@@ -71,8 +71,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
         .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Log replay: metadata latest wins
@@ -83,9 +83,9 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
     sql("INSERT INTO tbl VALUES (3, 'alice')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name IS NOT NULL")
+    snapshotSpec(t)
   }
 
   // Log replay: dataChange=false from compaction
@@ -96,8 +96,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (3), (4)")
     sql("OPTIMIZE tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Log replay: add, remove, re-add across transactions
@@ -108,10 +108,10 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("DELETE FROM tbl WHERE id = 2")
     sql("INSERT INTO tbl VALUES (2)")  // re-add data
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id = 2")
-    read(t, version = 1)  // before delete
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id = 2")
+    readSpec(t, version = 1)  // before delete
+    snapshotSpec(t)
   }
 
   // Log replay: DV key dedup
@@ -123,8 +123,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("DELETE FROM tbl WHERE id <= 5")
     sql("DELETE FROM tbl WHERE id <= 10")  // re-DV same base file
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Error: missing metadata in state reconstruction
@@ -139,7 +139,7 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"metaData\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
+    readSpec(t)
   }
 
   // Error: missing protocol in state reconstruction
@@ -154,7 +154,7 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"protocol\""))
       java.nio.file.Files.write(f, lines.asJava)
     }
-    read(t)
+    readSpec(t)
   }
 
   // Last checkpoint info (lc_*)
@@ -164,8 +164,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("lc_checksum") {
@@ -173,8 +173,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("lc_multi_version") {
@@ -185,10 +185,10 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (3)")
     sql("INSERT INTO tbl VALUES (4)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, version = 2)  // checkpoint version
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)  // checkpoint version
+    snapshotSpec(t)
   }
 
   test("lc_after_ops") {
@@ -198,8 +198,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (100)")
     forceCheckpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("lc_with_schema") {
@@ -209,8 +209,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (2, 'alice')")
     forceCheckpoint("tbl")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // Production edge cases (prod_*)
@@ -218,8 +218,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
   test("prod_empty_table_with_schema") {
     sql("CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_many_small_commits") {
@@ -228,8 +228,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       sql(s"INSERT INTO tbl VALUES ($i)")
     }
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_non_contiguous_versions") {
@@ -242,8 +242,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     mutateTable(t) { dir =>
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000002.json"))
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_truncated_log") {
@@ -259,8 +259,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000001.json"))
       java.nio.file.Files.deleteIfExists(dir.resolve("_delta_log/00000000000000000002.json"))
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_external_writer_checkpoint") {
@@ -269,8 +269,8 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
      forceCheckpoint("tbl")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_duplicate_add_file_refs") {
@@ -278,16 +278,16 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     sql("INSERT OVERWRITE tbl VALUES (4), (5), (6)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_varchar_metadata_missing") {
     sql("CREATE TABLE tbl (id INT, name VARCHAR(100)) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'hello'), (2, 'world')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("prod_unknown_reader_feature") {
@@ -306,7 +306,7 @@ class LogReplaySuite extends WorkloadTestSuite("log_replay") {
       }
       java.nio.file.Files.write(f, newLines.asJava)
     }
-    read(t)
+    readSpec(t)
   }
 
 }

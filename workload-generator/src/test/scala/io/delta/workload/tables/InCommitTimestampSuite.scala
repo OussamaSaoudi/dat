@@ -25,8 +25,8 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("ict_create_or_replace") {
@@ -35,8 +35,8 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id + 5 FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ict_dml") {
@@ -46,9 +46,9 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("UPDATE tbl SET id = id + 100 WHERE id < 5")
     sql("DELETE FROM tbl WHERE id >= 105")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("ict_enable_later") {
@@ -59,14 +59,14 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("ALTER TABLE tbl SET TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true')")
     sql("INSERT INTO tbl SELECT id + 10 FROM range(5)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 3)
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
-    snapshot(t, version = 2)
-    snapshot(t, version = 3)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 3)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
+    snapshotSpec(t, version = 2)
+    snapshotSpec(t, version = 3)
   }
 
   test("ict_enabled_mid_lifecycle") {
@@ -78,15 +78,15 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("INSERT INTO tbl SELECT id + 10 FROM range(5)")
     sql("INSERT INTO tbl SELECT id + 15 FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
-    snapshot(t, version = 2)
-    snapshot(t, version = 3)
-    snapshot(t, version = 4)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
+    snapshotSpec(t, version = 2)
+    snapshotSpec(t, version = 3)
+    snapshotSpec(t, version = 4)
   }
 
   test("ict_from_checkpoint") {
@@ -97,8 +97,8 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
         'delta.enableDeletionVectors' = 'true')""")
     for (i <- 0 to 5) sql(s"INSERT INTO tbl SELECT id + ${i * 5} FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ict_from_crc") {
@@ -107,9 +107,9 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id + 5 FROM range(5)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("ict_multiple_commits") {
@@ -119,13 +119,13 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("INSERT INTO tbl SELECT id + 5 FROM range(5)")
     sql("INSERT INTO tbl SELECT id + 10 FROM range(5)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
-    read(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
-    read(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
+    readSpec(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
+    readSpec(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
+    snapshotSpec(t)
   }
 
   test("ict_time_travel") {
@@ -135,13 +135,13 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
     sql("INSERT INTO tbl SELECT id + 10 FROM range(10)")
     sql("INSERT INTO tbl SELECT id + 20 FROM range(10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
-    read(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
-    read(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, timestamp = t.getTimestampForVersion(0), name = "timestamp_v0")
+    readSpec(t, timestamp = t.getTimestampForVersion(1), name = "timestamp_v1")
+    readSpec(t, timestamp = t.getTimestampForVersion(2), name = "timestamp_v2")
+    snapshotSpec(t)
   }
 
   test("ict_with_checkpoint") {
@@ -152,10 +152,10 @@ class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
         'delta.enableDeletionVectors' = 'true')""")
     for (i <- 0 to 3) sql(s"INSERT INTO tbl SELECT id + ${i * 5} FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
   }
 
 }

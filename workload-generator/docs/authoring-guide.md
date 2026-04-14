@@ -35,8 +35,8 @@ class MyFeatureSuite extends WorkloadTestSuite("my_feature") {
     sql("INSERT INTO tbl VALUES (1, 'alice'), (2, 'bob')")
 
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 }
@@ -91,7 +91,7 @@ Inside a test body, these methods are available directly (via `WorkloadOps` trai
 | Spark | `spark` — the active `SparkSession` | — |
 | SQL | `sql(statement)` | — |
 | Table handles | `registerTable(name)`, `registerTableFromPath(path)` | → `TableHandle` |
-| Read specs | `read(t, ...)`, `snapshot(t, ...)` | `TableHandle` → `SpecRef` |
+| Read specs | `readSpec(t, ...)`, `snapshotSpec(t, ...)` | `TableHandle` → `SpecRef` |
 | Checkpointing | `forceCheckpoint(tableName)` — triggers a checkpoint via DeltaLog | — |
 | Mutations | `mutateTable(t) { dir => ... }`, `modifyCommitActions(t, version) { ... }` | `TableHandle` |
 
@@ -112,7 +112,7 @@ test("example") {
   sql("DELETE FROM tbl WHERE id = 2")
 
   val t = registerTable("tbl")
-  read(t)
+  readSpec(t)
 }
 ```
 
@@ -133,9 +133,9 @@ test("join_scenario") {
 
   val src = registerTable("source")
   val tgt = registerTable("target")
-  read(src)
-  read(tgt)
-  snapshot(tgt)
+  readSpec(src)
+  readSpec(tgt)
+  snapshotSpec(tgt)
 }
 ```
 
@@ -159,7 +159,7 @@ test("checkpoint_test") {
   DeltaLog.clearCache()
 
   val t = registerTable("tbl")
-  read(t)
+  readSpec(t)
   checkpoint(t, version = 1)
 }
 ```
@@ -174,7 +174,7 @@ test("checkpoint_test") {
   forceCheckpoint("tbl")
 
   val t = registerTable("tbl")
-  read(t)
+  readSpec(t)
 }
 ```
 
@@ -223,10 +223,10 @@ If a test registers **one** table, the directory is just `<test_name>/`. If it r
 
 Every DSL method maps to a spec JSON file in `specs/` and (for success cases) an `expected/` directory. All parameters below are optional unless noted.
 
-### `read(t, ...)`
+### `readSpec(t, ...)`
 
 ```scala
-read(t,
+readSpec(t,
   version: Long,          // time travel by version
   timestamp: String,      // time travel by timestamp (mutually exclusive with version)
   predicate: String,      // SQL WHERE clause
@@ -261,10 +261,10 @@ Auto-naming: `read` → `read_v0` → `read_id_gt_5` → `read_cols_id` → `rea
 
 Expected data: `expected/<test>_<name>/expected_data/*.parquet` (multiset comparison, order-independent) and `expected/<test>_<name>/expected_metadata/*.parquet` (scanned AddFile actions).
 
-### `snapshot(t, ...)`
+### `snapshotSpec(t, ...)`
 
 ```scala
-snapshot(t,
+snapshotSpec(t,
   version: Long,          // snapshot at this version
   timestamp: String       // snapshot at this timestamp
 )
@@ -309,7 +309,7 @@ test("missing_file", "Test missing data file") {
     files.close()
   }
 
-  read(t)  // Will capture an error spec since a file is missing
+  readSpec(t)  // Will capture an error spec since a file is missing
 }
 ```
 
@@ -417,7 +417,7 @@ test("err_missing_version") {
     java.nio.file.Files.delete(commit1)
   }
 
-  read(t).assertError()  // Fails generation if the spec is not an error
+  readSpec(t).assertError()  // Fails generation if the spec is not an error
 }
 ```
 
@@ -427,22 +427,22 @@ All spec methods return a typed `SpecRef[T]` (e.g. `SpecRef[ReadSpec]`, `SpecRef
 
 ```scala
 // Assert the spec captured an error
-read(t).assertError()
+readSpec(t).assertError()
 
 // Assert on the typed ReadSpec
-read(t, predicate = "id > 5").assert { spec: ReadSpec =>
+readSpec(t, predicate = "id > 5").assert { spec: ReadSpec =>
   require(spec.expected.isDefined, "Expected success, not error")
   require(spec.expected.get.rowCount > 0, s"Expected rows")
 }
 
 // Assert on snapshot protocol/metadata
-snapshot(t).assert { spec: SnapshotSpec =>
+snapshotSpec(t).assert { spec: SnapshotSpec =>
   require(spec.expected.isDefined)
 }
 
 // Ignoring the return is fine — existing call sites are unaffected
-read(t)
-snapshot(t)
+readSpec(t)
+snapshotSpec(t)
 ```
 
 Assertions are checked during generation after the spec is written. Failed assertions cause the test to fail.
@@ -458,9 +458,9 @@ test("skipping_basic") {
   sql("INSERT INTO tbl VALUES (10), (20), (30)")  // File 2: min=10, max=30
 
   val t = registerTable("tbl")
-  read(t, predicate = "id > 5")  // Should skip file 1
-  read(t, predicate = "id < 5")  // Should skip file 2
-  read(t)                        // Should read both files
+  readSpec(t, predicate = "id > 5")  // Should skip file 1
+  readSpec(t, predicate = "id < 5")  // Should skip file 2
+  readSpec(t)                        // Should read both files
 }
 ```
 
@@ -476,9 +476,9 @@ test("schema_add_col") {
   sql("INSERT INTO tbl VALUES (3, 'charlie')")
 
   val t = registerTable("tbl")
-  read(t)                // 3 rows, name is null for old rows
-  read(t, version = 1)   // 2 rows, no name column
-  for (v <- 0L to 3) snapshot(t, version = v)
+  readSpec(t)                // 3 rows, name is null for old rows
+  readSpec(t, version = 1)   // 2 rows, no name column
+  for (v <- 0L to 3) snapshotSpec(t, version = v)
 }
 ```
 
@@ -494,8 +494,8 @@ test("checkpoint_basic") {
   forceCheckpoint("tbl")  // Explicit checkpoint trigger
 
   val t = registerTable("tbl")
-  read(t)
-  snapshot(t)
+  readSpec(t)
+  snapshotSpec(t)
 }
 ```
 
@@ -509,10 +509,10 @@ test("dv_basic") {
   sql("DELETE FROM tbl WHERE id = 2")  // Creates a DV
 
   val t = registerTable("tbl")
-  read(t)                     // Should return rows 1, 3
-  read(t, version = 1)        // Should return rows 1, 2, 3
-  read(t, predicate = "id > 1")  // Should return row 3 only
-  snapshot(t)
+  readSpec(t)                     // Should return rows 1, 3
+  readSpec(t, version = 1)        // Should return rows 1, 2, 3
+  readSpec(t, predicate = "id > 1")  // Should return row 3 only
+  snapshotSpec(t)
 }
 ```
 
@@ -531,9 +531,9 @@ test("cm_rename") {
   sql("INSERT INTO tbl VALUES (2, 'bob')")
 
   val t = registerTable("tbl")
-  read(t)
-  read(t, version = 1)
-  for (v <- 0L to 3) snapshot(t, version = v)
+  readSpec(t)
+  readSpec(t, version = 1)
+  for (v <- 0L to 3) snapshotSpec(t, version = v)
 }
 ```
 
@@ -553,9 +553,9 @@ for (dvEnabled <- Seq(true, false)) {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("DELETE FROM tbl WHERE id = 2")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "id > 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "id > 1")
+    snapshotSpec(t)
   }
 }
 ```
@@ -592,9 +592,9 @@ for {
     sql("DELETE FROM tbl WHERE id = 3")
 
     val t = registerTable("tbl")
-    read(t, predicate = predExpr)
-    read(t)
-    snapshot(t)
+    readSpec(t, predicate = predExpr)
+    readSpec(t)
+    snapshotSpec(t)
   }
 }
 ```
@@ -690,4 +690,4 @@ If you use `DeltaLog.forTable()` directly, always call `DeltaLog.clearCache()` b
 
 ### Debugging `WorkloadContext.current`
 
-If you get "No active WorkloadContext", you're calling a DSL method outside a test body. Ensure all `sql()`, `registerTable()`, `read()`, etc. calls are inside `test(...) { ... }` blocks.
+If you get "No active WorkloadContext", you're calling a DSL method outside a test body. Ensure all `sql()`, `registerTable()`, `readSpec()`, etc. calls are inside `test(...) { ... }` blocks.

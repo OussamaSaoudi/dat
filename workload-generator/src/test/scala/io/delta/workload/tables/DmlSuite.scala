@@ -35,8 +35,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("DELETE FROM tbl WHERE true")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("deleteBasic") {
@@ -45,8 +45,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d')")
     sql("DELETE FROM tbl WHERE id = 2")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("deletePartitioned") {
@@ -55,9 +55,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300),(4,'west',400)")
     sql("DELETE FROM tbl WHERE region = 'west'")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "region = 'east'", name = "filter_east")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "region = 'east'", name = "filter_east")
+    snapshotSpec(t)
   }
 
   test("deleteWithInPredicate") {
@@ -66,8 +66,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
     sql("DELETE FROM tbl WHERE id IN (2, 4)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("deleteWithPredicate") {
@@ -76,8 +76,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40),(5,'e',50)")
     sql("DELETE FROM tbl WHERE id > 2 AND amount < 50")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   // INSERT workloads
@@ -89,9 +89,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (3,'c')")
     sql("INSERT INTO tbl VALUES (4,'d')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "id >= 3", name = "filter_new")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "id >= 3", name = "filter_new")
+    snapshotSpec(t)
   }
 
   test("insertOverwrite") {
@@ -100,8 +100,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("INSERT OVERWRITE tbl VALUES (10,'x'),(20,'y')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("insertOverwritePartition") {
@@ -110,9 +110,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300)")
     sql("INSERT OVERWRITE tbl PARTITION (region='east') VALUES (10,'east',999)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "region = 'east'", name = "filter_east")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "region = 'east'", name = "filter_east")
+    snapshotSpec(t)
   }
 
   test("insertSelectReadBack") {
@@ -121,8 +121,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
     sql("INSERT INTO tbl VALUES (3,'c'),(4,'d'),(5,'e')")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("insertValuesReadBack") {
@@ -131,9 +131,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'Alice',95.5)")
     sql("INSERT INTO tbl VALUES (2,'Bob',87.3),(3,'Carol',92.1)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "score > 90.0", name = "filter_high_score")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "score > 90.0", name = "filter_high_score")
+    snapshotSpec(t)
   }
 
   // UPDATE workloads
@@ -144,9 +144,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'old'),(2,'old'),(3,'old')")
     sql("UPDATE tbl SET status = 'new'")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "status = 'new'", name = "filter_new")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "status = 'new'", name = "filter_new")
+    snapshotSpec(t)
   }
 
   test("updateBasic") {
@@ -155,9 +155,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30)")
     sql("UPDATE tbl SET value = 'updated' WHERE id = 2")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value = 'updated'", name = "filter_updated")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value = 'updated'", name = "filter_updated")
+    snapshotSpec(t)
   }
 
   test("updateMultiCols") {
@@ -166,9 +166,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a',10,true),(2,'b',20,true),(3,'c',30,false)")
     sql("UPDATE tbl SET value = 'updated', amount = 0, active = false WHERE id <= 2")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "active = true", name = "filter_active")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "active = true", name = "filter_active")
+    snapshotSpec(t)
   }
 
   test("updateNullToValue") {
@@ -179,9 +179,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (3, 'exists')")
     sql("UPDATE tbl SET value = 'filled' WHERE value IS NULL")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value IS NOT NULL", name = "filter_not_null")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value IS NOT NULL", name = "filter_not_null")
+    snapshotSpec(t)
   }
 
   test("updatePartitioned") {
@@ -190,9 +190,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300)")
     sql("UPDATE tbl SET amount = 999 WHERE region = 'east'")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "region = 'east'", name = "filter_east")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "region = 'east'", name = "filter_east")
+    snapshotSpec(t)
   }
 
   test("updateValueToNull") {
@@ -201,9 +201,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("UPDATE tbl SET value = NULL WHERE id <= 2")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "value IS NULL", name = "filter_null")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "value IS NULL", name = "filter_null")
+    snapshotSpec(t)
   }
 
   test("updateWithSubquery") {
@@ -212,9 +212,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("INSERT INTO tbl VALUES (1,100),(2,200),(3,300)")
     sql("UPDATE tbl SET amount = amount * 2 WHERE id > 1")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "amount > 300", name = "filter_large")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "amount > 300", name = "filter_large")
+    snapshotSpec(t)
   }
 
   // Combined DML sequences
@@ -230,8 +230,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
       WHEN MATCHED THEN UPDATE SET value = s.value
       WHEN NOT MATCHED THEN INSERT *""")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("dmlMultipleMerges") {
@@ -254,8 +254,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
       WHEN NOT MATCHED THEN INSERT *""")
 
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    snapshotSpec(t)
   }
 
   test("dmlSequenceInsertUpdateDelete") {
@@ -266,9 +266,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("UPDATE tbl SET amount = 999 WHERE id = 1")
     sql("DELETE FROM tbl WHERE id = 3")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "amount > 100", name = "filter_large_amount")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "amount > 100", name = "filter_large_amount")
+    snapshotSpec(t)
   }
 
   test("dmlUpdateAfterMerge") {
@@ -284,9 +284,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
 
     sql("UPDATE tbl SET amount = amount + 100 WHERE id >= 2")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "amount > 100", name = "filter_large_amount")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "amount > 100", name = "filter_large_amount")
+    snapshotSpec(t)
   }
 
   // === Misc Workloads ===
@@ -299,8 +299,8 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     // 20 rows: id 0..19, data='oss_test'
     sql("INSERT INTO tbl SELECT id, 'oss_test' FROM range(20)")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    snapshotSpec(t)
   }
 
   test("ossReadPartitionedOSS") {
@@ -308,9 +308,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'a',30),(4,'b',40),(5,'c',50)")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "part = 'a'", name = "readPartA")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "part = 'a'", name = "readPartA")
+    snapshotSpec(t)
   }
 
   test("ossReadPredicateOSS") {
@@ -320,10 +320,10 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     sql("""INSERT INTO tbl
       SELECT id, CASE WHEN id < 25 THEN 'low' ELSE 'high' END FROM range(50)""")
     val t = registerTable("tbl")
-    read(t, name = "readAll")
-    read(t, predicate = "id >= 40", name = "readHighId")
-    read(t, predicate = "category = 'low'", name = "readLow")
-    snapshot(t)
+    readSpec(t, name = "readAll")
+    readSpec(t, predicate = "id >= 40", name = "readHighId")
+    readSpec(t, predicate = "category = 'low'", name = "readLow")
+    snapshotSpec(t)
   }
 
   test("ossReadTimeTravelOSS") {
@@ -336,10 +336,10 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     // v2: 5 more rows (11..15)
     sql("INSERT INTO tbl VALUES (11),(12),(13),(14),(15)")
     val t = registerTable("tbl")
-    read(t, name = "readLatest")
-    read(t, version = 0, name = "readV0")
-    read(t, version = 1, name = "readV1")
-    snapshot(t)
+    readSpec(t, name = "readLatest")
+    readSpec(t, version = 0, name = "readV0")
+    readSpec(t, version = 1, name = "readV1")
+    snapshotSpec(t)
   }
 
   // Special path handling
@@ -350,9 +350,9 @@ class DmlSuite extends WorkloadTestSuite("dml") {
     // 10 rows: id 0..9
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
-    read(t, name = "read_all")
-    read(t, predicate = "id < 5", name = "read_filtered")
-    snapshot(t)
+    readSpec(t, name = "read_all")
+    readSpec(t, predicate = "id < 5", name = "read_filtered")
+    snapshotSpec(t)
   }
 
 }

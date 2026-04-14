@@ -34,8 +34,8 @@ import org.scalatest.funsuite.AnyFunSuite
  *     sql("CREATE TABLE tbl (id INT) USING delta")
  *     sql("INSERT INTO tbl VALUES (1),(2),(3)")
  *     val t = registerTable("tbl")
- *     read(t)
- *     snapshot(t)
+ *     readSpec(t)
+ *     snapshotSpec(t)
  *   }
  *
  * }

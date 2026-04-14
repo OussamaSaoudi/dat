@@ -27,15 +27,15 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (3, 'v3')")
     sql("UPDATE tbl SET val = 'updated' WHERE id = 1")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, version = 3)
-    read(t, version = 4)
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, version = 3)
+    readSpec(t, version = 4)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
   }
 
   test("time_travel_timestamps") {
@@ -45,12 +45,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     val t = registerTable("tbl")
     val ts1 = t.getTimestampForVersion(1)
     val ts2 = t.getTimestampForVersion(2)
-    read(t, timestamp = ts1, name = "read_ts_v1")
-    read(t, timestamp = ts2, name = "read_ts_v2")
-    read(t, timestamp = "2099-01-01 00:00:00.000", name = "read_ts_future")
-    read(t, timestamp = "1970-01-01 00:00:00.000", name = "read_ts_epoch")
-    snapshot(t, timestamp = ts1)
-    snapshot(t)
+    readSpec(t, timestamp = ts1, name = "read_ts_v1")
+    readSpec(t, timestamp = ts2, name = "read_ts_v2")
+    readSpec(t, timestamp = "2099-01-01 00:00:00.000", name = "read_ts_future")
+    readSpec(t, timestamp = "1970-01-01 00:00:00.000", name = "read_ts_epoch")
+    snapshotSpec(t, timestamp = ts1)
+    snapshotSpec(t)
   }
 
   test("time_travel_schema_change") {
@@ -59,10 +59,10 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("ALTER TABLE tbl ADD COLUMNS (name STRING)")
     sql("INSERT INTO tbl SELECT id, 'name' FROM range(10, 20)")
     val t = registerTable("tbl")
-    read(t, version = 1)
-    read(t)
+    readSpec(t, version = 1)
+    readSpec(t)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("time_travel_dv") {
@@ -72,27 +72,27 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("DELETE FROM tbl WHERE id IN (2, 4)")
     sql("INSERT INTO tbl VALUES (6,'f'),(7,'g')")
     val t = registerTable("tbl")
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t)
-    read(t, version = 2, predicate = "id > 2")
-    snapshot(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t)
+    readSpec(t, version = 2, predicate = "id > 2")
+    snapshotSpec(t)
   }
 
   test("time_travel_bad_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
-    read(t, version = 999)
-    snapshot(t)
+    readSpec(t, version = 999)
+    snapshotSpec(t)
   }
 
   test("time_travel_negative_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
-    read(t, version = -1)
-    snapshot(t)
+    readSpec(t, version = -1)
+    snapshotSpec(t)
   }
 
   test("time_travel_deleted_version") {
@@ -104,18 +104,18 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000000.json"))
     }
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("time_travel_checkpoint") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '5')")
     for (i <- 1 to 8) sql(s"INSERT INTO tbl SELECT id FROM range(${(i-1)*10}, ${i*10})")
     val t = registerTable("tbl")
-    read(t, version = 3)
-    read(t, version = 5)
-    read(t, version = 8)
-    snapshot(t)
+    readSpec(t, version = 3)
+    readSpec(t, version = 5)
+    readSpec(t, version = 8)
+    snapshotSpec(t)
   }
 
   test("time_travel_partition_filter") {
@@ -123,10 +123,10 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20)")
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20, 40)")
     val t = registerTable("tbl")
-    read(t, version = 1, predicate = "part = 0")
-    read(t, version = 2, predicate = "part = 0")
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 1, predicate = "part = 0")
+    readSpec(t, version = 2, predicate = "part = 0")
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 
@@ -138,14 +138,14 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (2,'after')")
     val t = registerTable("tbl")
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t)
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
-    snapshot(t, version = 2)
-    snapshot(t, version = 3)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
+    snapshotSpec(t, version = 2)
+    snapshotSpec(t, version = 3)
   }
 
   test("time_travel_column_defaults") {
@@ -155,14 +155,14 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     // version 1: row with default
     sql("INSERT INTO tbl VALUES (2, 'explicit')")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t)
+    snapshotSpec(t)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
   }
 
   test("time_travel_deleted_retention") {
@@ -175,9 +175,9 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000001.json"))
     }
-    read(t, version = 1)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_after_vacuum") {
@@ -199,8 +199,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
         if (java.nio.file.Files.exists(f)) java.nio.file.Files.delete(f)
       }
     }
-    read(t, version = 1)
-    snapshot(t)
+    readSpec(t, version = 1)
+    snapshotSpec(t)
   }
 
   test("time_travel_checkpoint_between") {
@@ -213,13 +213,13 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(40, 50)")
     val t = registerTable("tbl")
     // Read before checkpoint
-    read(t, version = 2)
+    readSpec(t, version = 2)
     // Read at checkpoint
-    read(t, version = 3)
+    readSpec(t, version = 3)
     // Read after checkpoint
-    read(t, version = 5)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 5)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_relation_caching") {
@@ -228,12 +228,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (2,'v2')")
     val t = registerTable("tbl")
     // Read version 0 and version 1 in sequence - caching must not mix them
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_sql_syntax") {
@@ -242,13 +242,13 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (2,'second')")
     val t = registerTable("tbl")
     // Version-based reads
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     // Timestamp-based reads
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_exact_timestamp") {
@@ -257,11 +257,11 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (3),(4)")
     val t = registerTable("tbl")
     val ts0 = t.getTimestampForVersion(0)
-    read(t, version = 0)
-    read(t, timestamp = ts0)
-    read(t, version = 1)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, version = 1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_multi_version_scans") {
@@ -270,12 +270,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (3,30),(4,40)")
     val t = registerTable("tbl")
     // Multiple scans at different versions in one "session"
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_partition_evolution") {
@@ -284,16 +284,16 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     // Overwrite partition A
     sql("INSERT OVERWRITE tbl PARTITION (part='A') VALUES (10,'A')")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t)
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
   }
 
   test("time_travel_timestamp_between") {
@@ -308,38 +308,38 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
     val ts2 = t.getTimestampForVersion(2)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_version_0_empty") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'data')")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("time_travel_future_timestamp_error") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     val t = registerTable("tbl")
-    read(t, timestamp = "2099-12-31 23:59:59.999")
-    snapshot(t)
+    readSpec(t, timestamp = "2099-12-31 23:59:59.999")
+    snapshotSpec(t)
   }
 
   test("time_travel_invalid_timestamp_error") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
-    read(t, timestamp = "not-a-timestamp")
-    snapshot(t)
+    readSpec(t, timestamp = "not-a-timestamp")
+    snapshotSpec(t)
   }
 
 
@@ -366,8 +366,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
       val v3 = s"""{"commitInfo":{"timestamp":${ts+1},"operation":"VACUUM END","operationParameters":{"status":"COMPLETED"},"isolationLevel":"SnapshotIsolation","isBlindAppend":true,"operationMetrics":{},"engineInfo":"Delta-Standalone/<unknown>"}}"""
       java.nio.file.Files.write(logDir.resolve("00000000000000000003.json"), v3.getBytes)
     }
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("tt_at_syntax") {
@@ -376,12 +376,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_checkpoint_between") {
@@ -390,12 +390,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     for (i <- 0 until 7)
       sql(s"INSERT INTO tbl SELECT id FROM range(${i*10}, ${(i+1)*10})")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 3)
-    read(t, version = 5)
-    read(t, version = 7)
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 3)
+    readSpec(t, version = 5)
+    readSpec(t, version = 7)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_column_defaults") {
@@ -405,14 +405,14 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("ALTER TABLE tbl ALTER COLUMN id SET DEFAULT 42")
     sql("INSERT INTO tbl VALUES (DEFAULT)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    snapshotSpec(t)
   }
 
   test("tt_column_mapping") {
@@ -424,12 +424,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("ALTER TABLE tbl RENAME COLUMN name TO full_name")
     sql("INSERT INTO tbl VALUES (3, 'charlie', 300), (4, 'diana', 400), (5, 'eve', 500)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("tt_dv_between_versions") {
@@ -439,11 +439,11 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("DELETE FROM tbl WHERE id IN (2, 4)")
     sql("INSERT INTO tbl VALUES (6,'f'),(7,'g')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, version = 2)
-    read(t, version = 2, predicate = "id > 2")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    readSpec(t, version = 2, predicate = "id > 2")
+    snapshotSpec(t)
   }
 
   test("tt_exact_timestamp") {
@@ -452,12 +452,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
+    readSpec(t, version = 0)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t, version = 1)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, version = 1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_future_timestamp_error") {
@@ -465,8 +465,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     val t = registerTable("tbl")
-    read(t, timestamp = "2099-12-31 23:59:59.999")
-    snapshot(t)
+    readSpec(t, timestamp = "2099-12-31 23:59:59.999")
+    snapshotSpec(t)
   }
 
   test("tt_invalid_timestamp_error") {
@@ -475,8 +475,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     val t = registerTable("tbl")
-    read(t, timestamp = "not-a-timestamp")
-    snapshot(t)
+    readSpec(t, timestamp = "not-a-timestamp")
+    snapshotSpec(t)
   }
 
   test("tt_multi_version_scans") {
@@ -485,12 +485,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id, id * 10 FROM range(3)")
     sql("INSERT INTO tbl SELECT id, id * 10 FROM range(3, 5)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_non_existent_version") {
@@ -499,8 +499,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
     val t = registerTable("tbl")
-    read(t, version = 5)
-    snapshot(t)
+    readSpec(t, version = 5)
+    snapshotSpec(t)
   }
 
   test("tt_nonexistent_version_error") {
@@ -510,8 +510,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
     val t = registerTable("tbl")
-    read(t, version = 3)
-    snapshot(t)
+    readSpec(t, version = 3)
+    snapshotSpec(t)
   }
 
   test("tt_partition_evolution") {
@@ -521,15 +521,15 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id, id % 5 FROM range(10)")
     sql("INSERT OVERWRITE tbl SELECT id, id % 2 as part2 FROM range(10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    snapshotSpec(t)
     val N = 2L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("tt_partition_filter") {
@@ -540,11 +540,11 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20, 40)")
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(40, 60)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0, predicate = "part = 0")
-    read(t, version = 0, predicate = "part IN (0, 1)")
-    read(t, version = 1, predicate = "part = 0")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0, predicate = "part = 0")
+    readSpec(t, version = 0, predicate = "part IN (0, 1)")
+    readSpec(t, version = 1, predicate = "part = 0")
+    snapshotSpec(t)
   }
 
   test("tt_relation_caching") {
@@ -553,12 +553,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_sql_syntax") {
@@ -567,12 +567,12 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
-    read(t, timestamp = ts0)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_timestamp_between_commits") {
@@ -584,15 +584,15 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     Thread.sleep(1100)
     sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_version_0") {
@@ -602,18 +602,18 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
     sql("INSERT INTO tbl SELECT id FROM range(20, 50)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 0, predicate = "id < 5")
-    read(t)
-    snapshot(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 0, predicate = "id < 5")
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_version_0_empty") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("tt_version_read") {
@@ -623,15 +623,15 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("INSERT INTO tbl SELECT id FROM range(5, 10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 15)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_deleted_version_retention_error") {
@@ -646,8 +646,8 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     mutateTable(t) { dir =>
       java.nio.file.Files.delete(dir.resolve("_delta_log/00000000000000000000.json"))
     }
-    read(t, version = 0)
-    snapshot(t)
+    readSpec(t, version = 0)
+    snapshotSpec(t)
   }
 
   test("tt_schema_evolution") {
@@ -657,16 +657,16 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     sql("ALTER TABLE tbl ADD COLUMNS (part BIGINT)")
     sql("INSERT INTO tbl SELECT id, id % 2 FROM range(5, 10)")
     val t = registerTable("tbl")
-    read(t, version = 0)
-    read(t, version = 1)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    readSpec(t)
+    snapshotSpec(t)
     val N = 3L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("tt_timestamp_travel") {
@@ -678,10 +678,10 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     val t = registerTable("tbl")
     val ts0 = t.getTimestampForVersion(0)
     val ts1 = t.getTimestampForVersion(1)
-    read(t, timestamp = ts0)
-    read(t, timestamp = ts1)
-    read(t)
-    snapshot(t)
+    readSpec(t, timestamp = ts0)
+    readSpec(t, timestamp = ts1)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("tt_timestamp_before_retention_error") {
@@ -704,9 +704,9 @@ class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
     }
     // Requesting snapshot at the old timestamp should fail with
     // DELTA_TIMESTAMP_EARLIER_THAN_COMMIT_RETENTION (caught automatically by SnapshotCapture)
-    snapshot(t, timestamp = ts0)
+    snapshotSpec(t, timestamp = ts0)
     // Latest snapshot should succeed
-    snapshot(t)
+    snapshotSpec(t)
   }
 
 }

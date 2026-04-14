@@ -36,9 +36,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, 200000000000, -1.5, 0.0, 'world', false, X'CAFEBABE', -99999.000001, DATE'2025-06-30', TIMESTAMP'2025-06-30 23:59:59'),
       (42, 0, 0.0, -1.0, '', true, X'00', 0.000000, DATE'1970-01-01', TIMESTAMP'1970-01-01 00:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("int_col", "string_col"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("int_col", "string_col"))
+    snapshotSpec(t)
   }
 
   test("nested_types") {
@@ -50,9 +50,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (1, named_struct('name','alice','age',30), array('a','b'), map('x',1,'y',2)),
       (2, named_struct('name','bob','age',25), array('c'), map('z',3))""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "info"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "info"))
+    snapshotSpec(t)
   }
 
   test("null_values") {
@@ -60,25 +60,25 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (NULL, NULL, NULL)")
     sql("INSERT INTO tbl VALUES (1, 'not null', 1.5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "int_col IS NULL")
-    read(t, predicate = "int_col IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "int_col IS NULL")
+    readSpec(t, predicate = "int_col IS NOT NULL")
+    snapshotSpec(t)
   }
 
   test("empty_table") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("single_row") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'only')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("large_table") {
@@ -89,10 +89,10 @@ class TypesSuite extends WorkloadTestSuite("types") {
              WHEN id % 5 = 2 THEN 'C' WHEN id % 5 = 3 THEN 'D' ELSE 'E' END
       FROM range(10000)""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "category = 'A'")
-    read(t, columns = Seq("id", "category"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "category = 'A'")
+    readSpec(t, columns = Seq("id", "category"))
+    snapshotSpec(t)
   }
 
   test("time_travel") {
@@ -101,21 +101,21 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (2, 'v2')")
     sql("UPDATE tbl SET val = 'updated' WHERE id = 1")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
-    snapshot(t, version = 0)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
   }
 
   test("error_bad_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 999)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 999)
+    snapshotSpec(t)
   }
 
   // === Void Type ===
@@ -125,8 +125,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, null FROM range(5)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("void_002_void_nested_struct") {
@@ -136,8 +136,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl SELECT id, named_struct('name', CAST(id AS STRING), 'void_field', null) FROM range(3)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("void_005_void_schema_evolution") {
@@ -146,8 +146,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
     sql("ALTER TABLE tbl ADD COLUMN (void_col VOID)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("void_006_void_multiple_columns") {
@@ -155,8 +155,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, null, null FROM range(3)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("void_007_void_with_backticks") {
@@ -164,8 +164,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, null FROM range(3)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("void_in_struct") {
@@ -175,8 +175,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl SELECT id, named_struct('label', CAST(id AS STRING), 'void_val', null) FROM range(3)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // === Interval Type ===
@@ -187,8 +187,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (1, INTERVAL '1-6' YEAR TO MONTH)")
     sql("INSERT INTO tbl VALUES (2, INTERVAL '2-3' YEAR TO MONTH),(3, INTERVAL '0-9' YEAR TO MONTH)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_002_interval_dt_basic") {
@@ -197,8 +197,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (1, INTERVAL '1 02:30:00' DAY TO SECOND)")
     sql("INSERT INTO tbl VALUES (2, INTERVAL '3 06:45:30' DAY TO SECOND),(3, INTERVAL '0 00:15:00' DAY TO SECOND)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_003_interval_partitioned") {
@@ -208,8 +208,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (2, INTERVAL '2-0' YEAR TO MONTH)")
     sql("INSERT INTO tbl VALUES (3, INTERVAL '1-0' YEAR TO MONTH)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_004_interval_negative") {
@@ -219,8 +219,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (2, INTERVAL '-0-3' YEAR TO MONTH)")
     sql("INSERT INTO tbl VALUES (3, INTERVAL '0-0' YEAR TO MONTH)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_005_interval_mixed") {
@@ -233,8 +233,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (1, INTERVAL '1-0' YEAR TO MONTH, INTERVAL '1 00:00:00' DAY TO SECOND),
       (2, INTERVAL '0-6' YEAR TO MONTH, INTERVAL '0 12:30:00' DAY TO SECOND)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_boundary_values") {
@@ -247,8 +247,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (1, INTERVAL '178956970-7' YEAR TO MONTH, INTERVAL '106751991 04:00:54.775807' DAY TO SECOND),
       (2, INTERVAL '-178956970-8' YEAR TO MONTH, INTERVAL '-106751991 04:00:54.775808' DAY TO SECOND)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("intv_sub_second") {
@@ -259,8 +259,8 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, INTERVAL '0 00:00:00.999999' DAY TO SECOND),
       (3, INTERVAL '0 00:00:01.5' DAY TO SECOND)""")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   // === Timestamp NTZ ===
@@ -273,9 +273,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, TIMESTAMP_NTZ'2024-06-20 14:00:00'),
       (3, TIMESTAMP_NTZ'2024-12-31 23:59:59')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("ntz_far_past") {
@@ -286,9 +286,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, TIMESTAMP_NTZ'1899-12-31 23:59:59'),
       (3, TIMESTAMP_NTZ'1970-01-01 00:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts < TIMESTAMP_NTZ'1900-01-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts < TIMESTAMP_NTZ'1900-01-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("ntz_mixed_tz_ntz") {
@@ -299,9 +299,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, TIMESTAMP'2024-06-20 14:00:00', TIMESTAMP_NTZ'2024-06-20 14:00:00'),
       (3, TIMESTAMP'2024-12-31 23:59:59', TIMESTAMP_NTZ'2024-12-31 23:59:59')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts_ntz >= TIMESTAMP_NTZ'2024-06-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts_ntz >= TIMESTAMP_NTZ'2024-06-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("ntz_partition") {
@@ -313,10 +313,10 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (3, 'c', TIMESTAMP_NTZ'2024-01-01 00:00:00'),
       (4, 'd', TIMESTAMP_NTZ'2024-03-01 00:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts_part = TIMESTAMP_NTZ'2024-01-01 00:00:00'")
-    read(t, predicate = "ts_part >= TIMESTAMP_NTZ'2024-02-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts_part = TIMESTAMP_NTZ'2024-01-01 00:00:00'")
+    readSpec(t, predicate = "ts_part >= TIMESTAMP_NTZ'2024-02-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("ntz_stats") {
@@ -326,10 +326,10 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (3, TIMESTAMP_NTZ'2024-06-15 00:00:00'),(4, TIMESTAMP_NTZ'2024-06-20 00:00:00')")
     sql("INSERT INTO tbl VALUES (5, TIMESTAMP_NTZ'2024-12-01 00:00:00'),(6, TIMESTAMP_NTZ'2024-12-31 00:00:00')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts >= TIMESTAMP_NTZ'2024-06-01 00:00:00' AND ts < TIMESTAMP_NTZ'2024-07-01 00:00:00'")
-    read(t, predicate = "ts >= TIMESTAMP_NTZ'2024-12-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts >= TIMESTAMP_NTZ'2024-06-01 00:00:00' AND ts < TIMESTAMP_NTZ'2024-07-01 00:00:00'")
+    readSpec(t, predicate = "ts >= TIMESTAMP_NTZ'2024-12-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("tntz_column_mapping") {
@@ -342,9 +342,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, TIMESTAMP_NTZ'2024-06-20 14:00:00'),
       (3, TIMESTAMP_NTZ'2024-12-31 23:59:59')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "event_time > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "event_time > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("tntz_epoch") {
@@ -354,9 +354,9 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (1, TIMESTAMP_NTZ'1970-01-01 00:00:00'),
       (2, TIMESTAMP_NTZ'2024-01-01 00:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts = TIMESTAMP_NTZ'1970-01-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts = TIMESTAMP_NTZ'1970-01-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("tntz_partition_filter") {
@@ -367,10 +367,10 @@ class TypesSuite extends WorkloadTestSuite("types") {
       (2, 'b', TIMESTAMP_NTZ'2024-06-15 00:00:00'),
       (3, 'c', TIMESTAMP_NTZ'2024-12-25 00:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "ts_part = TIMESTAMP_NTZ'2024-01-01 00:00:00'")
-    read(t, predicate = "ts_part > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "ts_part = TIMESTAMP_NTZ'2024-01-01 00:00:00'")
+    readSpec(t, predicate = "ts_part > TIMESTAMP_NTZ'2024-06-01 00:00:00'")
+    snapshotSpec(t)
   }
 
   test("tntz_time_travel") {
@@ -380,10 +380,10 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (2, TIMESTAMP_NTZ'2024-06-01 00:00:00')")
     sql("INSERT INTO tbl VALUES (3, TIMESTAMP_NTZ'2024-12-01 00:00:00')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
   }
 
 }

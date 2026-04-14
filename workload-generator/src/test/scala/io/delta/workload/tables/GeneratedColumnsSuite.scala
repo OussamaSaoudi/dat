@@ -27,9 +27,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (id) VALUES (1),(2),(3)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "doubled = 4")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "doubled = 4")
+    snapshotSpec(t)
   }
 
   test("gc_arithmetic_expr") {
@@ -40,9 +40,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (price, quantity) VALUES (10.5, 3),(25.0, 4),(5.99, 10)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "total > 50.0")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "total > 50.0")
+    snapshotSpec(t)
   }
 
   test("gc_case_when") {
@@ -52,10 +52,10 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (value) VALUES (50),(100),(150),(30),(200)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "category = 'high'")
-    read(t, predicate = "category = 'low'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "category = 'high'")
+    readSpec(t, predicate = "category = 'low'")
+    snapshotSpec(t)
   }
 
   test("gc_coalesce_null") {
@@ -66,10 +66,10 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (nickname, first_name) VALUES ('Al', 'Alice'),('Bo', 'Bob'),(null, 'Charlie'),(null, null)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "display_name = 'Al'")
-    read(t, predicate = "display_name = 'Unknown'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "display_name = 'Al'")
+    readSpec(t, predicate = "display_name = 'Unknown'")
+    snapshotSpec(t)
   }
 
   test("gc_concat_expr") {
@@ -80,9 +80,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (first_name, last_name) VALUES ('Alice', 'Johnson'),('Bob', 'Smith')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "full_name = 'Alice Johnson'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "full_name = 'Alice Johnson'")
+    snapshotSpec(t)
   }
 
   test("gc_date_format_expr") {
@@ -92,9 +92,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (event_date) VALUES ('2024-01-15'),('2024-02-20'),('2024-01-30')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "formatted_date = '2024-01'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "formatted_date = '2024-01'")
+    snapshotSpec(t)
   }
 
   test("gc_datetime") {
@@ -108,10 +108,10 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
       (TIMESTAMP'2024-01-15 14:45:00'),
       (TIMESTAMP'2024-02-01 22:00:00')""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "event_date = '2024-01-15'")
-    read(t, predicate = "event_hour < 12")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "event_date = '2024-01-15'")
+    readSpec(t, predicate = "event_hour < 12")
+    snapshotSpec(t)
   }
 
   test("gc_math") {
@@ -122,9 +122,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (x, y) VALUES (3.0, 4.0),(0.0, 0.0),(1.0, 1.0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "distance = 5.0")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "distance = 5.0")
+    snapshotSpec(t)
   }
 
   test("gc_multiple") {
@@ -136,9 +136,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (id) VALUES (1),(2),(3),(4),(5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "squared > 10")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "squared > 10")
+    snapshotSpec(t)
   }
 
   test("gc_nested") {
@@ -151,9 +151,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
       (named_struct('x', 5, 'y', 5)),
       (named_struct('x', 1, 'y', 2))""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "sum_xy = 10")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "sum_xy = 10")
+    snapshotSpec(t)
   }
 
   test("gc_null_expression_result") {
@@ -165,10 +165,10 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     sql("INSERT INTO tbl (value) VALUES ('not_a_number')")
     sql("INSERT INTO tbl (value) VALUES ('99')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "parsed_int IS NOT NULL")
-    read(t, predicate = "parsed_int IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "parsed_int IS NOT NULL")
+    readSpec(t, predicate = "parsed_int IS NULL")
+    snapshotSpec(t)
   }
 
   test("gc_partition_col") {
@@ -181,10 +181,10 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     sql("""INSERT INTO tbl (date_col, value) VALUES
       ('2023-06-15', 100),('2024-01-20', 200),('2023-12-31', 300),('2024-07-04', 400)""")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "year = 2023")
-    read(t, predicate = "year = 2024")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "year = 2023")
+    readSpec(t, predicate = "year = 2024")
+    snapshotSpec(t)
   }
 
   test("gc_partitioned") {
@@ -196,9 +196,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (id, value) VALUES (1, 'a'),(2, 'b'),(3, 'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "date_part = '2024-01-01'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "date_part = '2024-01-01'")
+    snapshotSpec(t)
   }
 
   test("gc_reference") {
@@ -209,9 +209,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (first_name, last_name) VALUES ('John', 'Doe'),('Jane', 'Smith')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "full_name = 'John Doe'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "full_name = 'John Doe'")
+    snapshotSpec(t)
   }
 
   test("gc_string") {
@@ -221,9 +221,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (email) VALUES ('alice@example.com'),('bob@example.com'),('charlie@other.org')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "domain = 'example.com'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "domain = 'example.com'")
+    snapshotSpec(t)
   }
 
   test("gc_ctas") {
@@ -233,9 +233,9 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     ) USING delta TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl (id) VALUES (1),(2),(3),(4),(5)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "doubled >= 10")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "doubled >= 10")
+    snapshotSpec(t)
   }
 
   test("gc_time_travel") {
@@ -247,11 +247,11 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     sql("INSERT INTO tbl (id) VALUES (2)")
     sql("INSERT INTO tbl (id) VALUES (3)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, version = 2)
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, version = 2)
+    snapshotSpec(t)
   }
 
   test("gc_added_via_alter_table") {
@@ -263,14 +263,14 @@ class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
     sql("ALTER TABLE tbl ADD COLUMN (extra STRING)")
     sql("INSERT INTO tbl (id, extra) VALUES (3, 'hello')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, predicate = "extra IS NOT NULL")
-    snapshot(t)
-    snapshot(t, version = 0)
-    snapshot(t, version = 1)
-    snapshot(t, version = 2)
-    snapshot(t, version = 3)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, predicate = "extra IS NOT NULL")
+    snapshotSpec(t)
+    snapshotSpec(t, version = 0)
+    snapshotSpec(t, version = 1)
+    snapshotSpec(t, version = 2)
+    snapshotSpec(t, version = 3)
   }
 
 }

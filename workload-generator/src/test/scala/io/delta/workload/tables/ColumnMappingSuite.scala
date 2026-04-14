@@ -27,10 +27,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1,'alice',100),(2,'bob',200),(3,'charlie',300)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("name", "value"))
-    read(t, predicate = "value > 150")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("name", "value"))
+    readSpec(t, predicate = "value > 150")
+    snapshotSpec(t)
   }
 
   test("cm_rename_column") {
@@ -41,10 +41,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN old_name TO new_name")
     sql("INSERT INTO tbl VALUES (3,'charlie')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
-    read(t, columns = Seq("id", "new_name"))
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 2)
+    readSpec(t, columns = Seq("id", "new_name"))
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_drop_column") {
@@ -55,9 +55,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl DROP COLUMN to_drop")
     sql("INSERT INTO tbl VALUES (3,'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 2)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 2)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_drop_readd") {
@@ -69,10 +69,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl ADD COLUMNS (x INT)")
     sql("INSERT INTO tbl VALUES (2, 42)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x IS NULL")
-    read(t, predicate = "x IS NOT NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "x IS NULL")
+    readSpec(t, predicate = "x IS NOT NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("cm_nested_columns") {
@@ -81,9 +81,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
     sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','age',25))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info.age > 27")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "info.age > 27")
+    snapshotSpec(t)
   }
 
   test("cm_mode_upgrade") {
@@ -94,9 +94,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
       'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
     sql("INSERT INTO tbl VALUES (3,'after')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 0)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   // New workloads: 25 more to match existing acceptance_workloads/cm_*
@@ -106,10 +106,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id')""")
     sql("INSERT INTO tbl VALUES (1,'alpha'),(2,'beta'),(3,'gamma')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("name"))
-    read(t, predicate = "id > 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("name"))
+    readSpec(t, predicate = "id > 1")
+    snapshotSpec(t)
   }
 
   test("cm_upgrade") {
@@ -123,11 +123,11 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN b TO c")
     sql("INSERT INTO tbl VALUES (4,'w')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    read(t, columns = Seq("a", "c"))
-    for (v <- 0L to 5L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    readSpec(t, columns = Seq("a", "c"))
+    for (v <- 0L to 5L) snapshotSpec(t, version = v)
   }
 
   test("cm_mode_upgrade_partitioned") {
@@ -138,10 +138,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
       'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
     sql("INSERT INTO tbl VALUES (4,'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "part = 'a'")
-    read(t, version = 0)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "part = 'a'")
+    readSpec(t, version = 0)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_special_chars") {
@@ -150,8 +150,8 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, 'space1', 'dot1')")
     sql("INSERT INTO tbl VALUES (2, 'space2', 'dot2')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cm_array_of_structs") {
@@ -160,9 +160,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, array(named_struct('name','apple','qty',3)))")
     sql("INSERT INTO tbl VALUES (2, array(named_struct('name','banana','qty',5), named_struct('name','cherry','qty',2)))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("items"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("items"))
+    snapshotSpec(t)
   }
 
   test("cm_complex_types") {
@@ -171,10 +171,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, array('a','b'), map('x',1,'y',2))")
     sql("INSERT INTO tbl VALUES (2, array('c'), map('z',3))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("tags"))
-    read(t, columns = Seq("props"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("tags"))
+    readSpec(t, columns = Seq("props"))
+    snapshotSpec(t)
   }
 
   test("cm_map_type") {
@@ -183,9 +183,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, map('key1','val1','key2','val2'))")
     sql("INSERT INTO tbl VALUES (2, map('key3','val3'))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("data"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("data"))
+    snapshotSpec(t)
   }
 
   test("cm_deeply_nested") {
@@ -197,9 +197,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, named_struct('l2', named_struct('l3', named_struct('value', 'deep'))))")
     sql("INSERT INTO tbl VALUES (2, named_struct('l2', named_struct('l3', named_struct('value', 'deeper'))))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("l1"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("l1"))
+    snapshotSpec(t)
   }
 
   test("cm_drop_readd_same_name") {
@@ -211,9 +211,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl ADD COLUMNS (x DOUBLE)")
     sql("INSERT INTO tbl VALUES (2, 3.14)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "x IS NOT NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "x IS NOT NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("cm_predicate_after_rename") {
@@ -224,10 +224,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN a TO b")
     sql("INSERT INTO tbl VALUES (4, 400)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "b > 200")
-    read(t, predicate = "b = 100")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "b > 200")
+    readSpec(t, predicate = "b = 100")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_predicate_on_readded") {
@@ -239,10 +239,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl ADD COLUMNS (val INT)")
     sql("INSERT INTO tbl VALUES (3, 30),(4, 40)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "val > 25")
-    read(t, predicate = "val IS NULL")
-    for (v <- 0L to 4L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "val > 25")
+    readSpec(t, predicate = "val IS NULL")
+    for (v <- 0L to 4L) snapshotSpec(t, version = v)
   }
 
   test("cm_predicate_renamed_partition") {
@@ -254,10 +254,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN part TO region")
     sql("INSERT INTO tbl VALUES (4,'z')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "region = 'x'")
-    read(t, predicate = "region = 'z'")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "region = 'x'")
+    readSpec(t, predicate = "region = 'z'")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_rename_partition_col") {
@@ -269,10 +269,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN category TO cat")
     sql("INSERT INTO tbl VALUES (4,'c')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "cat = 'a'")
-    read(t, columns = Seq("id", "cat"))
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "cat = 'a'")
+    readSpec(t, columns = Seq("id", "cat"))
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_nested_struct_name") {
@@ -281,10 +281,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, named_struct('first','alice','last','smith','age',30))")
     sql("INSERT INTO tbl VALUES (2, named_struct('first','bob','last','jones','age',25))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("info"))
-    read(t, columns = Seq("id"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("info"))
+    readSpec(t, columns = Seq("id"))
+    snapshotSpec(t)
   }
 
   test("cm_nested_struct_id") {
@@ -293,9 +293,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','score',95.5))")
     sql("INSERT INTO tbl VALUES (2, named_struct('name','bob','score',87.3))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("info"))
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("info"))
+    snapshotSpec(t)
   }
 
   test("cm_nested_rename_3_levels") {
@@ -309,9 +309,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN outer_col.mid.inner_val TO renamed_val")
     sql("INSERT INTO tbl VALUES (2, named_struct('mid', named_struct('renamed_val','world')))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 1)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_filter_pushdown_physical_names") {
@@ -323,11 +323,11 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN a TO c")
     sql("INSERT INTO tbl VALUES (300,'third'),(1000,'fourth')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "c = 1000", name = "read_filter_c_eq_1000")
-    read(t, predicate = "c = 100", name = "read_filter_c_eq_100")
-    read(t, predicate = "c > 200", name = "read_filter_c_gt_200")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, predicate = "c = 1000", name = "read_filter_c_eq_1000")
+    readSpec(t, predicate = "c = 100", name = "read_filter_c_eq_100")
+    readSpec(t, predicate = "c > 200", name = "read_filter_c_gt_200")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_physical_name_matches_logical") {
@@ -339,8 +339,8 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN alpha TO gamma")
     sql("INSERT INTO tbl VALUES (2, 'a2', 'b2')")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("cm_id_mode_rename_projection") {
@@ -351,10 +351,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN value TO renamed_value")
     sql("INSERT INTO tbl VALUES (3,'after1'),(4,'after2')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("renamed_value"), name = "read_project_renamed_col")
-    read(t, columns = Seq("id"), name = "read_project_id_only")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, columns = Seq("renamed_value"), name = "read_project_renamed_col")
+    readSpec(t, columns = Seq("id"), name = "read_project_id_only")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_id_mode_schema_evolution") {
@@ -365,10 +365,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl ADD COLUMNS (new_col STRING)")
     sql("INSERT INTO tbl VALUES (3, 'hello')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 0)
-    read(t, version = 1)
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, version = 0)
+    readSpec(t, version = 1)
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_id_matching_swapped") {
@@ -380,8 +380,8 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl RENAME COLUMN a TO e")
     sql("INSERT INTO tbl VALUES ('swapped', named_struct('c','test','d',99))")
     val t = registerTable("tbl")
-    read(t, name = "read_select_a_reads_e")
-    snapshot(t)
+    readSpec(t, name = "read_select_a_reads_e")
+    snapshotSpec(t)
   }
 
   test("cm_id_matching_nonexistent") {
@@ -394,9 +394,9 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl ADD COLUMNS (name STRING)")
     sql("INSERT INTO tbl VALUES (2,'new')")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name IS NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name IS NULL")
+    snapshotSpec(t)
   }
 
   test("cm_projection_complex_types") {
@@ -410,11 +410,11 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("INSERT INTO tbl VALUES (1, array(10,20), map('x',1), named_struct('a','hello','b',42))")
     sql("INSERT INTO tbl VALUES (2, array(30), map('y',2,'z',3), named_struct('a','world','b',99))")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("arr"), name = "read_project_array_only")
-    read(t, columns = Seq("mp"), name = "read_project_map_only")
-    read(t, columns = Seq("st"), name = "read_project_struct_only")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, columns = Seq("arr"), name = "read_project_array_only")
+    readSpec(t, columns = Seq("mp"), name = "read_project_map_only")
+    readSpec(t, columns = Seq("st"), name = "read_project_struct_only")
+    snapshotSpec(t)
   }
 
   test("cm_select_after_drop") {
@@ -425,10 +425,10 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
     sql("ALTER TABLE tbl DROP COLUMN drop_me")
     sql("INSERT INTO tbl VALUES (3, 'c', 3.3)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, columns = Seq("id", "keep"), name = "read_project_remaining_columns")
-    read(t, columns = Seq("extra"), name = "read_project_extra_only")
-    for (v <- 0L to 3L) snapshot(t, version = v)
+    readSpec(t)
+    readSpec(t, columns = Seq("id", "keep"), name = "read_project_remaining_columns")
+    readSpec(t, columns = Seq("extra"), name = "read_project_extra_only")
+    for (v <- 0L to 3L) snapshotSpec(t, version = v)
   }
 
   test("cm_err_003_invalid_mode") {
@@ -445,8 +445,8 @@ class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
         """"configuration":{"delta.columnMapping.mode":"bogus",""")
       java.nio.file.Files.write(f, patched.getBytes)
     }
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
 }

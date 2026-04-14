@@ -26,9 +26,9 @@ class DefaultValuesSuite extends WorkloadTestSuite("default_values") {
     sql("INSERT INTO tbl(id) VALUES (1),(2)")
     sql("INSERT INTO tbl VALUES (3, 'alice', 95.0)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "name = 'unknown'")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "name = 'unknown'")
+    snapshotSpec(t)
   }
 
   test("ddefReadDefaultAfterAdd") {
@@ -39,9 +39,9 @@ class DefaultValuesSuite extends WorkloadTestSuite("default_values") {
     sql("INSERT INTO tbl(id) VALUES (2)")
     sql("INSERT INTO tbl VALUES (3, 'inactive')")
     val t = registerTable("tbl")
-    read(t)
+    readSpec(t)
     val N = 4L
-    for (v <- 0L to N) snapshot(t, version = v)
+    for (v <- 0L to N) snapshotSpec(t, version = v)
   }
 
   test("ddefReadDefaultTypes") {
@@ -51,8 +51,8 @@ class DefaultValuesSuite extends WorkloadTestSuite("default_values") {
     ) USING delta TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'enabled')""")
     sql("INSERT INTO tbl(id) VALUES (1),(2)")
     val t = registerTable("tbl")
-    read(t)
-    snapshot(t)
+    readSpec(t)
+    snapshotSpec(t)
   }
 
   test("ddefReadDefaultNested") {
@@ -61,9 +61,9 @@ class DefaultValuesSuite extends WorkloadTestSuite("default_values") {
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
     sql("INSERT INTO tbl VALUES (2, NULL)")
     val t = registerTable("tbl")
-    read(t)
-    read(t, predicate = "info IS NOT NULL")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, predicate = "info IS NOT NULL")
+    snapshotSpec(t)
   }
 
 }

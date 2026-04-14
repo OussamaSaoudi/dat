@@ -48,8 +48,8 @@ WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite
 │  │ test("name") {                                                  ││
 │  │   sql("CREATE TABLE ...")      // Setup tables via SQL          ││
 │  │   val t = registerTable("tbl") // Get table handle              ││
-│  │   read(t)                      // Declare read spec             ││
-│  │   snapshot(t)                  // Declare snapshot spec         ││
+│  │   readSpec(t)                  // Declare read spec             ││
+│  │   snapshotSpec(t)              // Declare snapshot spec         ││
 │  │ }                                                               ││
 │  └─────────────────────────────────────────────────────────────────┘│
 └───────────────────────────────┬─────────────────────────────────────┘
@@ -108,10 +108,10 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
     sql("INSERT INTO tbl VALUES (3, 'c')")
 
     val t = registerTable("tbl")
-    read(t)
-    read(t, version = 1)
-    read(t, predicate = "id > 1")
-    snapshot(t)
+    readSpec(t)
+    readSpec(t, version = 1)
+    readSpec(t, predicate = "id > 1")
+    snapshotSpec(t)
   }
 
 }

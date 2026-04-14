@@ -141,7 +141,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
       sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     assertPassed(results)
 
@@ -159,7 +159,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT, val STRING) USING delta")
       sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
       val t = registerTable("tbl")
-      read(t, predicate = "id > 3")
+      readSpec(t, predicate = "id > 3")
     }
     assertPassed(results)
     val expectedData = JsonUtil.toRowMultiset(
@@ -174,9 +174,9 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO tbl VALUES (2)")
       sql("INSERT INTO tbl VALUES (3)")
       val t = registerTable("tbl")
-      read(t, version = 1)
-      read(t, version = 2)
-      read(t)
+      readSpec(t, version = 1)
+      readSpec(t, version = 2)
+      readSpec(t)
     }
     assertPassed(results)
     val v1 = JsonUtil.toRowMultiset(
@@ -195,7 +195,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (a INT, b STRING, c DOUBLE) USING delta")
       sql("INSERT INTO tbl VALUES (1, 'x', 1.1), (2, 'y', 2.2)")
       val t = registerTable("tbl")
-      read(t, columns = Seq("a", "c"))
+      readSpec(t, columns = Seq("a", "c"))
     }
     assertPassed(results)
     val df = spark.read.parquet(
@@ -210,8 +210,8 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
         USING delta PARTITIONED BY (region)""")
       sql("INSERT INTO tbl VALUES (1,'us'),(2,'us'),(3,'eu'),(4,'eu')")
       val t = registerTable("tbl")
-      read(t, predicate = "region = 'us'")
-      read(t)
+      readSpec(t, predicate = "region = 'us'")
+      readSpec(t)
     }
     assertPassed(results)
     val filtered = JsonUtil.toRowMultiset(
@@ -231,12 +231,12 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO tbl VALUES (10),(11),(12)")    // file 2: min=10, max=12
       sql("INSERT INTO tbl VALUES (100),(101),(102)") // file 3: min=100, max=102
       val t = registerTable("tbl")
-      read(t)                              // all 9 rows
-      read(t, predicate = "id < 5")        // only file 1: 3 rows
-      read(t, predicate = "id >= 100")     // only file 3: 3 rows
-      read(t, predicate = "id > 3 AND id < 100") // only file 2: 3 rows
-      read(t, predicate = "id = 11")       // only file 2: 1 row
-      read(t, predicate = "id > 200")      // no files match: 0 rows
+      readSpec(t)                              // all 9 rows
+      readSpec(t, predicate = "id < 5")        // only file 1: 3 rows
+      readSpec(t, predicate = "id >= 100")     // only file 3: 3 rows
+      readSpec(t, predicate = "id > 3 AND id < 100") // only file 2: 3 rows
+      readSpec(t, predicate = "id = 11")       // only file 2: 1 row
+      readSpec(t, predicate = "id > 200")      // no files match: 0 rows
     }
     assertPassed(results)
 
@@ -262,8 +262,8 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
     val results = run() { _ =>
       sql("CREATE TABLE tbl (id INT) USING delta")
       val t = registerTable("tbl")
-      read(t)
-      snapshot(t)
+      readSpec(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
   }
@@ -273,7 +273,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
       sql("INSERT INTO tbl VALUES (1, null), (2, 'b'), (null, 'c')")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     assertPassed(results)
     val data = JsonUtil.toRowMultiset(
@@ -286,7 +286,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      read(t, predicate = "id > 0", version = 1, columns = Seq("id"))
+      readSpec(t, predicate = "id > 0", version = 1, columns = Seq("id"))
     }
     assertPassed(results)
     val spec = readSpec("t_r8", "read_v1_id_gt_0_cols_id")
@@ -306,7 +306,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      read(t, version = 999)
+      readSpec(t, version = 999)
     }
     assertPassed(results)
     val spec = JsonUtil.readReadSpec(specs("t_e1").resolve("t_e1_read_v999.json"))
@@ -334,7 +334,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      snapshot(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
     val spec = readSpec("t_s1", "snapshot")
@@ -367,8 +367,8 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO tbl VALUES (1)")
       sql("INSERT INTO tbl VALUES (2)")
       val t = registerTable("tbl")
-      snapshot(t, version = 1)
-      snapshot(t, version = 2)
+      snapshotSpec(t, version = 1)
+      snapshotSpec(t, version = 2)
     }
     assertPassed(results)
     val s1 = readSpec("t_s2", "snapshot_v1")
@@ -383,7 +383,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO tbl VALUES (1)")
       sql("INSERT INTO tbl VALUES (2)")
       val t = registerTable("tbl")
-      for (v <- 0L to 2) snapshot(t, version = v)
+      for (v <- 0L to 2) snapshotSpec(t, version = v)
     }
     assertPassed(results)
     for (v <- 0 to 2) {
@@ -407,7 +407,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
           .filter(p => p.toString.endsWith(".json") || p.toString.endsWith(".crc"))
           .foreach(Files.delete)
       }
-      snapshot(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
     val spec = readSpec("t_dummy", "snapshot")
@@ -426,7 +426,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1),(2),(3)")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     // Tamper: replace expected_data with wrong rows
     val dataDir = expected("t_v1").resolve("t_v1_read/expected_data")
@@ -451,7 +451,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      snapshot(t)
+      snapshotSpec(t)
     }
     // Tamper: change minReaderVersion to 99 in spec JSON
     val specFile = specs("t_v2").resolve("t_v2_snapshot.json")
@@ -499,7 +499,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      snapshot(t)
+      snapshotSpec(t)
     }
     // Tamper: change schemaString in spec to have wrong column
     val specFile = specs("t_v6").resolve("t_v6_snapshot.json")
@@ -522,7 +522,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1),(2),(3)")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     // Tamper: append extra rows to expected_data
     val dataDir = expected("t_v7").resolve("t_v7_read/expected_data")
@@ -548,7 +548,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1),(2),(3)")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     // Verify copied delta table is independently readable
     val df = spark.read.format("delta").load(delta("t_cp1").toString)
@@ -574,7 +574,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       mutateTable(t) { tableDir =>
         Files.write(tableDir.resolve("MARKER"), "test".getBytes("UTF-8"))
       }
-      read(t)
+      readSpec(t)
     }
     assert(Files.exists(delta("t_mt1").resolve("MARKER")),
       "MARKER should exist in copied table")
@@ -593,7 +593,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
           .filter(_.toString.endsWith(".parquet"))
           .foreach(Files.delete)
       }
-      read(t) // should produce error spec
+      readSpec(t) // should produce error spec
     }
     assertPassed(results)
     val spec = JsonUtil.readReadSpec(specs("t_corrupt").resolve("t_corrupt_read.json"))
@@ -622,7 +622,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
           case other => other
         }
       }
-      snapshot(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
     val content = new String(Files.readAllBytes(
@@ -649,7 +649,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       modifyCommitActions(t, version = 1) { actions =>
         actions.filter(_._1 != "add")
       }
-      snapshot(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
     val content = new String(Files.readAllBytes(
@@ -676,7 +676,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
           case other => other
         }
       }
-      snapshot(t)
+      snapshotSpec(t)
     }
     assertPassed(results)
     val content = new String(Files.readAllBytes(
@@ -697,8 +697,8 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO dst VALUES (3),(4),(5)")
       val s1 = registerTable("src")
       val d1 = registerTable("dst")
-      read(s1)
-      read(d1)
+      readSpec(s1)
+      readSpec(d1)
     }
     assert(results.size == 2, "Should produce 2 workload results")
     assertPassed(results)
@@ -715,10 +715,10 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1),(2),(3)")
       val t = registerTable("tbl")
-      read(t, predicate = "id >= 2")
-      read(t, predicate = "id < 3")
-      read(t, predicate = "id = 1")
-      read(t, predicate = "id IS NULL")
+      readSpec(t, predicate = "id >= 2")
+      readSpec(t, predicate = "id < 3")
+      readSpec(t, predicate = "id = 1")
+      readSpec(t, predicate = "id IS NULL")
     }
     assertPassed(results)
     assert(Files.exists(specs("t_an1").resolve("t_an1_read_id_gte_2.json")))
@@ -744,16 +744,16 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      read(t)
-      snapshot(t)
+      readSpec(t)
+      snapshotSpec(t)
     }
     assert(Files.exists(dir("t_fw2").resolve("table_info.json")))
     val second = run(force = false) { _ =>
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      read(t)
-      snapshot(t)
+      readSpec(t)
+      snapshotSpec(t)
     }
     assert(second.head.skipped)
   }
@@ -772,7 +772,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("CREATE TABLE tbl (id INT) USING delta")
       sql("INSERT INTO tbl VALUES (1)")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     val info = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_fw4").resolve("table_info.json")))
@@ -814,7 +814,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
         USING delta PARTITIONED BY (part)""")
       sql("INSERT INTO tbl VALUES (1,'a'),(2,'a'),(3,'b')")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     val info = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_fw5").resolve("table_info.json")))
@@ -841,7 +841,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       sql("INSERT INTO tbl VALUES (2)")
       sql("INSERT INTO tbl VALUES (3)")
       val t = registerTable("tbl")
-      read(t)
+      readSpec(t)
     }
     val info = JsonUtil.mapper.readTree(
       Files.readAllBytes(dir("t_fw6").resolve("table_info.json")))
