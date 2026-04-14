@@ -1,13 +1,32 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * VARIANT type workloads: basic reads, data skipping, nested JSON, array/map variants,
  * column mapping, schema evolution, time travel, CDF, and edge cases.
  */
-
-new WorkloadSuite("variant") {
+class VariantSuite extends WorkloadTestSuite("variant") {
 
   // var_001-006: Basic variant reads and stats
 
-  test("var_001_basic", "Read table with VARIANT column", "variant") {
+  test("var_001_basic") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -20,7 +39,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_002_basic_stats", "Basic variant stats", "variant") {
+  test("var_002_basic_stats") {
     sql("""CREATE TABLE tbl (v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -32,7 +51,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_003_nested_stats", "Nested variant stats", "variant") {
+  test("var_003_nested_stats") {
     sql("""CREATE TABLE tbl (v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -44,7 +63,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_004_non_objects", "Non-objects in variant", "variant") {
+  test("var_004_non_objects") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -59,7 +78,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_005_null_counts", "Null counts in variant", "variant") {
+  test("var_005_null_counts") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -74,7 +93,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_006_different_types", "Variant stats with different data types", "variant") {
+  test("var_006_different_types") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -90,7 +109,7 @@ new WorkloadSuite("variant") {
 
   // var_007: Partitioned variant table
 
-  test("var_007_partitions", "Variant stats with multiple partitions", "variant", "partition") {
+  test("var_007_partitions") {
     sql("""CREATE TABLE tbl (part INT, v VARIANT) USING delta
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -106,7 +125,7 @@ new WorkloadSuite("variant") {
 
   // var_008-013: Various variant patterns
 
-  test("var_008_many_fields", "More than 10 fields in variant", "variant") {
+  test("var_008_many_fields") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -117,7 +136,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_009_unusual_chars", "Unusual characters in field names", "variant") {
+  test("var_009_unusual_chars") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -128,7 +147,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_010_nested_fields", "Deeply nested fields in variant", "variant") {
+  test("var_010_nested_fields") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -139,7 +158,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_011_missing_values", "Missing values in variant", "variant") {
+  test("var_011_missing_values") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -151,7 +170,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_012_mixed_types", "Mixed types for same field", "variant") {
+  test("var_012_mixed_types") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -167,7 +186,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_013_extreme_values", "Extreme values in variant", "variant") {
+  test("var_013_extreme_values") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -182,7 +201,7 @@ new WorkloadSuite("variant") {
 
   // var_014-015: Variant in struct and string skipping
 
-  test("var_014_variant_in_struct", "Variant in struct for data skipping", "variant") {
+  test("var_014_variant_in_struct") {
     sql("""CREATE TABLE tbl (id INT, wrapper STRUCT<data: VARIANT, label: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -194,7 +213,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_015_string_skipping", "Data skipping with string values", "variant") {
+  test("var_015_string_skipping") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, PARSE_JSON('{\"name\":\"alpha\"}'))")
@@ -208,7 +227,7 @@ new WorkloadSuite("variant") {
 
   // var_016-017: Array and map variant
 
-  test("var_016_array_variant", "Read ARRAY<VARIANT> column", "variant") {
+  test("var_016_array_variant") {
     sql("""CREATE TABLE tbl (id INT, items ARRAY<VARIANT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -221,7 +240,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_017_map_variant", "Read MAP<STRING, VARIANT> column", "variant") {
+  test("var_017_map_variant") {
     sql("""CREATE TABLE tbl (id INT, attributes MAP<STRING, VARIANT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -236,7 +255,7 @@ new WorkloadSuite("variant") {
 
   // var_018: Column mapping + variant
 
-  test("var_018_column_mapping", "VARIANT with column mapping", "variant", "column_mapping") {
+  test("var_018_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, json_col VARIANT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -251,7 +270,7 @@ new WorkloadSuite("variant") {
 
   // var_019: Schema evolution with variant
 
-  test("var_019_schema_evolution", "Schema evolution with VARIANT column", "variant", "schema_evolution") {
+  test("var_019_schema_evolution") {
     sql("""CREATE TABLE tbl (v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (PARSE_JSON('{\"a\":1}'))")
@@ -269,7 +288,7 @@ new WorkloadSuite("variant") {
 
   // var_020: Time travel with variant
 
-  test("var_020_time_travel", "Time travel with VARIANT column", "variant") {
+  test("var_020_time_travel") {
     sql("""CREATE TABLE tbl (id INT, payload VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, PARSE_JSON('{\"v\":\"first\"}'))")
@@ -285,7 +304,7 @@ new WorkloadSuite("variant") {
 
   // var_021: Variant after OPTIMIZE
 
-  test("var_021_optimized", "Read VARIANT after OPTIMIZE", "variant") {
+  test("var_021_optimized") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, PARSE_JSON('{\"x\":1}'))")
@@ -302,7 +321,7 @@ new WorkloadSuite("variant") {
 
   // var_022: Variant stat fields property
 
-  test("var_022_stat_fields", "VARIANT_DATA_SKIPPING_STAT_FIELDS property", "variant") {
+  test("var_022_stat_fields") {
     sql("""CREATE TABLE tbl (id INT, v VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -317,7 +336,7 @@ new WorkloadSuite("variant") {
 
   // var_all_json_types - var_unicode_escapes: Additional variant patterns
 
-  test("var_all_json_types", "Variant with all JSON types in one value", "variant") {
+  test("var_all_json_types") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -329,7 +348,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_cdf_read", "Variant with CDF enabled", "variant", "cdf") {
+  test("var_cdf_read") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -342,7 +361,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_deeply_nested", "Variant with deeply nested JSON", "variant") {
+  test("var_deeply_nested") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -353,7 +372,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_large_array", "Variant with large JSON array", "variant") {
+  test("var_large_array") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Build a JSON array with 100 elements
@@ -366,7 +385,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_null_top_level", "Variant with SQL NULL top-level value", "variant") {
+  test("var_null_top_level") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -381,7 +400,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_numeric_precision", "Variant with numeric precision edge cases", "variant") {
+  test("var_numeric_precision") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -395,7 +414,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_predicate_non_variant", "Predicate on non-variant column with variant present", "variant") {
+  test("var_predicate_non_variant") {
     sql("""CREATE TABLE tbl (id INT, category STRING, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -409,7 +428,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_projection", "Column projection on variant table", "variant") {
+  test("var_projection") {
     sql("""CREATE TABLE tbl (id INT, name STRING, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -422,7 +441,7 @@ new WorkloadSuite("variant") {
     snapshot(t)
   }
 
-  test("var_unicode_escapes", "Variant with unicode and escape sequences", "variant") {
+  test("var_unicode_escapes") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES

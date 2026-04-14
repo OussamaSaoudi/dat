@@ -1,16 +1,35 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Combined DML and miscellaneous workloads.
  *
  * Merged from dml_operations.scala and misc_workloads.scala.
  */
-
-new WorkloadSuite("dml") {
+class DmlSuite extends WorkloadTestSuite("dml") {
 
   // === DML Operations ===
 
   // DELETE workloads
 
-  test("deleteAllRows", "DELETE without WHERE", "delete", "dml") {
+  test("deleteAllRows") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -20,7 +39,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("deleteBasic", "DELETE with WHERE clause", "delete", "dml") {
+  test("deleteBasic") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d')")
@@ -30,7 +49,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("deletePartitioned", "DELETE on partitioned table", "delete", "dml", "partitioned") {
+  test("deletePartitioned") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300),(4,'west',400)")
@@ -41,7 +60,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("deleteWithInPredicate", "DELETE with IN predicate", "delete", "dml") {
+  test("deleteWithInPredicate") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -51,7 +70,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("deleteWithPredicate", "DELETE with complex predicate", "delete", "dml") {
+  test("deleteWithPredicate") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40),(5,'e',50)")
@@ -63,7 +82,7 @@ new WorkloadSuite("dml") {
 
   // INSERT workloads
 
-  test("insertBasicAppend", "INSERT INTO append mode", "insert", "dml") {
+  test("insertBasicAppend") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -75,7 +94,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("insertOverwrite", "INSERT OVERWRITE", "insert", "dml") {
+  test("insertOverwrite") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -85,7 +104,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("insertOverwritePartition", "INSERT OVERWRITE partition", "insert", "dml", "partitioned") {
+  test("insertOverwritePartition") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300)")
@@ -96,7 +115,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("insertSelectReadBack", "INSERT INTO SELECT read-back", "insert", "dml") {
+  test("insertSelectReadBack") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -106,7 +125,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("insertValuesReadBack", "INSERT INTO VALUES", "insert", "dml") {
+  test("insertValuesReadBack") {
     sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'Alice',95.5)")
@@ -119,7 +138,7 @@ new WorkloadSuite("dml") {
 
   // UPDATE workloads
 
-  test("updateAllRows", "UPDATE without WHERE", "update", "dml") {
+  test("updateAllRows") {
     sql("""CREATE TABLE tbl (id INT, status STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'old'),(2,'old'),(3,'old')")
@@ -130,7 +149,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updateBasic", "UPDATE with WHERE clause", "update", "dml") {
+  test("updateBasic") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30)")
@@ -141,7 +160,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updateMultiCols", "UPDATE multiple columns", "update", "dml") {
+  test("updateMultiCols") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT, active BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10,true),(2,'b',20,true),(3,'c',30,false)")
@@ -152,7 +171,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updateNullToValue", "UPDATE null to non-null values", "update", "dml") {
+  test("updateNullToValue") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, NULL)")
@@ -165,7 +184,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updatePartitioned", "UPDATE on partitioned table", "update", "dml", "partitioned") {
+  test("updatePartitioned") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'east',100),(2,'west',200),(3,'east',300)")
@@ -176,7 +195,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updateValueToNull", "UPDATE non-null to null values", "update", "dml") {
+  test("updateValueToNull") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -187,7 +206,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("updateWithSubquery", "UPDATE with expression in SET", "update", "dml") {
+  test("updateWithSubquery") {
     sql("""CREATE TABLE tbl (id INT, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200),(3,300)")
@@ -200,7 +219,7 @@ new WorkloadSuite("dml") {
 
   // Combined DML sequences
 
-  test("dmlMergeAfterDelete", "MERGE after DELETE", "merge", "delete", "dml", "combined") {
+  test("dmlMergeAfterDelete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -215,7 +234,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("dmlMultipleMerges", "Multiple MERGE operations", "merge", "dml", "combined") {
+  test("dmlMultipleMerges") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -239,7 +258,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("dmlSequenceInsertUpdateDelete", "Sequential INSERT, UPDATE, DELETE", "dml", "combined") {
+  test("dmlSequenceInsertUpdateDelete") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10)")
@@ -252,7 +271,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("dmlUpdateAfterMerge", "UPDATE after MERGE", "update", "merge", "dml", "combined") {
+  test("dmlUpdateAfterMerge") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20)")
@@ -274,7 +293,7 @@ new WorkloadSuite("dml") {
 
   // OSS-compatible read workloads
 
-  test("ossReadBasicOSS", "Basic OSS compatible read", "oss", "read") {
+  test("ossReadBasicOSS") {
     sql("""CREATE TABLE tbl (id LONG, data STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // 20 rows: id 0..19, data='oss_test'
@@ -284,7 +303,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("ossReadPartitionedOSS", "Partitioned table OSS read", "oss", "read", "partitioned") {
+  test("ossReadPartitionedOSS") {
     sql("""CREATE TABLE tbl (id INT, part STRING, value INT) USING delta
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'a',30),(4,'b',40),(5,'c',50)")
@@ -294,7 +313,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("ossReadPredicateOSS", "Predicate pushdown on OSS table", "oss", "read") {
+  test("ossReadPredicateOSS") {
     sql("""CREATE TABLE tbl (id LONG, category STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // 50 rows: id 0..24 -> 'low', id 25..49 -> 'high'
@@ -307,7 +326,7 @@ new WorkloadSuite("dml") {
     snapshot(t)
   }
 
-  test("ossReadTimeTravelOSS", "Time travel on OSS table", "oss", "read", "time_travel") {
+  test("ossReadTimeTravelOSS") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // v0: 5 rows (1..5)
@@ -325,7 +344,7 @@ new WorkloadSuite("dml") {
 
   // Special path handling
 
-  test("pec_table_path_special", "Table path with special characters (spaces)", "path", "edge_case") {
+  test("pec_table_path_special") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // 10 rows: id 0..9

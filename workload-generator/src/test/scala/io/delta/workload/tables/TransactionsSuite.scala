@@ -1,4 +1,24 @@
-new WorkloadSuite("transactions") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class TransactionsSuite extends WorkloadTestSuite("transactions") {
 
   // Helper to create a table and inject SetTransaction actions via mutation
   def txnTable(numInserts: Int): Unit = {
@@ -10,7 +30,7 @@ new WorkloadSuite("transactions") {
     }
   }
 
-  test("txn_basic", "Basic SetTransaction tracking", "txn") {
+  test("txn_basic") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -22,7 +42,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-1", txnVersion = 1, version = 1, name = "txn")
   }
 
-  test("txn_update", "SetTransaction version update", "txn") {
+  test("txn_update") {
     txnTable(3)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -39,7 +59,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-1", txnVersion = 3, name = "txn")
   }
 
-  test("txn_duplicate_appid", "Two SetTransaction for same appId in separate commits", "txn") {
+  test("txn_duplicate_appid") {
     txnTable(3)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -56,7 +76,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-dup", txnVersion = 5, name = "txn")
   }
 
-  test("txn_multiple_apps_1", "Multiple app transactions - app-1", "txn") {
+  test("txn_multiple_apps_1") {
     txnTable(3)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -73,7 +93,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-1", txnVersion = 1, name = "txn")
   }
 
-  test("txn_multiple_apps_2", "Multiple app transactions - app-2", "txn") {
+  test("txn_multiple_apps_2") {
     txnTable(3)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -90,7 +110,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-2", txnVersion = 100, name = "txn")
   }
 
-  test("txn_batch_app1", "Multiple SetTransactions in single commit - app-1", "txn") {
+  test("txn_batch_app1") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -103,7 +123,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-1", txnVersion = 100, name = "txn")
   }
 
-  test("txn_batch_app3", "Multiple SetTransactions in single commit - app-3", "txn") {
+  test("txn_batch_app3") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -116,7 +136,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-3", txnVersion = 300, name = "txn")
   }
 
-  test("txn_with_last_updated", "SetTransaction with lastUpdated", "txn") {
+  test("txn_with_last_updated") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -128,7 +148,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-with-ts", txnVersion = 42, name = "txn")
   }
 
-  test("txn_without_last_updated", "SetTransaction without lastUpdated", "txn") {
+  test("txn_without_last_updated") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -140,7 +160,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-no-ts", txnVersion = 7, name = "txn")
   }
 
-  test("txn_after_checkpoint", "SetTransaction survives checkpoint", "txn") {
+  test("txn_after_checkpoint") {
     txnTable(3)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -157,7 +177,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-checkpoint", txnVersion = 20, name = "txn")
   }
 
-  test("txn_at_version_1", "SetTransaction at version 1", "txn") {
+  test("txn_at_version_1") {
     txnTable(4)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>
@@ -179,7 +199,7 @@ new WorkloadSuite("transactions") {
     appTxn(t, appId = "app-1", txnVersion = 1, version = 1, name = "txn")
   }
 
-  test("txn_future_version", "SetTransaction version greater than commit version", "txn") {
+  test("txn_future_version") {
     txnTable(2)
     val t = registerTable("tbl")
     mutateTable(t) { tableDir =>

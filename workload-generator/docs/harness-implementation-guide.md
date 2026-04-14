@@ -49,7 +49,7 @@ fn extract_acceptance_workloads() {
 
 ```bash
 cd workload-generator
-WORKLOAD_PARALLEL=4 WORKLOAD_OUTPUT_DIR=/path/to/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/*.scala"
+WORKLOAD_OUTPUT_DIR=/path/to/workloads sbt "testOnly io.delta.workload.tables.*"
 ```
 
 ---

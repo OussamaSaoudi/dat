@@ -16,59 +16,23 @@
 
 package io.delta.workload
 
-import java.nio.file.{Files, Path, StandardCopyOption}
-
-import scala.jdk.CollectionConverters._
-import scala.util.control.NonFatal
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 
-/** Moves (or copies) a Delta table directory for portable workload output. */
+/** Utilities for copying Delta tables to output directories. */
 object TableCopier {
 
-  /**
-   * Move a Delta table to the output directory. Falls back to copy if move
-   * fails (e.g., cross-filesystem). The source table is consumed — the caller
-   * should not read from sourceTablePath after this call.
-   */
-  def copyTable(sourceTablePath: Path, destTablePath: Path): Unit = {
-    require(Files.exists(sourceTablePath), s"Source not found: $sourceTablePath")
-    if (Files.exists(destTablePath)) FileUtils.deleteDirectory(destTablePath.toFile)
-    try {
-      Files.move(sourceTablePath, destTablePath)
-    } catch {
-      case _: java.io.IOException =>
-        // Cross-filesystem or other move failure — fall back to copy
-        copyDirectory(sourceTablePath, destTablePath)
-    }
-  }
-
-  def cleanOutputDir(outputDir: Path): Unit = {
-    if (Files.exists(outputDir)) FileUtils.deleteDirectory(outputDir.toFile)
-    Files.createDirectories(outputDir)
-  }
-
-  /** Recursively copy a directory tree preserving mtimes. */
-  private def copyDirectory(src: Path, dest: Path): Unit = {
-    if (!Files.exists(src)) return
+  /** Copy a Delta table directory to the destination. */
+  def copyTable(src: Path, dest: Path): Unit = {
+    require(Files.exists(src), s"Source not found: $src")
     if (Files.exists(dest)) FileUtils.deleteDirectory(dest.toFile)
-    val stream = Files.walk(src)
-    try {
-      stream.iterator().asScala.foreach { sourcePath =>
-        val destPath = dest.resolve(src.relativize(sourcePath))
-        if (Files.isDirectory(sourcePath)) {
-          Files.createDirectories(destPath)
-          try { Files.setLastModifiedTime(destPath, Files.getLastModifiedTime(sourcePath)) }
-          catch { case NonFatal(_) => }
-        } else {
-          Files.createDirectories(destPath.getParent)
-          Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING)
-          try { Files.setLastModifiedTime(destPath, Files.getLastModifiedTime(sourcePath)) }
-          catch { case NonFatal(_) => }
-        }
-      }
-    } finally {
-      stream.close()
-    }
+    FileUtils.copyDirectory(src.toFile, dest.toFile)
+  }
+
+  /** Clean and recreate an output directory. */
+  def cleanOutputDir(dir: Path): Unit = {
+    if (Files.exists(dir)) FileUtils.deleteDirectory(dir.toFile)
+    Files.createDirectories(dir)
   }
 }

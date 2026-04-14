@@ -1,8 +1,28 @@
-new WorkloadSuite("deletion_vectors") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class DeletionVectorsSuite extends WorkloadTestSuite("deletion_vectors") {
 
   // === Deletion Vectors ===
 
-  test("dv_basic_delete", "DVs after DELETE", "dv") {
+  test("dv_basic_delete") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -15,7 +35,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t, version = 1)
   }
 
-  test("dv_large_table", "DVs on 2000-row table", "dv") {
+  test("dv_large_table") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(2000)")
@@ -32,7 +52,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_partitioned", "DVs on partitioned table", "dv") {
+  test("dv_partitioned") {
     sql("""CREATE TABLE tbl (id INT, partCol INT) USING delta
       PARTITIONED BY (partCol) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id % 10 AS INT) FROM range(200)")
@@ -45,7 +65,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_all_deleted", "All rows deleted via DVs", "dv") {
+  test("dv_all_deleted") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3),(4),(5)")
@@ -55,7 +75,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_multiple_deletes", "Multiple DELETE operations on same file", "dv") {
+  test("dv_multiple_deletes") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)")
@@ -67,7 +87,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_column_mapping", "DVs + column mapping", "dv", "column_mapping") {
+  test("dv_with_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name', 'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -82,7 +102,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_no_dvs", "DV feature enabled but no DVs produced", "dv") {
+  test("dv_no_dvs") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -91,7 +111,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_checkpoint", "DVs + checkpoint", "dv", "checkpoint") {
+  test("dv_with_checkpoint") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -104,7 +124,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_insert_after_delete", "Insert after DV delete", "dv") {
+  test("dv_insert_after_delete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -118,7 +138,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
 
-  test("dv_with_merge", "DVs produced by MERGE", "dv", "merge") {
+  test("dv_with_merge") {
     sql("""CREATE TABLE target (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO target VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d')")
@@ -134,7 +154,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_update", "DVs produced by UPDATE", "dv") {
+  test("dv_with_update") {
     sql("""CREATE TABLE tbl (id INT, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,10),(2,20),(3,30),(4,40),(5,50)")
@@ -147,7 +167,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_column_mapping_id", "DVs + column mapping id mode + partitioned", "dv", "column_mapping") {
+  test("dv_column_mapping_id") {
     sql("""CREATE TABLE tbl (id INT, category STRING, value STRING) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
@@ -161,7 +181,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_partition_pruning_combined", "DV + partition pruning with complex predicates", "dv") {
+  test("dv_partition_pruning_combined") {
     sql("""CREATE TABLE tbl (id INT, part STRING, value INT) USING delta
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'A',10),(2,'A',20),(3,'B',30),(4,'B',40),(5,'C',50),(6,'C',60)")
@@ -175,7 +195,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_single_row_deleted", "Single-row file with DV", "dv") {
+  test("dv_single_row_deleted") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -185,7 +205,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_predicate_on_deleted", "Predicate matching only deleted rows returns 0 rows", "dv") {
+  test("dv_predicate_on_deleted") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie'),(4,'diana')")
@@ -201,7 +221,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_multi_file_delete", "DVs across multiple data files", "dv") {
+  test("dv_multi_file_delete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Insert in separate batches to create multiple files
@@ -219,7 +239,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_time_travel_pre_dv", "Time travel before DV exists", "dv") {
+  test("dv_time_travel_pre_dv") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d')")
@@ -234,7 +254,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_insert_readback", "Insert into DV table verify read-back", "dv") {
+  test("dv_insert_readback") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -249,7 +269,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_column_projection", "Column subset with DV selection vector", "dv") {
+  test("dv_column_projection") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'alice',1.1),(2,'bob',2.2),(3,'charlie',3.3),(4,'diana',4.4)")
@@ -260,7 +280,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_null_values", "DVs with NULL row values", "dv") {
+  test("dv_with_null_values") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,NULL),(3,'c'),(4,NULL),(5,'e')")
@@ -270,7 +290,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_projection_with_pred", "Predicate + projection + DV (triple combo)", "dv") {
+  test("dv_projection_with_pred") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40),(5,'e',50)")
@@ -282,7 +302,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
 
-  test("dv_all_rows_deleted", "All rows in file marked deleted via DV", "dv") {
+  test("dv_all_rows_deleted") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -292,7 +312,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_checkpoint_only_read", "Checkpoint-only table with DVs", "dv", "checkpoint") {
+  test("dv_checkpoint_only_read") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -308,7 +328,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_checkpoint_read", "DV table read through a checkpoint", "dv", "checkpoint") {
+  test("dv_checkpoint_read") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -321,7 +341,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_cm_partition_combo", "DV + CM + partitioned triple combo", "dv", "column_mapping") {
+  test("dv_cm_partition_combo") {
     sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
@@ -339,7 +359,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_column_mapping_read", "DV + column mapping (name mode) combined", "dv", "column_mapping") {
+  test("dv_column_mapping_read") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -355,7 +375,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_err_001_checksum", "DV checksum validation failure", "dv") {
+  test("dv_err_001_checksum") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(20)")
@@ -376,7 +396,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_err_002_missing_file", "Missing DV file error", "dv") {
+  test("dv_err_002_missing_file") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(20)")
@@ -391,7 +411,7 @@ new WorkloadSuite("deletion_vectors") {
     read(t)
   }
 
-  test("dv_err_003_malformed_path", "Malformed DV path error", "dv") {
+  test("dv_err_003_malformed_path") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -408,7 +428,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_inline_vs_ondisk", "Both inline and on-disk DVs in same table", "dv") {
+  test("dv_inline_vs_ondisk") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(2, 100)")
@@ -420,7 +440,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_multiple_dvs_same_file", "Multiple DELETE operations on same file", "dv") {
+  test("dv_multiple_dvs_same_file") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e'),(6,'f'),(7,'g'),(8,'h'),(9,'i'),(10,'j')")
@@ -432,7 +452,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_partition_pruning", "DV + partition pruning with complex predicates", "dv") {
+  test("dv_partition_pruning") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -450,7 +470,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_special_path_chars", "DV in table with special characters in path", "dv") {
+  test("dv_special_path_chars") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -460,7 +480,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_storage_type_i", "DV with storageType i (inline base85)", "dv") {
+  test("dv_storage_type_i") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
@@ -471,7 +491,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_storage_type_p", "DV with storageType p (absolute path)", "dv") {
+  test("dv_storage_type_p") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
@@ -482,7 +502,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_storage_type_u", "DV with storageType u (UUID-relative path)", "dv") {
+  test("dv_storage_type_u") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT), CAST(id AS STRING) FROM range(1, 11)")
@@ -492,7 +512,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_cm_partitioned", "DV + column mapping (id mode) + partitioned", "dv", "column_mapping") {
+  test("dv_with_cm_partitioned") {
     sql("""CREATE TABLE tbl (id INT, dept STRING, salary INT) USING delta
       PARTITIONED BY (dept)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
@@ -511,7 +531,7 @@ new WorkloadSuite("deletion_vectors") {
     snapshot(t)
   }
 
-  test("dv_with_offset", "DV stored at non-zero offset in shared bin file", "dv") {
+  test("dv_with_offset") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -546,7 +566,7 @@ new WorkloadSuite("deletion_vectors") {
   // v2: INSERT (300, 700)
   // v3: DELETE value IN (300, 250, 350, 900, 1353, 1567, 1800)
   // v4: INSERT (900, 1567)
-  test("DV-001", "read Delta table with deletion vectors", "dv") {
+  test("DV-001") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(2000)")
@@ -563,7 +583,7 @@ new WorkloadSuite("deletion_vectors") {
   // DV-002: partitioned table, 2000 rows with deletes/inserts, partition filters
   // Schema: id INT, name STRING, status STRING (default 'active')
   // Partitioned by a derived column; 2000 rows with alternating delete/insert
-  test("DV-002", "read partitioned Delta table with deletion vectors", "dv", "partitioned") {
+  test("DV-002") {
     sql("""CREATE TABLE tbl (id INT, name STRING, status STRING DEFAULT 'active') USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Insert 2000 rows: id 0..1999, name='name_{id}', status defaults to 'active'
@@ -586,7 +606,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
   // DV-003: metadata columns (same data as DV-001)
-  test("DV-003", "select metadata columns from a Delta table with deletion vectors", "dv") {
+  test("DV-003") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(2000)")
@@ -600,7 +620,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
   // DV-004: filter on DV table (same data as DV-001)
-  test("DV-004", "read Delta table with deletion vectors with a filter", "dv") {
+  test("DV-004") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(2000)")
@@ -613,7 +633,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
   // DV-005a: subquery count on DV table (same data as DV-001)
-  test("DV-005a", "read Delta tables with DVs in subqueries - table1 count", "dv") {
+  test("DV-005a") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(2000)")
@@ -627,7 +647,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
   // DV-005b: second table for subquery test (small table)
-  test("DV-005b", "read Delta tables with DVs in subqueries - table2 count", "dv") {
+  test("DV-005b") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'test')")
@@ -638,7 +658,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-006: DELETE on table with no prior DVs (500 files, 2 rows each = 1000 rows)
   // DELETE even ids < 200 => removes 100 rows => 900 remain
-  test("DV-006", "DELETE with DVs - on a table with no prior DVs", "dv") {
+  test("DV-006") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Create 1000 rows (id 0..999)
@@ -654,7 +674,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-007: DELETE on table that already has DVs
   // 50 rows (value 0..49), DELETE specific values twice
-  test("DV-007", "DELETE with DVs - existing table already has DVs", "dv") {
+  test("DV-007") {
     sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(50)")
@@ -669,7 +689,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-008: JOIN with DVs - self-join (table2 is a small helper)
   // table2 has 1 row
-  test("DV-008", "JOIN with DVs - self-join a table with DVs (underlying read)", "dv") {
+  test("DV-008") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'test')")
@@ -680,7 +700,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-009: JOIN with DVs - non-DV table joins DV table
   // table2 is a small helper, 1 row at v1, empty at v0
-  test("DV-009", "JOIN with DVs - non-DV table joins DV table (underlying reads)", "dv") {
+  test("DV-009") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'test')")
@@ -692,7 +712,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-010: INSERT into DV table
   // 20 rows (value 0..19), DELETE 4, then INSERT 4 more
-  test("DV-010", "insert into Delta table with DVs", "dv") {
+  test("DV-010") {
     sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(20)")
@@ -706,7 +726,7 @@ new WorkloadSuite("deletion_vectors") {
   // DV-011: DELETE with DVs + column mapping mode
   // 10 partitions (part 0..9), 5 rows per partition
   // col1 = part + 10*i, col2 = "foo" + (part % 5)
-  test("DV-011", "DELETE with DVs with column mapping mode", "dv", "column_mapping", "partitioned") {
+  test("DV-011") {
     sql("""CREATE TABLE tbl (part INT, col1 INT, col2 STRING) USING delta
       PARTITIONED BY (part) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Insert 50 rows: 10 partitions x 5 rows each
@@ -726,7 +746,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-012: DELETE with DVs - packing multiple DVs
   // 200 rows in many files, DELETE even ids < 20
-  test("DV-012", "DELETE with DVs - packing multiple DVs", "dv") {
+  test("DV-012") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(200)")
@@ -741,7 +761,7 @@ new WorkloadSuite("deletion_vectors") {
   // 10 rows (value 0..9), DELETE (0, 9), then MERGE:
   //   source = range(10001, 10009) UNION values matching existing
   //   MATCHED -> UPDATE, NOT MATCHED -> INSERT
-  test("DV-013", "MERGE with DVs - merge into DV table", "dv", "merge") {
+  test("DV-013") {
     sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -760,7 +780,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-014: UPDATE with DVs - update rewrite files with DVs
   // 10 rows (value 0..9), DELETE (0, 9), then UPDATE value=1 SET value=-1
-  test("DV-014", "UPDATE with DVs - update rewrite files with DVs", "dv") {
+  test("DV-014") {
     sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -773,7 +793,7 @@ new WorkloadSuite("deletion_vectors") {
 
   // DV-015: UPDATE with DVs - update deleted rows updates nothing
   // 10 rows (value 0..9), DELETE (0, 9), then UPDATE value=0 (no-op, already deleted)
-  test("DV-015", "UPDATE with DVs - update deleted rows updates nothing", "dv") {
+  test("DV-015") {
     sql("""CREATE TABLE tbl (value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -791,7 +811,7 @@ new WorkloadSuite("deletion_vectors") {
   // v1: DELETE id IN (1, 8)
   // v2: UPDATE id=0 SET id=-1
   // v3: MERGE (source matches remaining, deletes matched, inserts new)
-  test("DV-016", "INSERT + DELETE + MERGE + UPDATE with DVs", "dv") {
+  test("DV-016") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -816,7 +836,7 @@ new WorkloadSuite("deletion_vectors") {
   // DV-017: Huge table - 2B+ rows with existing DV
   // WARNING: This workload will take extremely long to run. It is provided for
   // completeness. The original table was pre-built as a golden table.
-  test("DV-017", "huge table: read from tables of 2B rows with existing DV", "dv", "large") {
+  test("DV-017") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // WARNING: This generates ~2.1 billion rows. Only run if you have sufficient resources.
@@ -829,7 +849,7 @@ new WorkloadSuite("deletion_vectors") {
   }
 
   // DV-018: DV feature enabled but no DVs produced
-  test("DV-018", "table with DV feature enabled but no DVs", "dv") {
+  test("DV-018") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")

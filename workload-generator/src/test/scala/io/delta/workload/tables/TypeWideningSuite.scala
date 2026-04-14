@@ -1,14 +1,33 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Type widening workloads: numeric chains, float->double, decimal precision,
  * date->timestampNTZ, nested fields, arrays, maps, partitions, DVs, CDF,
  * column mapping, data skipping, projections, and null handling.
  */
-
-new WorkloadSuite("type_widening") {
+class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
 
   // Simple type widenings
 
-  test("tw_byte_to_int", "Multiple successive type widenings (byte -> short -> int)", "type_widening") {
+  test("tw_byte_to_int") {
     sql("""CREATE TABLE tbl (a BYTE) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     // v1: insert byte-range values
@@ -28,7 +47,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("tw_short_to_int", "Short to int widening", "type_widening") {
+  test("tw_short_to_int") {
     sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(100 AS SHORT)), (2, CAST(32767 AS SHORT))")
@@ -40,7 +59,7 @@ new WorkloadSuite("type_widening") {
     snapshot(t)
   }
 
-  test("tw_short_to_long", "Short to long widening (via int)", "type_widening") {
+  test("tw_short_to_long") {
     sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(100 AS SHORT)), (2, CAST(32767 AS SHORT))")
@@ -55,7 +74,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("tw_int_to_long", "Read after int to long widening", "type_widening") {
+  test("tw_int_to_long") {
     sql("""CREATE TABLE tbl (a INT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1), (2147483647)")
@@ -68,7 +87,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("tw_full_numeric_chain", "Full widening chain: byte -> short -> int -> long", "type_widening") {
+  test("tw_full_numeric_chain") {
     sql("""CREATE TABLE tbl (a BYTE) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (CAST(1 AS BYTE)), (CAST(100 AS BYTE))")
@@ -86,7 +105,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 7L) snapshot(t, version = v)
   }
 
-  test("tw_float_to_double", "Float to double widening", "type_widening") {
+  test("tw_float_to_double") {
     sql("""CREATE TABLE tbl (value FLOAT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (CAST(1.5 AS FLOAT)), (CAST(3.14 AS FLOAT))")
@@ -98,7 +117,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("tw_decimal_precision", "Decimal precision widening (5,2) -> (10,2)", "type_widening") {
+  test("tw_decimal_precision") {
     sql("""CREATE TABLE tbl (amount DECIMAL(5,2)) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (123.45), (999.99)")
@@ -110,7 +129,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("tw_cross_physical_decimal", "Cross-physical-type decimal widening (INT32->INT64->FIXED)", "type_widening") {
+  test("tw_cross_physical_decimal") {
     sql("""CREATE TABLE tbl (amount DECIMAL(9,2)) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (123.45), (9999999.99)")
@@ -125,7 +144,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("tw_date_to_timestamp_ntz", "Date to TimestampNTZ widening", "type_widening") {
+  test("tw_date_to_timestamp_ntz") {
     sql("""CREATE TABLE tbl (a DATE) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (DATE'2024-01-15'), (DATE'2024-06-30')")
@@ -139,7 +158,7 @@ new WorkloadSuite("type_widening") {
 
   // Nested, array, and map type widening
 
-  test("tw_nested_field", "Nested field type widening (struct.count: int -> long)", "type_widening") {
+  test("tw_nested_field") {
     sql("""CREATE TABLE tbl (data STRUCT<id: INT, count: INT>) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (named_struct('id', 1, 'count', 100))")
@@ -152,7 +171,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("tw_array_element", "Array element type widening (array<int> -> array<long>)", "type_widening") {
+  test("tw_array_element") {
     sql("""CREATE TABLE tbl (values ARRAY<INT>) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (array(1, 2, 3))")
@@ -164,7 +183,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("tw_map_key_value_widening", "Map key/value type widening (map<byte,short> -> map<int,int>)", "type_widening") {
+  test("tw_map_key_value_widening") {
     sql("""CREATE TABLE tbl (
       s STRUCT<a: BYTE>,
       m MAP<BYTE, SHORT>,
@@ -189,7 +208,7 @@ new WorkloadSuite("type_widening") {
 
   // Type widening with other features
 
-  test("tw_with_dv", "Type widening with deletion vectors", "type_widening", "dv") {
+  test("tw_with_dv") {
     sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.enableTypeWidening' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(10 AS SHORT)), (2, CAST(20 AS SHORT)), (3, CAST(30 AS SHORT)), (4, CAST(40 AS SHORT)), (5, CAST(50 AS SHORT))")
@@ -202,7 +221,7 @@ new WorkloadSuite("type_widening") {
     snapshot(t)
   }
 
-  test("tw_with_partition", "Type widening in partitioned table", "type_widening", "partition") {
+  test("tw_with_partition") {
     sql("""CREATE TABLE tbl (id INT, value SHORT, category STRING) USING delta
       PARTITIONED BY (category) TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(10 AS SHORT), 'A'), (2, CAST(20 AS SHORT), 'B'), (3, CAST(30 AS SHORT), 'A')")
@@ -215,7 +234,7 @@ new WorkloadSuite("type_widening") {
     snapshot(t)
   }
 
-  test("tw_with_column_mapping", "Column mapping + type widening combined", "type_widening", "column_mapping") {
+  test("tw_with_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.enableTypeWidening' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -232,7 +251,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("tw_colmap_rename", "Type change + column rename combined", "type_widening", "column_mapping") {
+  test("tw_colmap_rename") {
     sql("""CREATE TABLE tbl (id INT, val SHORT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.enableTypeWidening' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -248,7 +267,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("tw_cdf_across_widening", "CDF spanning type widening change", "type_widening", "cdf") {
+  test("tw_cdf_across_widening") {
     sql("""CREATE TABLE tbl (id INT, amount SHORT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableTypeWidening' = 'true',
         'delta.enableDeletionVectors' = 'true')""")
@@ -262,7 +281,7 @@ new WorkloadSuite("type_widening") {
     snapshot(t)
   }
 
-  test("tw_row_tracking_combo", "Type widening + row tracking combined", "type_widening") {
+  test("tw_row_tracking_combo") {
     sql("""CREATE TABLE tbl (id INT, score SHORT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true',
         'spark.delta.properties.defaults.enableRowTracking' = 'true',
@@ -278,7 +297,7 @@ new WorkloadSuite("type_widening") {
 
   // Data skipping and projections with type widening
 
-  test("tw_with_data_skipping", "Widened type with predicate pushdown", "type_widening") {
+  test("tw_with_data_skipping") {
     sql("""CREATE TABLE tbl (id INT, value INT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 100), (2, 200)")
@@ -292,7 +311,7 @@ new WorkloadSuite("type_widening") {
     snapshot(t)
   }
 
-  test("tw_stats_after_change", "Data skipping after type change", "type_widening") {
+  test("tw_stats_after_change") {
     sql("""CREATE TABLE tbl (id INT, metric SHORT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(10 AS SHORT)), (2, CAST(100 AS SHORT))")
@@ -306,7 +325,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("tw_project_widened", "Project only the widened column", "type_widening") {
+  test("tw_project_widened") {
     sql("""CREATE TABLE tbl (id INT, value INT, label STRING) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 100, 'a'), (2, 200, 'b')")
@@ -319,7 +338,7 @@ new WorkloadSuite("type_widening") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("tw_project_non_widened", "Project excluding widened column", "type_widening") {
+  test("tw_project_non_widened") {
     sql("""CREATE TABLE tbl (id INT, value INT, label STRING) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 100, 'a'), (2, 200, 'b')")
@@ -333,7 +352,7 @@ new WorkloadSuite("type_widening") {
 
   // Null handling
 
-  test("tw_null_handling", "Nulls preserved across type widening (short -> int)", "type_widening") {
+  test("tw_null_handling") {
     sql("""CREATE TABLE tbl (id INT, value SHORT) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, CAST(10 AS SHORT)), (2, CAST(NULL AS SHORT)), (3, CAST(30 AS SHORT)), (4, CAST(NULL AS SHORT))")

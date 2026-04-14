@@ -1,6 +1,26 @@
-new WorkloadSuite("cdc") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("cdc_by_path", "CDC by path", "cdf") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class CdcSuite extends WorkloadTestSuite("cdc") {
+
+  test("cdc_by_path") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -12,7 +32,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_version_range", "CDF version ranges", "cdf") {
+  test("cdc_version_range") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -28,7 +48,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_single_version", "CDF for single version", "cdf") {
+  test("cdc_single_version") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -41,7 +61,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_inserts", "CDF with INSERT operations", "cdf") {
+  test("cdc_inserts") {
     sql("""CREATE TABLE tbl (id LONG, name STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob')")
@@ -57,7 +77,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_updates", "CDF with UPDATE operations", "cdf") {
+  test("cdc_updates") {
     sql("""CREATE TABLE tbl (id LONG, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200),(3,300)")
@@ -74,7 +94,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_deletes", "CDF with DELETE operations", "cdf") {
+  test("cdc_deletes") {
     sql("""CREATE TABLE tbl (id LONG, name STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -90,7 +110,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_merge", "CDF with MERGE", "cdf", "merge") {
+  test("cdc_merge") {
     sql("""CREATE TABLE target (id LONG, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO target VALUES (1,100),(2,200),(3,300)")
@@ -109,7 +129,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_merge_delete", "MERGE with matched delete clause", "cdf", "merge") {
+  test("cdc_merge_delete") {
     sql("""CREATE TABLE tbl (id LONG, value INT, status STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100,'active'),(2,200,'active'),(3,300,'inactive')")
@@ -128,7 +148,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_multiple_refs", "Multiple CDF reads", "cdf") {
+  test("cdc_multiple_refs") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -144,7 +164,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_metadata_filter", "CDC filtering by data values", "cdf") {
+  test("cdc_metadata_filter") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -157,7 +177,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_partitioned", "CDC with partitioned table", "cdf") {
+  test("cdc_partitioned") {
     sql("""CREATE TABLE tbl (id LONG, category STRING, value INT) USING delta
       PARTITIONED BY (category) TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'A',100),(2,'A',200)")
@@ -172,7 +192,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_partitioned_dml", "CDC partitioned DML", "cdf") {
+  test("cdc_partitioned_dml") {
     sql("""CREATE TABLE tbl (id LONG, category STRING, value INT) USING delta
       PARTITIONED BY (category) TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'A',10),(2,'A',20),(3,'B',30),(4,'B',40)")
@@ -190,7 +210,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_column_mapping", "CDC with column mapping", "cdf", "column_mapping") {
+  test("cdc_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob')")
@@ -203,7 +223,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_deletion_vectors", "CDC with deletion vectors", "cdf", "dv") {
+  test("cdc_deletion_vectors") {
     sql("""CREATE TABLE tbl (id LONG, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200),(3,300),(4,400),(5,500)")
@@ -220,7 +240,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_dv_column_mapping", "CDC + DV + column mapping", "cdf", "dv", "column_mapping") {
+  test("cdc_dv_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -238,7 +258,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_data_skipping", "CDC with data skipping", "cdf") {
+  test("cdc_data_skipping") {
     sql("""CREATE TABLE tbl (id LONG, category STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'low',10),(2,'low',20)")
@@ -256,7 +276,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_schema_evolution", "CDC across ADD COLUMN", "cdf", "schema_evolution") {
+  test("cdc_schema_evolution") {
     sql("""CREATE TABLE tbl (id LONG, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true',
         'delta.columnMapping.mode' = 'name', 'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -275,7 +295,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_optimize", "CDC after OPTIMIZE", "cdf") {
+  test("cdc_optimize") {
     sql("""CREATE TABLE tbl (id LONG, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100)")
@@ -291,7 +311,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_predicates", "CDC read with predicates", "cdf") {
+  test("cdc_predicates") {
     sql("""CREATE TABLE tbl (id INT, status STRING, count INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'active',10),(2,'inactive',20),(3,'active',30)")
@@ -307,7 +327,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_transform", "CDC data transformation", "cdf") {
+  test("cdc_transform") {
     sql("""CREATE TABLE tbl (id LONG, amount DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100.0),(2,200.0),(3,300.0)")
@@ -320,7 +340,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_multiple_types", "CDC with diverse types", "cdf") {
+  test("cdc_multiple_types") {
     sql("""CREATE TABLE tbl (id INT, name STRING, score DOUBLE, is_active BOOLEAN,
       amount DECIMAL(10,2), created DATE, updated_at TIMESTAMP) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
@@ -334,7 +354,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_nested_struct", "CDC with nested types", "cdf") {
+  test("cdc_nested_struct") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>, tags ARRAY<STRING>) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,struct('alice',30),array('a','b'))")
@@ -347,7 +367,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_map_array", "CDC with map and array", "cdf") {
+  test("cdc_map_array") {
     sql("""CREATE TABLE tbl (id INT, props MAP<STRING, STRING>, scores ARRAY<INT>) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,map('k1','v1','k2','v2'),array(10,20,30))")
@@ -360,7 +380,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_generated_columns", "CDC with generated columns", "cdf") {
+  test("cdc_generated_columns") {
     sql("""CREATE TABLE tbl (id INT, price DOUBLE, quantity INT,
       total DOUBLE GENERATED ALWAYS AS (price * quantity)) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
@@ -374,7 +394,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_not_enabled", "Error: CDF on table without CDF", "cdf", "error") {
+  test("cdc_not_enabled") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     val t = registerTable("tbl")
@@ -383,7 +403,7 @@ new WorkloadSuite("cdc") {
     snapshot(t)
   }
 
-  test("cdc_many_versions", "CDF with 10+ versions", "cdf") {
+  test("cdc_many_versions") {
     sql("""CREATE TABLE tbl (id INT, value INT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     for (i <- 1 to 5) sql(s"INSERT INTO tbl VALUES ($i, ${i * 10})")

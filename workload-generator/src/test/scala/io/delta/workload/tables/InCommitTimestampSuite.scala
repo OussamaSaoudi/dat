@@ -1,6 +1,26 @@
-new WorkloadSuite("in_commit_timestamp") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("ict_basic", "Basic ICT read", "inCommitTimestamp") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class InCommitTimestampSuite extends WorkloadTestSuite("in_commit_timestamp") {
+
+  test("ict_basic") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -9,7 +29,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_create_or_replace", "ICT preserved across REPLACE", "inCommitTimestamp") {
+  test("ict_create_or_replace") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -19,7 +39,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_dml", "ICT with DML operations", "inCommitTimestamp") {
+  test("ict_dml") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -31,7 +51,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_enable_later", "Enable ICT on existing table", "inCommitTimestamp") {
+  test("ict_enable_later") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'false', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -49,7 +69,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t, version = 3)
   }
 
-  test("ict_enabled_mid_lifecycle", "ICT enabled at version N", "inCommitTimestamp") {
+  test("ict_enabled_mid_lifecycle") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'false', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -69,7 +89,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t, version = 4)
   }
 
-  test("ict_from_checkpoint", "ICT from checkpoint", "inCommitTimestamp") {
+  test("ict_from_checkpoint") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES (
         'delta.enableInCommitTimestamps' = 'true',
@@ -81,7 +101,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_from_crc", "ICT value read from CRC file", "inCommitTimestamp") {
+  test("ict_from_crc") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -92,7 +112,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_multiple_commits", "ICT with multiple commits", "inCommitTimestamp") {
+  test("ict_multiple_commits") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -108,7 +128,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_time_travel", "ICT with time travel", "inCommitTimestamp") {
+  test("ict_time_travel") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableInCommitTimestamps' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -124,7 +144,7 @@ new WorkloadSuite("in_commit_timestamp") {
     snapshot(t)
   }
 
-  test("ict_with_checkpoint", "ICT after checkpoint compaction", "inCommitTimestamp") {
+  test("ict_with_checkpoint") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES (
         'delta.enableInCommitTimestamps' = 'true',

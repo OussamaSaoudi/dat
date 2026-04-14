@@ -1,10 +1,29 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Iceberg Compatibility tests.
  */
+class IcebergCompatSuite extends WorkloadTestSuite("iceberg_compat") {
 
-new WorkloadSuite("iceberg_compat") {
-
-  test("ice_compat_v1", "IcebergCompatV1", "icebergCompat") {
+  test("ice_compat_v1") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV1' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -16,7 +35,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_compat_v2", "IcebergCompatV2", "icebergCompat") {
+  test("ice_compat_v2") {
     sql("""CREATE TABLE tbl (id INT, value DOUBLE, category STRING) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -30,7 +49,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_column_mapping", "IcebergCompat + column mapping", "icebergCompat") {
+  test("ice_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -41,7 +60,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_nested_map", "IcebergCompat V2 + MAP", "icebergCompat") {
+  test("ice_nested_map") {
     sql("""CREATE TABLE tbl (id INT, col2 MAP<INT, INT>) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -51,7 +70,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_nested_array", "IcebergCompat V2 + ARRAY", "icebergCompat") {
+  test("ice_nested_array") {
     sql("""CREATE TABLE tbl (id INT, col2 ARRAY<INT>) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -61,7 +80,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_partitioned", "IcebergCompat + partitions", "icebergCompat") {
+  test("ice_partitioned") {
     sql("""CREATE TABLE tbl (id INT, name STRING, category STRING) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
@@ -77,7 +96,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_with_dv", "IcebergCompat + DVs", "icebergCompat", "dv") {
+  test("ice_with_dv") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -90,7 +109,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_metadata", "IcebergCompat table metadata verification", "icebergCompat") {
+  test("ice_metadata") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.enableChangeDataFeed' = 'true',
@@ -101,7 +120,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_nested_types", "IcebergCompat V2 with nested types", "icebergCompat") {
+  test("ice_nested_types") {
     sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>, attrs MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -113,7 +132,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_complex_types", "IcebergCompatV2 with complex types (array/map/struct)", "icebergCompat") {
+  test("ice_complex_types") {
     sql("""CREATE TABLE tbl (
       id INT,
       tags ARRAY<STRING>,
@@ -132,7 +151,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_partition_evolution", "IcebergCompatV2 with partition columns", "icebergCompat") {
+  test("ice_partition_evolution") {
     sql("""CREATE TABLE tbl (id INT, value STRING, category STRING) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
@@ -147,7 +166,7 @@ new WorkloadSuite("iceberg_compat") {
     snapshot(t)
   }
 
-  test("ice_schema_evolution", "IcebergCompatV2 with schema evolution (ADD COLUMN)", "icebergCompat") {
+  test("ice_schema_evolution") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableIcebergCompatV2' = 'true',
         'delta.columnMapping.mode' = 'name')""")

@@ -1,3 +1,23 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Log Replay + Production Edge Cases workloads (lr_* + log_* + lc_* + prod_*).
  * Covers: add-then-remove log replay, checkpoint supersedes log, full replay without
@@ -7,12 +27,11 @@
  * unknown reader features, varchar metadata, duplicate file refs, external checkpoints).
  *
  */
-
-new WorkloadSuite("log_replay") {
+class LogReplaySuite extends WorkloadTestSuite("log_replay") {
 
   // Log replay: add then remove
 
-  test("lr_add_then_remove", "Log replay - add then remove", "logReplay") {
+  test("lr_add_then_remove") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     sql("DELETE FROM tbl WHERE id = 2")
@@ -24,8 +43,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: checkpoint supersedes log
 
-  test("lr_checkpoint_supersedes_log", "Log replay - checkpoint supersedes log",
-      "logReplay") {
+  test("lr_checkpoint_supersedes_log") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     sql("INSERT INTO tbl VALUES (3), (4)")
@@ -41,8 +59,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: no checkpoint, full replay from v0
 
-  test("lr_no_checkpoint_full_replay", "Log replay - no checkpoint, full replay",
-      "logReplay") {
+  test("lr_no_checkpoint_full_replay") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
@@ -60,7 +77,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: metadata latest wins
 
-  test("lr_metadata_latest_wins", "Log replay - metadata latest wins", "logReplay") {
+  test("lr_metadata_latest_wins") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
@@ -73,8 +90,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: dataChange=false from compaction
 
-  test("lr_datachange_false", "Log replay - dataChange=false from compaction",
-      "logReplay") {
+  test("lr_datachange_false") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     sql("INSERT INTO tbl VALUES (3), (4)")
@@ -86,8 +102,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: add, remove, re-add across transactions
 
-  test("log_replay_add_remove_readd", "Same file added, removed, re-added",
-      "logReplay") {
+  test("log_replay_add_remove_readd") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     sql("DELETE FROM tbl WHERE id = 2")
@@ -101,8 +116,7 @@ new WorkloadSuite("log_replay") {
 
   // Log replay: DV key dedup
 
-  test("log_replay_dv_key_dedup", "DV deduplication during log replay",
-      "logReplay", "dv") {
+  test("log_replay_dv_key_dedup") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(1, 21)")
@@ -115,8 +129,7 @@ new WorkloadSuite("log_replay") {
 
   // Error: missing metadata in state reconstruction
 
-  test("log_err_missing_metadata", "State reconstruction without Metadata action",
-      "logReplay", "error") {
+  test("log_err_missing_metadata") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -131,8 +144,7 @@ new WorkloadSuite("log_replay") {
 
   // Error: missing protocol in state reconstruction
 
-  test("log_err_missing_protocol", "State reconstruction without Protocol action",
-      "logReplay", "error") {
+  test("log_err_missing_protocol") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -147,7 +159,7 @@ new WorkloadSuite("log_replay") {
 
   // Last checkpoint info (lc_*)
 
-  test("lc_basic", "Basic last checkpoint read", "lastCheckpoint") {
+  test("lc_basic") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
@@ -156,7 +168,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("lc_checksum", "Checkpoint with checksum validation", "lastCheckpoint") {
+  test("lc_checksum") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
@@ -165,8 +177,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("lc_multi_version", "Last checkpoint with multiple versions",
-      "lastCheckpoint") {
+  test("lc_multi_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
@@ -180,7 +191,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("lc_after_ops", "Last checkpoint after table operations", "lastCheckpoint") {
+  test("lc_after_ops") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("DELETE FROM tbl WHERE id < 3")
@@ -191,8 +202,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("lc_with_schema", "Last checkpoint with schema information",
-      "lastCheckpoint") {
+  test("lc_with_schema") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
@@ -205,16 +215,14 @@ new WorkloadSuite("log_replay") {
 
   // Production edge cases (prod_*)
 
-  test("prod_empty_table_with_schema", "Empty Delta table with schema but no data files",
-      "production") {
+  test("prod_empty_table_with_schema") {
     sql("CREATE TABLE tbl (id INT, name STRING, score DOUBLE) USING delta")
     val t = registerTable("tbl")
     read(t)
     snapshot(t)
   }
 
-  test("prod_many_small_commits", "Table with 50+ small commits without checkpoint",
-      "production") {
+  test("prod_many_small_commits") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     for (i <- 1 to 51) {
       sql(s"INSERT INTO tbl VALUES ($i)")
@@ -224,7 +232,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_non_contiguous_versions", "Version gap in delta log", "production") {
+  test("prod_non_contiguous_versions") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
@@ -238,8 +246,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_truncated_log", "Old log files deleted by lifecycle policy",
-      "production") {
+  test("prod_truncated_log") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
@@ -256,8 +263,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_external_writer_checkpoint", "Checkpoint written by external tool",
-      "production") {
+  test("prod_external_writer_checkpoint") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
      forceCheckpoint("tbl")
@@ -267,8 +273,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_duplicate_add_file_refs", "Multiple versions with overlapping file paths",
-      "production") {
+  test("prod_duplicate_add_file_refs") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     sql("INSERT OVERWRITE tbl VALUES (4), (5), (6)")
@@ -277,8 +282,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_varchar_metadata_missing", "Table with VARCHAR column metadata",
-      "production") {
+  test("prod_varchar_metadata_missing") {
     sql("CREATE TABLE tbl (id INT, name VARCHAR(100)) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'hello'), (2, 'world')")
     val t = registerTable("tbl")
@@ -286,8 +290,7 @@ new WorkloadSuite("log_replay") {
     snapshot(t)
   }
 
-  test("prod_unknown_reader_feature", "Protocol with unknown reader feature",
-      "production", "error") {
+  test("prod_unknown_reader_feature") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")

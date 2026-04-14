@@ -1,4 +1,24 @@
-new WorkloadSuite("checkpoints") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
 
   private def checkpoint(name: String): Unit = forceCheckpoint(name)
 
@@ -6,7 +26,7 @@ new WorkloadSuite("checkpoints") {
 
   // Existing 5 workloads
 
-  test("cp_classic", "Classic checkpoint read", "checkpoint") {
+  test("cp_classic") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(1, 101)")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(101, 201)")
@@ -18,7 +38,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_multi_version", "Read checkpoint with time travel across versions", "checkpoint") {
+  test("cp_multi_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(1, 51)")
     sql("INSERT INTO tbl SELECT CAST(id AS INT) FROM range(51, 101)")
@@ -32,7 +52,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_last_checkpoint", "Read table using _last_checkpoint", "checkpoint") {
+  test("cp_last_checkpoint") {
     sql("CREATE TABLE tbl (id INT, val STRING) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '5')")
     for (i <- 1 to 7) sql(s"INSERT INTO tbl VALUES ($i, 'v$i')")
     val t = registerTable("tbl")
@@ -42,7 +62,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t, version = 5)
   }
 
-  test("cp_schema_evolution", "Checkpoint with schema evolution", "checkpoint", "schema_evolution") {
+  test("cp_schema_evolution") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(50)")
     checkpoint("tbl")
@@ -55,7 +75,7 @@ new WorkloadSuite("checkpoints") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("cp_partitioned", "Checkpoint with partitioned table", "checkpoint") {
+  test("cp_partitioned") {
     sql("CREATE TABLE tbl (id LONG, part INT) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl SELECT id, CAST(id % 5 AS INT) FROM range(100)")
     sql("INSERT INTO tbl SELECT id, CAST(id % 5 AS INT) FROM range(100, 200)")
@@ -69,7 +89,7 @@ new WorkloadSuite("checkpoints") {
 
   // New workloads: 32 more to match existing acceptance_workloads/cp_* & ckp_*
 
-  test("cp_classic_checkpoint", "Read table with classic (single-file) checkpoint", "checkpoint") {
+  test("cp_classic_checkpoint") {
     sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("INSERT INTO tbl VALUES (4,'d'),(5,'e')")
@@ -81,7 +101,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_empty_table", "Empty table checkpoint", "checkpoint") {
+  test("cp_empty_table") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
     val t = registerTable("tbl")
@@ -89,7 +109,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_many_commits", "Checkpoint after many commits", "checkpoint") {
+  test("cp_many_commits") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     for (i <- 1 to 20) sql(s"INSERT INTO tbl VALUES ($i)")
     checkpoint("tbl")
@@ -99,7 +119,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_multipart", "Classic multi-part checkpoint read", "checkpoint") {
+  test("cp_multipart") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointInterval' = '1000', 'delta.checkpoint.partSize' = '100')""")
     for (i <- 0 to 4) sql(s"INSERT INTO tbl SELECT CAST(id AS INT) FROM range(${i*50}, ${(i+1)*50})")
@@ -115,7 +135,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_multiple", "Multiple checkpoints", "checkpoint") {
+  test("cp_multiple") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
     checkpoint("tbl")
@@ -130,7 +150,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_read_after_version_delete", "Read after later JSON commits deleted", "checkpoint") {
+  test("cp_read_after_version_delete") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     sql("INSERT INTO tbl VALUES (3),(4)")
@@ -147,7 +167,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_checkpoint_only_table", "Table with only checkpoint, no JSON after", "checkpoint") {
+  test("cp_checkpoint_only_table") {
     sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
     sql("INSERT INTO tbl VALUES (3,'c')")
@@ -167,7 +187,7 @@ new WorkloadSuite("checkpoints") {
   }
 
 
-  test("cp_v2_basic", "V2 checkpoint basic read", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_basic") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -180,7 +200,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_json", "V2 checkpoint with JSON format", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_json") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -191,7 +211,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_compat", "V2 backward compatibility checkpoint", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_compat") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -204,7 +224,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_compat_json", "V2 backward compat checkpoint (JSON format)", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_compat_json") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -217,7 +237,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_after_dml", "V2 checkpoint after DML operations", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_after_dml") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -231,7 +251,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_all_actions_in_manifest", "V2 checkpoint with all actions in manifest (no sidecars)", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_all_actions_in_manifest") {
     // Small table — all actions fit in manifest
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
@@ -243,7 +263,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_all_actions_in_manifest_parquet", "V2 checkpoint, all actions in Parquet manifest", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_all_actions_in_manifest_parquet") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -254,7 +274,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_multipart_sidecar", "Multi-part V2 checkpoint (parquet) - 7 versions with varying sidecars", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_multipart_sidecar") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.checkpointInterval' = '1',
@@ -270,7 +290,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_multipart_sidecar_json", "Multi-part V2 checkpoint (json) - 7 versions with varying sidecars", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_multipart_sidecar_json") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.checkpointInterval' = '1',
@@ -288,7 +308,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_dvs", "V2 checkpoint with deletion vectors (checkpoint-only read)", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_with_dvs") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -300,7 +320,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_dvs_json", "V2 checkpoint with DVs - JSON format (checkpoint-only read)", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_with_dvs_json") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -312,7 +332,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_column_mapping", "V2 checkpoint with column mapping", "checkpoint", "v2_checkpoint", "column_mapping") {
+  test("cp_v2_with_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true',
@@ -325,7 +345,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_row_tracking", "V2 checkpoint with row tracking", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_with_row_tracking") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true',
@@ -338,7 +358,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_struct_stats", "V2 checkpoint with struct stats", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_with_struct_stats") {
     sql("""CREATE TABLE tbl (id INT, value DOUBLE) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -349,7 +369,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_v2_with_type_widening", "V2 checkpoint with type widening", "checkpoint", "v2_checkpoint") {
+  test("cp_v2_with_type_widening") {
     sql("""CREATE TABLE tbl (id INT, value INT) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableTypeWidening' = 'true',
@@ -365,7 +385,7 @@ new WorkloadSuite("checkpoints") {
   }
 
 
-  test("ckp_after_100_commits", "Checkpoint after 100+ commits", "checkpoint") {
+  test("ckp_after_100_commits") {
     sql("CREATE TABLE tbl (id INT) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '1000')")
     // Use batch inserts to create many commits efficiently
     for (i <- 0 until 105) sql(s"INSERT INTO tbl VALUES ($i)")
@@ -376,7 +396,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_multipart_10_parts", "Multi-part checkpoint with 10+ parts", "checkpoint") {
+  test("ckp_multipart_10_parts") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointInterval' = '1000', 'delta.checkpoint.partSize' = '30')""")
     // Insert enough data to warrant many parts
@@ -388,7 +408,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_struct_array_map", "Checkpoint with struct, array, and map columns", "checkpoint") {
+  test("ckp_struct_array_map") {
     sql("""CREATE TABLE tbl (
       id INT,
       info STRUCT<name: STRING, age: INT>,
@@ -405,7 +425,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_v2_multiple_sidecars", "V2 checkpoint with multiple sidecar files", "checkpoint", "v2_checkpoint") {
+  test("ckp_v2_multiple_sidecars") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.checkpointPolicy' = 'v2',
         'delta.enableDeletionVectors' = 'true')""")
@@ -419,7 +439,7 @@ new WorkloadSuite("checkpoints") {
   }
 
 
-  test("ckp_corrupt_last_checkpoint", "Invalid JSON in _last_checkpoint (fallback to directory listing)", "checkpoint") {
+  test("ckp_corrupt_last_checkpoint") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
     sql("INSERT INTO tbl VALUES (4),(5)")
@@ -438,7 +458,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_missing_checkpoint_file", "Checkpoint file deleted but _last_checkpoint remains (fallback)", "checkpoint") {
+  test("ckp_missing_checkpoint_file") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
     sql("INSERT INTO tbl VALUES (4),(5)")
@@ -457,7 +477,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_incomplete_multipart", "Multi-part checkpoint with one part missing (fallback to JSON replay)", "checkpoint") {
+  test("ckp_incomplete_multipart") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.checkpointInterval' = '1000', 'delta.checkpoint.partSize' = '50')""")
     for (i <- 0 to 3) sql(s"INSERT INTO tbl SELECT CAST(id AS INT) FROM range(${i*30}, ${(i+1)*30})")
@@ -478,7 +498,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("ckp_wrong_version_hint", "_last_checkpoint pointing to wrong (older) version", "checkpoint") {
+  test("ckp_wrong_version_hint") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     checkpoint("tbl")
@@ -502,7 +522,7 @@ new WorkloadSuite("checkpoints") {
   }
 
 
-  test("cp_err_missing_metadata", "Checkpoint without Metadata action (empty checkpoint)", "checkpoint", "error") {
+  test("cp_err_missing_metadata") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
     val t = registerTable("tbl")
@@ -520,7 +540,7 @@ new WorkloadSuite("checkpoints") {
     snapshot(t)
   }
 
-  test("cp_err_missing_protocol", "Checkpoint without Protocol action (corrupted checkpoint)", "checkpoint", "error") {
+  test("cp_err_missing_protocol") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
     val t = registerTable("tbl")

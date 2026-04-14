@@ -1,3 +1,23 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Evolvability + Format Compatibility workloads (ev_* + fc_* family).
  * Covers: unknown action types in commit, unknown fields in add/metadata/protocol,
@@ -5,13 +25,11 @@
  * empty JSON lines, extra metadata keys, forward compatibility.
  *
  */
-
-new WorkloadSuite("evolvability") {
+class EvolvabilitySuite extends WorkloadTestSuite("evolvability") {
 
   // Evolvability: basic reads with unknown actions
 
-  test("ev_batch_read", "Transaction log schema evolvability - batch read",
-      "evolvability") {
+  test("ev_batch_read") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -26,7 +44,7 @@ new WorkloadSuite("evolvability") {
     snapshot(t)
   }
 
-  test("ev_unknown_action_type", "Commit log with unknown action type", "evolvability") {
+  test("ev_unknown_action_type") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -42,15 +60,14 @@ new WorkloadSuite("evolvability") {
 
   // Protocol evolvability
 
-  test("ev_protocol", "Protocol evolvability", "evolvability") {
+  test("ev_protocol") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     val t = registerTable("tbl")
     snapshot(t)
   }
 
-  test("ev_extra_protocol_fields", "Protocol with extra unknown fields (forward compat)",
-      "evolvability") {
+  test("ev_extra_protocol_fields") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -73,8 +90,7 @@ new WorkloadSuite("evolvability") {
 
   // Unknown protocol features
 
-  test("ev_unknown_protocol_feature", "Protocol with unrecognized writer feature",
-      "evolvability") {
+  test("ev_unknown_protocol_feature") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     val t = registerTable("tbl")
@@ -94,8 +110,7 @@ new WorkloadSuite("evolvability") {
     snapshot(t)
   }
 
-  test("ev_unknown_writer_feature", "Unknown writer feature does not block read",
-      "evolvability") {
+  test("ev_unknown_writer_feature") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -115,8 +130,7 @@ new WorkloadSuite("evolvability") {
     snapshot(t)
   }
 
-  test("ev_unknown_reader_feature", "Unknown reader feature blocks read",
-      "evolvability", "error") {
+  test("ev_unknown_reader_feature") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -139,8 +153,7 @@ new WorkloadSuite("evolvability") {
 
   // Schema evolution
 
-  test("ev_schema_evolution", "Schema evolution across versions",
-      "evolvability", "schemaEvolution") {
+  test("ev_schema_evolution") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
     sql("ALTER TABLE tbl ADD COLUMN name STRING")
@@ -151,7 +164,7 @@ new WorkloadSuite("evolvability") {
     snapshot(t)
   }
 
-  test("ev_data_types", "Multiple data types evolvability", "evolvability") {
+  test("ev_data_types") {
     sql("""CREATE TABLE tbl (
       id LONG, name STRING, score DOUBLE, active BOOLEAN, created DATE
     ) USING delta""")
@@ -164,7 +177,7 @@ new WorkloadSuite("evolvability") {
 
   // Partitioned + null partition values
 
-  test("ev_partitioned", "Partitioned table evolvability", "evolvability") {
+  test("ev_partitioned") {
     sql("CREATE TABLE tbl (id LONG, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
     val t = registerTable("tbl")
@@ -173,8 +186,7 @@ new WorkloadSuite("evolvability") {
     snapshot(t)
   }
 
-  test("ev_partition_null", "Serialized partition values with null values",
-      "evolvability") {
+  test("ev_partition_null") {
     sql("CREATE TABLE tbl (id LONG, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, NULL), (3, 'b')")
     val t = registerTable("tbl")
@@ -185,8 +197,7 @@ new WorkloadSuite("evolvability") {
 
   // CommitInfo with future fields
 
-  test("ev_future_commit_info", "CommitInfo with unknown future fields",
-      "evolvability") {
+  test("ev_future_commit_info") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -208,8 +219,7 @@ new WorkloadSuite("evolvability") {
 
   // Missing intermediate version
 
-  test("ev_missing_intermediate_version", "Log with version gap",
-      "evolvability") {
+  test("ev_missing_intermediate_version") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     // Create 5 versions (0-4) with 2 files each
     sql("INSERT INTO tbl SELECT id FROM range(0, 10)")
@@ -233,8 +243,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: unknown fields in add
 
-  test("fc_unknown_field_in_add", "Forward compat - unknown field in add action",
-      "formatCompat") {
+  test("fc_unknown_field_in_add") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -259,8 +268,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: unknown field in metadata
 
-  test("fc_unknown_field_in_metadata", "Forward compat - unknown field in metadata",
-      "formatCompat") {
+  test("fc_unknown_field_in_metadata") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -282,8 +290,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: unknown field in protocol
 
-  test("fc_unknown_field_in_protocol", "Forward compat - unknown field in protocol",
-      "formatCompat") {
+  test("fc_unknown_field_in_protocol") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -305,8 +312,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: unknown action at top level
 
-  test("fc_unknown_action_top_level", "Forward compat - unknown action at top level",
-      "formatCompat") {
+  test("fc_unknown_action_top_level") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -322,8 +328,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: null fields in add action
 
-  test("fc_null_fields_in_add", "Forward compat - null fields in add action",
-      "formatCompat") {
+  test("fc_null_fields_in_add") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -349,8 +354,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: empty JSON line in commit file
 
-  test("fc_empty_json_line", "Forward compat - empty JSON line in commit file",
-      "formatCompat") {
+  test("fc_empty_json_line") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -367,8 +371,7 @@ new WorkloadSuite("evolvability") {
 
   // Format Compatibility: extra metadata configuration keys
 
-  test("fc_extra_metadata_keys", "Forward compat - extra metadata configuration keys",
-      "formatCompat") {
+  test("fc_extra_metadata_keys") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")

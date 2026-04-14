@@ -1,8 +1,28 @@
-new WorkloadSuite("corruption") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class CorruptionSuite extends WorkloadTestSuite("corruption") {
 
   // === Corrupt Tables ===
 
-  test("corrupt_missing_file", "Deleted parquet file", "corrupt") {
+  test("corrupt_missing_file") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
     val t = registerTable("tbl")
@@ -15,7 +35,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_truncated_commit", "Half-written commit", "corrupt") {
+  test("corrupt_truncated_commit") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -29,7 +49,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_no_crc", "No CRC files", "corrupt") {
+  test("corrupt_no_crc") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -43,7 +63,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_empty_crc", "Empty CRC file", "corrupt") {
+  test("corrupt_empty_crc") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -55,7 +75,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_bad_stats", "Bogus file stats", "corrupt") {
+  test("corrupt_bad_stats") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     val t = registerTable("tbl")
@@ -70,7 +90,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_version_gap", "Missing version in log", "corrupt") {
+  test("corrupt_version_gap") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     sql("INSERT INTO tbl VALUES (2)")
@@ -82,7 +102,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_no_protocol", "Protocol stripped from commit 0", "corrupt") {
+  test("corrupt_no_protocol") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -95,7 +115,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_no_metadata", "Metadata stripped from commit 0", "corrupt") {
+  test("corrupt_no_metadata") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -108,7 +128,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_stale_last_checkpoint", "Stale _last_checkpoint hint", "corrupt") {
+  test("corrupt_stale_last_checkpoint") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
@@ -120,7 +140,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_invalid_last_checkpoint", "Invalid JSON in _last_checkpoint", "corrupt") {
+  test("corrupt_invalid_last_checkpoint") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     forceCheckpoint("tbl")
@@ -132,7 +152,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_empty_delta_log", "Empty _delta_log", "corrupt") {
+  test("corrupt_empty_delta_log") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -143,7 +163,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_zero_byte_commit", "Zero-byte commit file", "corrupt") {
+  test("corrupt_zero_byte_commit") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -153,7 +173,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_dv_garbled", "Garbled DV binary", "corrupt", "dv") {
+  test("corrupt_dv_garbled") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -168,7 +188,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("corrupt_unknown_action", "Unknown action type in commit", "corrupt") {
+  test("corrupt_unknown_action") {
     sql("CREATE TABLE tbl (id LONG) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     val t = registerTable("tbl")
@@ -184,7 +204,7 @@ new WorkloadSuite("corruption") {
   // === Corrupt Tables Extended ===
 
 
-  test("ct_corrupt_parquet", "Truncated parquet data file", "corrupt") {
+  test("ct_corrupt_parquet") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -202,7 +222,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_duplicate_metadata", "Commit with two Metadata actions", "corrupt") {
+  test("ct_duplicate_metadata") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -218,7 +238,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_duplicate_protocol", "Commit with two Protocol actions", "corrupt") {
+  test("ct_duplicate_protocol") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -234,7 +254,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_empty_delta_log", "Empty _delta_log directory", "corrupt") {
+  test("ct_empty_delta_log") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -247,7 +267,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_gap_in_versions", "Version gap (0, 1, 3 - version 2 missing)", "corrupt") {
+  test("ct_gap_in_versions") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -260,7 +280,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("ct_invalid_json", "Commit JSON with invalid syntax", "corrupt") {
+  test("ct_invalid_json") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -273,7 +293,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_missing_data_file", "Parquet file referenced in log but deleted", "corrupt") {
+  test("ct_missing_data_file") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -287,7 +307,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_missing_delta_log", "Directory without _delta_log", "corrupt") {
+  test("ct_missing_delta_log") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -301,7 +321,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_missing_metadata", "Commit 0 missing Metadata action", "corrupt") {
+  test("ct_missing_metadata") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -316,7 +336,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_missing_protocol", "Commit 0 missing Protocol action", "corrupt") {
+  test("ct_missing_protocol") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -331,7 +351,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_only_remove_file", "Commit with only RemoveFile action", "corrupt") {
+  test("ct_only_remove_file") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -353,7 +373,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_unknown_action_types", "Commit with unknown action type", "corrupt") {
+  test("ct_unknown_action_types") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -368,7 +388,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("ct_zero_byte_commit", "Zero-byte commit 0 file", "corrupt") {
+  test("ct_zero_byte_commit") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -380,7 +400,7 @@ new WorkloadSuite("corruption") {
   }
 
 
-  test("corrupt_crc_empty", "Empty CRC file", "corrupt", "resilience") {
+  test("corrupt_crc_empty") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -394,7 +414,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_crc_negative_counts", "CRC with negative fileCounts", "corrupt", "resilience") {
+  test("corrupt_crc_negative_counts") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -412,7 +432,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_crc_no_metadata", "CRC missing metadata/protocol", "corrupt", "resilience") {
+  test("corrupt_crc_no_metadata") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -426,7 +446,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_crc_txnid_mismatch", "CRC txnId doesn't match commit", "corrupt", "resilience") {
+  test("corrupt_crc_txnid_mismatch") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -444,7 +464,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_crc_wrong_numfiles", "CRC numFiles doesn't match actual", "corrupt", "resilience") {
+  test("corrupt_crc_wrong_numfiles") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -462,7 +482,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_incomplete_multipart_checkpoint", "Multi-part checkpoint with missing part file", "corrupt", "resilience") {
+  test("corrupt_incomplete_multipart_checkpoint") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '5')""")
     for (i <- 0 until 20) sql(s"INSERT INTO tbl SELECT id FROM range(${i*10}, ${(i+1)*10})")
@@ -472,7 +492,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_last_checkpoint_checksum_mismatch", "Content doesn't match its checksum", "corrupt", "resilience") {
+  test("corrupt_last_checkpoint_checksum_mismatch") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -491,7 +511,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_malformed_last_checkpoint", "Invalid JSON in _last_checkpoint", "corrupt", "resilience") {
+  test("corrupt_malformed_last_checkpoint") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -505,7 +525,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_malformed_stats_json", "AddFile with corrupted stats JSON", "corrupt", "resilience") {
+  test("corrupt_malformed_stats_json") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -521,7 +541,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_missing_last_checkpoint", "_last_checkpoint absent", "corrupt", "resilience") {
+  test("corrupt_missing_last_checkpoint") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -538,7 +558,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_stale_checkpoint_extra_files", "Checkpoint has more files than log", "corrupt", "resilience") {
+  test("corrupt_stale_checkpoint_extra_files") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -552,7 +572,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_truncated_commit_json", "Commit JSON truncated mid-line", "corrupt") {
+  test("corrupt_truncated_commit_json") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -566,7 +586,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("corrupt_wrong_last_checkpoint", "_last_checkpoint points to non-existent version", "corrupt", "resilience") {
+  test("corrupt_wrong_last_checkpoint") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -581,7 +601,7 @@ new WorkloadSuite("corruption") {
   }
 
 
-  test("err_add_and_remove_same_path_dv", "Same path+dvId in both add and remove", "corrupt", "dv") {
+  test("err_add_and_remove_same_path_dv") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -599,7 +619,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("err_dv_invalid_storage_type", "DV with unknown storageType", "corrupt", "dv") {
+  test("err_dv_invalid_storage_type") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -615,7 +635,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("err_duplicate_add_same_version", "Same path added twice in one commit", "corrupt") {
+  test("err_duplicate_add_same_version") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -630,7 +650,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("err_missing_version_0", "Missing version 0 JSON", "corrupt") {
+  test("err_missing_version_0") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -642,7 +662,7 @@ new WorkloadSuite("corruption") {
     read(t)
   }
 
-  test("err_schema_empty", "metaData has empty schemaString", "corrupt") {
+  test("err_schema_empty") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -657,7 +677,7 @@ new WorkloadSuite("corruption") {
     snapshot(t)
   }
 
-  test("err_schema_invalid_json", "metaData schemaString is invalid JSON", "corrupt") {
+  test("err_schema_invalid_json") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")

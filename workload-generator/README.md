@@ -27,26 +27,25 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 cd workload-generator
 
 # Run one suite
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/reads.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite"
 
-# Run all suites
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/*.scala"
+# Run all table suites
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly io.delta.workload.tables.*"
 
-# Run tests in parallel (4 concurrent tests)
-WORKLOAD_PARALLEL=4 WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/reads.scala"
+# Run a specific test
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite -- -t read_basic"
 
-# Interactive exploration
-sbt console
-# then: import io.delta.workload._
+# Force regeneration (even if output exists)
+WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite"
 ```
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        WorkloadSuite                                 │
+│                      WorkloadTestSuite                               │
 │  ┌─────────────────────────────────────────────────────────────────┐│
-│  │ test("name", "description") {                                   ││
+│  │ test("name") {                                                  ││
 │  │   sql("CREATE TABLE ...")      // Setup tables via SQL          ││
 │  │   val t = registerTable("tbl") // Get table handle              ││
 │  │   read(t)                      // Declare read spec             ││
@@ -84,7 +83,7 @@ sbt console
 
 | Component | Purpose |
 |-----------|---------|
-| `WorkloadSuite` | Test-suite semantics: register tests, run all, handle failures |
+| `WorkloadTestSuite` | ScalaTest base class with workload generation integration |
 | `WorkloadOps` | DSL trait: `sql()`, `registerTable()`, `read()`, `snapshot()` |
 | `WorkloadGenerator` | Orchestrates table copy, spec capture, and validation |
 | `ReadCapture` | Captures read specs with expected row data |
@@ -96,14 +95,19 @@ sbt console
 | `TableInfoWriter` | Writes table metadata (schema, protocol, stats) |
 | `JsonUtil` | Shared JSON utilities, multiset comparison |
 
-## Writing a Script
+## Writing a Suite
 
-Each script is a `WorkloadSuite` — like a test suite. Each `test` creates tables, declares specs, and the framework handles the rest.
+Each suite is a ScalaTest class extending `WorkloadTestSuite`. Each `test` creates tables, declares specs, and the framework handles the rest.
 
 ```scala
-new WorkloadSuite("cdc") {
+// src/test/scala/io/delta/workload/tables/CdcSuite.scala
+package io.delta.workload.tables
 
-  test("cdf_merge", "MERGE with CDC enabled") {
+import io.delta.workload.WorkloadTestSuite
+
+class CdcSuite extends WorkloadTestSuite("cdc") {
+
+  test("cdf_merge") {
     sql("""CREATE TABLE target (id INT, val STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
     sql("INSERT INTO target VALUES (1, 'old'), (2, 'old')")
@@ -173,7 +177,7 @@ See the [Spec Format Reference](docs/spec-reference.md) for the complete JSON sc
 
 ## Workload Suites
 
-Workload scripts are in `tables/`. Each file is a `WorkloadSuite` covering a specific Delta feature area. See the [Coverage Matrix](docs/coverage-matrix.md) for the full inventory of tests across 40 suites.
+Workload suites are in `src/test/scala/io/delta/workload/tables/`. Each suite extends `WorkloadTestSuite` and covers a specific Delta feature area. See the [Coverage Matrix](docs/coverage-matrix.md) for the full inventory of tests.
 
 ## Building a Test Harness
 
@@ -190,7 +194,7 @@ If you're implementing a Delta engine and want to use these workloads for accept
 
 ```bash
 # Generate workloads and fail on any validation errors
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/*.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly io.delta.workload.tables.*"
 
 # Exit code:
 #   0 = all tests passed
@@ -208,16 +212,16 @@ If you see `NoSuchMethodError` related to Delta APIs, ensure:
 For large workloads:
 ```bash
 export SBT_OPTS="-Xmx4g"
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/large_suite.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *LargeSuite"
 ```
 
 ### Re-running failed tests
 Failed tests auto-cleanup their output. Just re-run:
 ```bash
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/reads.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite"
 ```
 
 Use `WORKLOAD_FORCE=true` to regenerate all tests (including passed ones):
 ```bash
-WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/reads.scala"
+WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite"
 ```

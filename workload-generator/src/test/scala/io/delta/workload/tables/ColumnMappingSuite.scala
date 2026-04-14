@@ -1,8 +1,28 @@
-new WorkloadSuite("column_mapping") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class ColumnMappingSuite extends WorkloadTestSuite("column_mapping") {
 
   // Existing 6 workloads
 
-  test("cm_mode_name", "Read table with column mapping mode 'name'", "column_mapping") {
+  test("cm_mode_name") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value DOUBLE) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1,'alice',100),(2,'bob',200),(3,'charlie',300)")
@@ -13,7 +33,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_rename_column", "Read after column rename with column mapping", "column_mapping") {
+  test("cm_rename_column") {
     sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -27,7 +47,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_drop_column", "Read after column drop with column mapping", "column_mapping") {
+  test("cm_drop_column") {
     sql("""CREATE TABLE tbl (id INT, name STRING, to_drop STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -40,7 +60,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_drop_readd", "Drop and re-add column with same name (CM)", "column_mapping") {
+  test("cm_drop_readd") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -55,7 +75,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("cm_nested_columns", "Nested columns with column mapping", "column_mapping") {
+  test("cm_nested_columns") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -66,7 +86,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_mode_upgrade", "Column mapping mode upgrade from none to name", "column_mapping") {
+  test("cm_mode_upgrade") {
     sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'before'),(2,'before')")
     sql("""ALTER TABLE tbl SET TBLPROPERTIES (
@@ -81,7 +101,7 @@ new WorkloadSuite("column_mapping") {
 
   // New workloads: 25 more to match existing acceptance_workloads/cm_*
 
-  test("cm_mode_id", "Read table with column mapping mode 'id'", "column_mapping") {
+  test("cm_mode_id") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id')""")
     sql("INSERT INTO tbl VALUES (1,'alpha'),(2,'beta'),(3,'gamma')")
@@ -92,7 +112,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_upgrade", "Read after column mapping upgrade", "column_mapping") {
+  test("cm_upgrade") {
     // Similar to cm_mode_upgrade but exercises version-by-version reading
     sql("CREATE TABLE tbl (a INT, b STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'x'),(2,'y')")
@@ -110,7 +130,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("cm_mode_upgrade_partitioned", "Upgrade none to name on partitioned table", "column_mapping") {
+  test("cm_mode_upgrade_partitioned") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'a')")
     sql("""ALTER TABLE tbl SET TBLPROPERTIES (
@@ -124,7 +144,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_special_chars", "Column names with spaces, dots, backticks", "column_mapping") {
+  test("cm_special_chars") {
     sql("""CREATE TABLE tbl (id INT, `col with spaces` STRING, `col.with.dots` STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, 'space1', 'dot1')")
@@ -134,7 +154,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_array_of_structs", "Column mapping with array of structs", "column_mapping") {
+  test("cm_array_of_structs") {
     sql("""CREATE TABLE tbl (id INT, items ARRAY<STRUCT<name: STRING, qty: INT>>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, array(named_struct('name','apple','qty',3)))")
@@ -145,7 +165,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_complex_types", "Complex types (array, map) with column mapping", "column_mapping") {
+  test("cm_complex_types") {
     sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>, props MAP<STRING, INT>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, array('a','b'), map('x',1,'y',2))")
@@ -157,7 +177,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_map_type", "Column mapping with map type columns", "column_mapping") {
+  test("cm_map_type") {
     sql("""CREATE TABLE tbl (id INT, data MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, map('key1','val1','key2','val2'))")
@@ -168,7 +188,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_deeply_nested", "3+ level nested schema with CM", "column_mapping") {
+  test("cm_deeply_nested") {
     sql("""CREATE TABLE tbl (
       id INT,
       l1 STRUCT<l2: STRUCT<l3: STRUCT<value: STRING>>>
@@ -182,7 +202,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_drop_readd_same_name", "Drop and re-add column with same name but different type", "column_mapping") {
+  test("cm_drop_readd_same_name") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -196,7 +216,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("cm_predicate_after_rename", "Predicate on column after rename (name mode)", "column_mapping") {
+  test("cm_predicate_after_rename") {
     sql("""CREATE TABLE tbl (id INT, a INT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -210,7 +230,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_predicate_on_readded", "Predicate on dropped+re-added column", "column_mapping") {
+  test("cm_predicate_on_readded") {
     sql("""CREATE TABLE tbl (id INT, val INT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -225,7 +245,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("cm_predicate_renamed_partition", "Filter on renamed partition column", "column_mapping") {
+  test("cm_predicate_renamed_partition") {
     sql("""CREATE TABLE tbl (id INT, part STRING) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
@@ -240,7 +260,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_rename_partition_col", "Rename partition column", "column_mapping") {
+  test("cm_rename_partition_col") {
     sql("""CREATE TABLE tbl (id INT, category STRING) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
@@ -255,7 +275,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_nested_struct_name", "Column mapping with nested struct (name mode) + projection", "column_mapping") {
+  test("cm_nested_struct_name") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<first: STRING, last: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('first','alice','last','smith','age',30))")
@@ -267,7 +287,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_nested_struct_id", "Column mapping with nested struct (id mode)", "column_mapping") {
+  test("cm_nested_struct_id") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, score: DOUBLE>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','score',95.5))")
@@ -278,7 +298,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_nested_rename_3_levels", "Rename deeply nested struct field", "column_mapping") {
+  test("cm_nested_rename_3_levels") {
     sql("""CREATE TABLE tbl (
       id INT,
       outer_col STRUCT<mid: STRUCT<inner_val: STRING>>
@@ -294,7 +314,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_filter_pushdown_physical_names", "Filters pushed down to parquet use physical names", "column_mapping") {
+  test("cm_filter_pushdown_physical_names") {
     // Create with name mode, rename column, verify filter uses physical name correctly
     sql("""CREATE TABLE tbl (a INT, b STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
@@ -310,7 +330,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_physical_name_matches_logical", "Physical name coincidentally equals new logical name", "column_mapping") {
+  test("cm_physical_name_matches_logical") {
     // After rename, old physical name may match some other column's logical name
     sql("""CREATE TABLE tbl (id INT, alpha STRING, beta STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
@@ -323,7 +343,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_id_mode_rename_projection", "ID mode rename + column projection", "column_mapping") {
+  test("cm_id_mode_rename_projection") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -337,7 +357,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_id_mode_schema_evolution", "Add column in id mode", "column_mapping") {
+  test("cm_id_mode_schema_evolution") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -351,7 +371,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_id_matching_swapped", "ID mode: swapped field ID reads other column data", "column_mapping") {
+  test("cm_id_matching_swapped") {
     // Create table in id mode with nested struct, manipulate column IDs
     sql("""CREATE TABLE tbl (a STRING, b STRUCT<c: STRING, d: INT>) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id')""")
@@ -364,7 +384,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_id_matching_nonexistent", "ID mode: non-existing field ID returns null", "column_mapping") {
+  test("cm_id_matching_nonexistent") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'id',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -379,7 +399,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_projection_complex_types", "Project array/map types with column mapping", "column_mapping") {
+  test("cm_projection_complex_types") {
     sql("""CREATE TABLE tbl (
       id INT,
       arr ARRAY<INT>,
@@ -397,7 +417,7 @@ new WorkloadSuite("column_mapping") {
     snapshot(t)
   }
 
-  test("cm_select_after_drop", "Explicit projection after column drop (CM name mode)", "column_mapping") {
+  test("cm_select_after_drop") {
     sql("""CREATE TABLE tbl (id INT, keep STRING, drop_me INT, extra DOUBLE) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -411,7 +431,7 @@ new WorkloadSuite("column_mapping") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("cm_err_003_invalid_mode", "Column mapping with unsupported mode in metadata", "column_mapping") {
+  test("cm_err_003_invalid_mode") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")

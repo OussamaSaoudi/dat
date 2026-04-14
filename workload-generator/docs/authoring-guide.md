@@ -20,13 +20,17 @@ How to write new workload suites for the Delta workload generator.
 
 ## Quick Start
 
-Create a file in `tables/`, write a `WorkloadSuite`, and run it:
+Create a suite in `src/test/scala/io/delta/workload/tables/`, extend `WorkloadTestSuite`, and run it:
 
 ```scala
-// tables/my_feature.scala
-new WorkloadSuite("my_feature") {
+// src/test/scala/io/delta/workload/tables/MyFeatureSuite.scala
+package io.delta.workload.tables
 
-  test("mf_basic", "Basic feature test") {
+import io.delta.workload.WorkloadTestSuite
+
+class MyFeatureSuite extends WorkloadTestSuite("my_feature") {
+
+  test("mf_basic") {
     sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'alice'), (2, 'bob')")
 
@@ -39,7 +43,7 @@ new WorkloadSuite("my_feature") {
 ```
 
 ```bash
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/my_feature.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *MyFeatureSuite"
 ```
 
 That's it. The framework handles table copying, spec capture, validation, expected data generation, and cleanup.
@@ -48,20 +52,24 @@ That's it. The framework handles table copying, spec capture, validation, expect
 
 ## Suite Structure
 
-### WorkloadSuite
+### WorkloadTestSuite
 
-Every file is an anonymous `WorkloadSuite` instance with `test()` blocks:
+Each suite is a ScalaTest class extending `WorkloadTestSuite`:
 
 ```scala
-new WorkloadSuite("suite_name") {
+package io.delta.workload.tables
 
-  test("test_id", "Human-readable description", "tag1", "tag2") {
+import io.delta.workload.WorkloadTestSuite
+
+class MySuite extends WorkloadTestSuite("suite_name") {
+
+  test("test_id") {
     // Setup tables with SQL
     // Register tables
     // Declare specs
   }
 
-  test("another_test", "Another test") {
+  test("another_test") {
     // ...
   }
 
@@ -70,7 +78,7 @@ new WorkloadSuite("suite_name") {
 
 **Rules:**
 - `suite_name` should be short and descriptive (used in output directory names)
-- `test_id` must be unique within a suite — duplicates are rejected at registration time
+- `test_id` must be unique within a suite
 - Each test is independent — tables are cleaned up between tests
 - Test failures don't stop the suite — all tests run regardless
 
@@ -98,7 +106,7 @@ Inside a test body, these methods are available directly (via `WorkloadOps` trai
 The most common approach — use Spark SQL:
 
 ```scala
-test("example", "Standard SQL ops") {
+test("example") {
   sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
     TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
   sql("INSERT INTO tbl VALUES (1, 'alice'), (2, 'bob')")
@@ -117,7 +125,7 @@ The `sql()` method tracks CREATE TABLE statements for automatic cleanup.
 A test can register multiple tables. Each produces its own output directory:
 
 ```scala
-test("join_scenario", "Source and target for MERGE") {
+test("join_scenario") {
   sql("CREATE TABLE source (id INT, val STRING) USING delta")
   sql("INSERT INTO source VALUES (1, 'new')")
   sql("CREATE TABLE target (id INT, val STRING) USING delta")
@@ -144,7 +152,7 @@ For operations not exposed via SQL (checkpoints, direct log access), use `spark`
 ```scala
 import org.apache.spark.sql.delta.DeltaLog
 
-test("checkpoint_test", "Trigger checkpoint") {
+test("checkpoint_test") {
   sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1), (2), (3)")
 
@@ -161,7 +169,7 @@ test("checkpoint_test", "Trigger checkpoint") {
 Or use the convenience DSL method:
 
 ```scala
-test("checkpoint_test", "Trigger checkpoint") {
+test("checkpoint_test") {
   sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1), (2), (3)")
 
@@ -434,11 +442,12 @@ CRC sidecar files are automatically deleted after all mutations run — no manua
 
 ### Tags
 
-Tags are optional strings on `test()` that describe what the test exercises. They appear in `table_info.json` and can be used by harnesses for filtering.
+Tags can be added via ScalaTest's tagging mechanism or by including them in `table_info.json` via the `tags` parameter on `registerTable()`:
 
 ```scala
-test("dv_delete", "DELETE with deletion vectors", "dv", "delete") {
+test("dv_delete") {
   // ...
+  val t = registerTable("tbl", tags = Seq("dv", "delete"))
 }
 ```
 
@@ -472,7 +481,7 @@ Common tags used across the codebase:
 Just read from a corrupted/invalid table — errors are captured automatically:
 
 ```scala
-test("err_missing_version", "Missing commit file", "error") {
+test("err_missing_version") {
   sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1)")
   sql("INSERT INTO tbl VALUES (2)")
@@ -524,7 +533,7 @@ Assertions are checked during generation after the spec is written. Failed asser
 Insert data across multiple files and use predicates that should skip some:
 
 ```scala
-test("skipping_basic", "Data skipping with range predicate") {
+test("skipping_basic") {
   sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1), (2), (3)")    // File 1: min=1, max=3
   sql("INSERT INTO tbl VALUES (10), (20), (30)")  // File 2: min=10, max=30
@@ -541,7 +550,7 @@ test("skipping_basic", "Data skipping with range predicate") {
 Create a table, evolve the schema, then read at different versions:
 
 ```scala
-test("schema_add_col", "ADD COLUMN and read across versions") {
+test("schema_add_col") {
   sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1), (2)")
   sql("ALTER TABLE tbl ADD COLUMN name STRING")
@@ -557,13 +566,13 @@ test("schema_add_col", "ADD COLUMN and read across versions") {
 ### Testing Checkpoint Scenarios
 
 ```scala
-import org.apache.spark.sql.delta.DeltaLog
-
-test("checkpoint_basic", "Read with checkpoint", "checkpoint") {
-  sql("""CREATE TABLE tbl (id INT) USING delta
-    TBLPROPERTIES ('delta.checkpointInterval' = '2')""")
+test("checkpoint_basic") {
+  sql("CREATE TABLE tbl (id INT) USING delta")
   sql("INSERT INTO tbl VALUES (1)")
-  sql("INSERT INTO tbl VALUES (2)")  // Triggers checkpoint at v2
+  sql("INSERT INTO tbl VALUES (2)")
+  sql("INSERT INTO tbl VALUES (3)")
+
+  forceCheckpoint("tbl")  // Explicit checkpoint trigger
 
   val t = registerTable("tbl")
   read(t)
@@ -574,7 +583,7 @@ test("checkpoint_basic", "Read with checkpoint", "checkpoint") {
 ### Testing CDF (Change Data Feed)
 
 ```scala
-test("cdf_full", "CDF across all operations", "cdf") {
+test("cdf_full") {
   sql("""CREATE TABLE tbl (id INT, val STRING) USING delta
     TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
   sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")       // v1: inserts
@@ -592,7 +601,7 @@ test("cdf_full", "CDF across all operations", "cdf") {
 ### Testing Deletion Vectors
 
 ```scala
-test("dv_basic", "Basic DV operations", "dv") {
+test("dv_basic") {
   sql("""CREATE TABLE tbl (id INT, val STRING) USING delta
     TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
   sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
@@ -609,7 +618,7 @@ test("dv_basic", "Basic DV operations", "dv") {
 ### Testing Column Mapping
 
 ```scala
-test("cm_rename", "Column mapping with rename", "column_mapping") {
+test("cm_rename") {
   sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
     TBLPROPERTIES (
       'delta.columnMapping.mode' = 'name',
@@ -638,7 +647,7 @@ for (dvEnabled <- Seq(true, false)) {
   val suffix = if (dvEnabled) "dv" else "no_dv"
   val props = if (dvEnabled) "'delta.enableDeletionVectors' = 'true'" else ""
 
-  test(s"delete_$suffix", s"DELETE with DVs=$dvEnabled", "delete", suffix) {
+  test(s"delete_$suffix") {
     sql(s"CREATE TABLE tbl (id INT, val STRING) USING delta TBLPROPERTIES ($props)")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("DELETE FROM tbl WHERE id = 2")
@@ -668,12 +677,11 @@ for {
   (predLabel, predExpr) <- predicates
 } {
   val name = s"read_${partLabel}_dv${dvEnabled}_$predLabel"
-  val tags = Seq("read", partLabel) ++ (if (dvEnabled) Seq("dv") else Seq.empty)
   val props = Map(
     "delta.enableDeletionVectors" -> dvEnabled.toString
   ).map { case (k, v) => s"'$k' = '$v'" }.mkString(", ")
 
-  test(name, s"Read: $partLabel, DV=$dvEnabled, pred=$predLabel", tags: _*) {
+  test(name) {
     val partClause = if (partCols.nonEmpty)
       s"PARTITIONED BY (${partCols.mkString(",")})" else ""
     sql(s"""CREATE TABLE tbl (id INT, val STRING, region STRING) USING delta
@@ -716,19 +724,19 @@ Some conditions produce warnings rather than failures:
 ### Quick Run (one suite)
 
 ```bash
-WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/my_feature.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *MyFeatureSuite"
 ```
 
-### Parallel Execution
+### Run a specific test
 
 ```bash
-WORKLOAD_PARALLEL=4 WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/my_feature.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *MyFeatureSuite -- -t mf_basic"
 ```
 
 ### Force Regeneration
 
 ```bash
-WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/my_feature.scala"
+WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *MyFeatureSuite"
 ```
 
 Without `WORKLOAD_FORCE=true`, tests that already have `table_info.json` in the output are skipped.
@@ -736,20 +744,10 @@ Without `WORKLOAD_FORCE=true`, tests that already have `table_info.json` in the 
 ### Run All Suites
 
 ```bash
-WORKLOAD_PARALLEL=4 WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "Test/runMain io.delta.workload.TableScriptRunner tables/*.scala"
+WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly io.delta.workload.tables.*"
 ```
 
-### Interactive Exploration
-
-```bash
-sbt console
-# then:
-import io.delta.workload._
-sql("CREATE TABLE test (id INT) USING delta")
-sql("INSERT INTO test VALUES (1)")
-```
-
-### Running Tests
+### Running Framework Tests
 
 ```bash
 cd workload-generator

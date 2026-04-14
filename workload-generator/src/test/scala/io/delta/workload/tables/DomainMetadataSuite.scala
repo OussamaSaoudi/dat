@@ -1,4 +1,24 @@
-new WorkloadSuite("domain_metadata") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class DomainMetadataSuite extends WorkloadTestSuite("domain_metadata") {
 
   def injectDomainMetadata(t: TableHandle,
       version: Int, entries: Seq[(String, String, Boolean)]): Unit = {
@@ -17,7 +37,7 @@ new WorkloadSuite("domain_metadata") {
 
 
 
-  test("dm_basic_read", "Basic domain metadata read", "domainMetadata") {
+  test("dm_basic_read") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -28,7 +48,7 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  test("dm_json_config", "Domain metadata with JSON configuration", "domainMetadata") {
+  test("dm_json_config") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -40,7 +60,7 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  test("dm_large_payload", "Domain metadata with large payload (>1KB)", "domainMetadata") {
+  test("dm_large_payload") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -53,7 +73,7 @@ new WorkloadSuite("domain_metadata") {
       removed = false, name = "domain_metadata")
   }
 
-  test("dm_multiple_domains", "Multiple domain metadata entries", "domainMetadata") {
+  test("dm_multiple_domains") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -67,7 +87,7 @@ new WorkloadSuite("domain_metadata") {
   }
 
 
-  test("dm_deletion", "Domain metadata deletion", "domainMetadata") {
+  test("dm_deletion") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -84,7 +104,7 @@ new WorkloadSuite("domain_metadata") {
   }
 
 
-  test("dm_version_read", "Read domain metadata at specific version", "domainMetadata") {
+  test("dm_version_read") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -101,7 +121,7 @@ new WorkloadSuite("domain_metadata") {
   }
 
 
-  test("dm_with_checkpoint", "Domain metadata survives checkpoint", "domainMetadata") {
+  test("dm_with_checkpoint") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -118,9 +138,7 @@ new WorkloadSuite("domain_metadata") {
   def stateReconstructionTest(
       name: String, desc: String,
       hasDeletion: Boolean, withCheckpoint: Boolean, withCrc: Boolean): Unit = {
-    val tags = Seq("domainMetadata", "stateReconstruction") ++
-      (if (hasDeletion) Seq("deletion") else Seq.empty)
-    test(name, desc, tags: _*) {
+    test(name) {
       sql("""CREATE TABLE tbl (id INT) USING delta
         TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
       sql("INSERT INTO tbl VALUES (1)")

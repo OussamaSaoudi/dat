@@ -1,6 +1,26 @@
-new WorkloadSuite("generated_columns") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("gc_basic", "Basic generated column (id * 2)", "generatedColumns") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class GeneratedColumnsSuite extends WorkloadTestSuite("generated_columns") {
+
+  test("gc_basic") {
     sql("""CREATE TABLE tbl (
       id LONG,
       doubled LONG GENERATED ALWAYS AS (id * 2)
@@ -12,7 +32,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_arithmetic_expr", "Generated column with arithmetic expression", "generatedColumns") {
+  test("gc_arithmetic_expr") {
     sql("""CREATE TABLE tbl (
       price DOUBLE,
       quantity INT,
@@ -25,7 +45,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_case_when", "Generated column with CASE WHEN", "generatedColumns") {
+  test("gc_case_when") {
     sql("""CREATE TABLE tbl (
       value INT,
       category STRING GENERATED ALWAYS AS (CASE WHEN value >= 100 THEN 'high' ELSE 'low' END)
@@ -38,7 +58,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_coalesce_null", "Generated column with COALESCE", "generatedColumns") {
+  test("gc_coalesce_null") {
     sql("""CREATE TABLE tbl (
       nickname STRING,
       first_name STRING,
@@ -52,7 +72,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_concat_expr", "Generated column with CONCAT", "generatedColumns") {
+  test("gc_concat_expr") {
     sql("""CREATE TABLE tbl (
       first_name STRING,
       last_name STRING,
@@ -65,7 +85,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_date_format_expr", "Generated column with DATE_FORMAT", "generatedColumns") {
+  test("gc_date_format_expr") {
     sql("""CREATE TABLE tbl (
       event_date DATE,
       formatted_date STRING GENERATED ALWAYS AS (DATE_FORMAT(event_date, 'yyyy-MM'))
@@ -77,7 +97,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_datetime", "Generated columns from timestamp", "generatedColumns") {
+  test("gc_datetime") {
     sql("""CREATE TABLE tbl (
       event_time TIMESTAMP,
       event_date DATE GENERATED ALWAYS AS (CAST(event_time AS DATE)),
@@ -94,7 +114,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_math", "Generated column with SQRT expression", "generatedColumns") {
+  test("gc_math") {
     sql("""CREATE TABLE tbl (
       x DOUBLE,
       y DOUBLE,
@@ -107,7 +127,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_multiple", "Multiple generated columns", "generatedColumns") {
+  test("gc_multiple") {
     sql("""CREATE TABLE tbl (
       id LONG,
       doubled LONG GENERATED ALWAYS AS (id * 2),
@@ -121,7 +141,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_nested", "Generated column from struct field", "generatedColumns") {
+  test("gc_nested") {
     sql("""CREATE TABLE tbl (
       data STRUCT<x: INT, y: INT>,
       sum_xy INT GENERATED ALWAYS AS (data.x + data.y)
@@ -136,7 +156,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_null_expression_result", "Generated column that can be NULL", "generatedColumns") {
+  test("gc_null_expression_result") {
     sql("""CREATE TABLE tbl (
       value STRING,
       parsed_int INT GENERATED ALWAYS AS (CAST(value AS INT))
@@ -151,7 +171,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_partition_col", "Generated column as partition column", "generatedColumns") {
+  test("gc_partition_col") {
     sql("""CREATE TABLE tbl (
       date_col DATE,
       value INT,
@@ -167,7 +187,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_partitioned", "Partitioned table with generated column", "generatedColumns") {
+  test("gc_partitioned") {
     sql("""CREATE TABLE tbl (
       id LONG,
       value STRING,
@@ -181,7 +201,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_reference", "Generated column referencing other columns", "generatedColumns") {
+  test("gc_reference") {
     sql("""CREATE TABLE tbl (
       first_name STRING,
       last_name STRING,
@@ -194,7 +214,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_string", "Generated column with string function", "generatedColumns") {
+  test("gc_string") {
     sql("""CREATE TABLE tbl (
       email STRING,
       domain STRING GENERATED ALWAYS AS (SUBSTRING_INDEX(email, '@', -1))
@@ -206,7 +226,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_ctas", "Generated column with CTAS pattern", "generatedColumns") {
+  test("gc_ctas") {
     sql("""CREATE TABLE tbl (
       id LONG,
       doubled LONG GENERATED ALWAYS AS (id * 2)
@@ -218,7 +238,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_time_travel", "Generated columns with time travel", "generatedColumns") {
+  test("gc_time_travel") {
     sql("""CREATE TABLE tbl (
       id LONG,
       doubled LONG GENERATED ALWAYS AS (id * 2)
@@ -234,7 +254,7 @@ new WorkloadSuite("generated_columns") {
     snapshot(t)
   }
 
-  test("gc_added_via_alter_table", "Column added via ALTER TABLE alongside generated column", "generatedColumns") {
+  test("gc_added_via_alter_table") {
     sql("""CREATE TABLE tbl (
       id INT,
       doubled INT GENERATED ALWAYS AS (id * 2)

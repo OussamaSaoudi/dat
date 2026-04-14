@@ -1,6 +1,26 @@
-new WorkloadSuite("check_constraints") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("cc_001_create_with_constraint", "CREATE TABLE with valid check constraint", "checkConstraints") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class CheckConstraintsSuite extends WorkloadTestSuite("check_constraints") {
+
+  test("cc_001_create_with_constraint") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
@@ -12,7 +32,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_002_show_tblproperties", "See constraints in table properties", "checkConstraints") {
+  test("cc_002_show_tblproperties") {
     sql("""CREATE TABLE tbl (x INT, y INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 10),(2, 20)")
@@ -28,7 +48,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t, version = 3)
   }
 
-  test("cc_003_delta_history", "Delta history for constraints", "checkConstraints") {
+  test("cc_003_delta_history") {
     sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -43,7 +63,7 @@ new WorkloadSuite("check_constraints") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("cc_004_case_insensitive_drop", "Drop constraint is case insensitive", "checkConstraints") {
+  test("cc_004_case_insensitive_drop") {
     sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -59,7 +79,7 @@ new WorkloadSuite("check_constraints") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("cc_005_varchar_constraint", "Constraint induced by varchar", "checkConstraints") {
+  test("cc_005_varchar_constraint") {
     sql("""CREATE TABLE tbl (id INT, s VARCHAR(10)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'ab'),(2, 'cdef')")
@@ -70,7 +90,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_006_basic_constraint", "Read table with check constraint", "checkConstraints") {
+  test("cc_006_basic_constraint") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
@@ -81,7 +101,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_007_multiple_constraints", "Read table with multiple check constraints", "checkConstraints") {
+  test("cc_007_multiple_constraints") {
     sql("""CREATE TABLE tbl (id INT, amount DECIMAL(10,2), status STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
@@ -97,7 +117,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_008_nested_constraint", "Read with nested column constraint", "checkConstraints") {
+  test("cc_008_nested_constraint") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT adult CHECK (info.age >= 18)")
@@ -110,7 +130,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_009_array_constraint", "Read with array size constraint", "checkConstraints") {
+  test("cc_009_array_constraint") {
     sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT at_least_one_tag CHECK (size(tags) >= 1)")
@@ -123,7 +143,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_010_length_constraint", "Read with string length constraint", "checkConstraints") {
+  test("cc_010_length_constraint") {
     sql("""CREATE TABLE tbl (code STRING, description STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT code_length CHECK (length(code) = 5)")
@@ -136,7 +156,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_011_compound_constraint", "Read with compound constraint", "checkConstraints") {
+  test("cc_011_compound_constraint") {
     sql("""CREATE TABLE tbl (start_date DATE, end_date DATE, amount DECIMAL(10,2)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT valid_range CHECK (end_date >= start_date AND amount > 0)")
@@ -149,7 +169,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_012_not_null_constraint", "Read with NOT NULL-like constraint", "checkConstraints") {
+  test("cc_012_not_null_constraint") {
     sql("""CREATE TABLE tbl (id INT, required_field STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT required CHECK (required_field IS NOT NULL)")
@@ -161,7 +181,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_013_time_travel", "Time travel with constraints", "checkConstraints") {
+  test("cc_013_time_travel") {
     sql("""CREATE TABLE tbl (value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -175,7 +195,7 @@ new WorkloadSuite("check_constraints") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("cc_014_time_type_constraint", "CHECK constraints with TIME type columns", "checkConstraints") {
+  test("cc_014_time_type_constraint") {
     sql("""CREATE TABLE tbl (id INT, event_time STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT valid_time CHECK (event_time >= '09:00:00')")
@@ -188,7 +208,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_015_time_multiple_conditions", "CHECK constraints with TIME type - multiple conditions", "checkConstraints") {
+  test("cc_015_time_multiple_conditions") {
     sql("""CREATE TABLE tbl (id INT, start_time STRING, end_time STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT valid_range CHECK (end_time > start_time)")
@@ -201,7 +221,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_016_allowed_expressions", "Creating constraints with allowed expressions", "checkConstraints") {
+  test("cc_016_allowed_expressions") {
     sql("""CREATE TABLE tbl (num INT, text STRING, d DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT c1 CHECK (num > 0)")
@@ -216,7 +236,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_017_column_mapping", "Read constraints with column mapping", "checkConstraints", "columnMapping") {
+  test("cc_017_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name', 'delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_id CHECK (id > 0)")
@@ -227,7 +247,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_018_drop_feature", "Drop constraint before drop feature", "checkConstraints") {
+  test("cc_018_drop_feature") {
     sql("""CREATE TABLE tbl (x INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1),(2),(3)")
@@ -242,7 +262,7 @@ new WorkloadSuite("check_constraints") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("cc_019_boolean_column_names", "Boolean column with constraints", "checkConstraints") {
+  test("cc_019_boolean_column_names") {
     sql("""CREATE TABLE tbl (id INT, flag BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT flag_required CHECK (flag IS NOT NULL)")
@@ -254,7 +274,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_020_decimal_constraint", "Constraint with decimal column", "checkConstraints") {
+  test("cc_020_decimal_constraint") {
     sql("""CREATE TABLE tbl (id INT, price DECIMAL(10,2), quantity INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT positive_price CHECK (price > 0)")
@@ -270,7 +290,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_complex_expr", "Check constraint with AND/OR expression", "checkConstraints") {
+  test("cc_complex_expr") {
     sql("""CREATE TABLE tbl (age INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT ck CHECK (age > 0 AND age < 200 OR name IS NOT NULL)")
@@ -282,7 +302,7 @@ new WorkloadSuite("check_constraints") {
     snapshot(t)
   }
 
-  test("cc_null_aware", "IS NOT NULL constraint on nested struct", "checkConstraints") {
+  test("cc_null_aware") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("ALTER TABLE tbl ADD CONSTRAINT ck_name CHECK (info.name IS NOT NULL)")

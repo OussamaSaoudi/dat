@@ -1,6 +1,26 @@
-new WorkloadSuite("default_values") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("ddefReadWithDefaults", "Read table with column defaults") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class DefaultValuesSuite extends WorkloadTestSuite("default_values") {
+
+  test("ddefReadWithDefaults") {
     sql("""CREATE TABLE tbl (id INT, name STRING DEFAULT 'unknown', score DOUBLE DEFAULT 0.0)
       USING delta TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'enabled')""")
     sql("INSERT INTO tbl(id) VALUES (1),(2)")
@@ -11,7 +31,7 @@ new WorkloadSuite("default_values") {
     snapshot(t)
   }
 
-  test("ddefReadDefaultAfterAdd", "Read defaults after ADD COLUMN") {
+  test("ddefReadDefaultAfterAdd") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'enabled')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -24,7 +44,7 @@ new WorkloadSuite("default_values") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("ddefReadDefaultTypes", "Column defaults with various types") {
+  test("ddefReadDefaultTypes") {
     sql("""CREATE TABLE tbl (
       id INT, int_col INT DEFAULT 42, str_col STRING DEFAULT 'hello',
       bool_col BOOLEAN DEFAULT true, double_col DOUBLE DEFAULT 3.14
@@ -35,7 +55,7 @@ new WorkloadSuite("default_values") {
     snapshot(t)
   }
 
-  test("ddefReadDefaultNested", "Column defaults with nested struct") {
+  test("ddefReadDefaultNested") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>)
       USING delta TBLPROPERTIES ('delta.feature.allowColumnDefaults' = 'enabled')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")

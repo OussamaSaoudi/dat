@@ -1,3 +1,23 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Merge operation workloads covering all MERGE INTO scenarios.
  *
@@ -17,12 +37,11 @@
  *   - CDF-enabled merge
  *
  */
-
-new WorkloadSuite("merge") {
+class MergeSuite extends WorkloadTestSuite("merge") {
 
   // Basic clause types
 
-  test("mergeBasicInsert", "MERGE with only INSERT clause", "merge", "dml") {
+  test("mergeBasicInsert") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -35,7 +54,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeBasicUpdate", "MERGE with only UPDATE clause", "merge", "dml") {
+  test("mergeBasicUpdate") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -48,7 +67,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeBasicDelete", "MERGE with only DELETE clause", "merge", "dml") {
+  test("mergeBasicDelete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -60,7 +79,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeInsertUpdate", "MERGE with INSERT and UPDATE clauses", "merge", "dml") {
+  test("mergeInsertUpdate") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -74,7 +93,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeInsertDelete", "MERGE with INSERT and DELETE clauses", "merge", "dml") {
+  test("mergeInsertDelete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -87,7 +106,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeInsertUpdateDelete", "MERGE with INSERT, UPDATE, and DELETE", "merge", "dml") {
+  test("mergeInsertUpdateDelete") {
     sql("""CREATE TABLE tbl (id INT, val INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,10),(2,20),(3,30)")
@@ -101,7 +120,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeUpdateDelete", "MERGE with conditional UPDATE and DELETE", "merge", "dml") {
+  test("mergeUpdateDelete") {
     sql("""CREATE TABLE tbl (id INT, val INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,10),(2,20),(3,30)")
@@ -114,7 +133,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeMultipleMatched", "MERGE with multiple WHEN MATCHED clauses", "merge", "dml") {
+  test("mergeMultipleMatched") {
     sql("""CREATE TABLE tbl (id INT, score INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,5),(2,15),(3,35)")
@@ -129,7 +148,7 @@ new WorkloadSuite("merge") {
 
   // Conditional clauses
 
-  test("mergeConditionalInsert", "MERGE with conditional WHEN NOT MATCHED", "merge", "dml") {
+  test("mergeConditionalInsert") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -141,7 +160,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeConditionalUpdate", "MERGE with conditional WHEN MATCHED", "merge", "dml") {
+  test("mergeConditionalUpdate") {
     sql("""CREATE TABLE tbl (id INT, status STRING, score INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'low',5),(2,'low',15),(3,'low',25)")
@@ -156,7 +175,7 @@ new WorkloadSuite("merge") {
 
   // Star syntax
 
-  test("mergeStarInsert", "MERGE with INSERT * syntax", "merge", "dml") {
+  test("mergeStarInsert") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -168,7 +187,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStarUpdate", "MERGE with UPDATE SET * syntax", "merge", "dml") {
+  test("mergeStarUpdate") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -182,7 +201,7 @@ new WorkloadSuite("merge") {
 
   // Source variations
 
-  test("mergeSourceSubquery", "MERGE with source as subquery", "merge", "dml") {
+  test("mergeSourceSubquery") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -196,7 +215,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSourceAggregation", "MERGE with aggregated source", "merge", "dml") {
+  test("mergeSourceAggregation") {
     sql("""CREATE TABLE tbl (id INT, total BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200)")
@@ -212,7 +231,7 @@ new WorkloadSuite("merge") {
 
   // Data types
 
-  test("mergeBooleanValues", "MERGE with boolean columns", "merge", "dml") {
+  test("mergeBooleanValues") {
     sql("""CREATE TABLE tbl (id INT, active BOOLEAN) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,true),(2,false),(3,true)")
@@ -226,7 +245,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDecimalValues", "MERGE with decimal value columns", "merge", "dml") {
+  test("mergeDecimalValues") {
     sql("""CREATE TABLE tbl (id INT, price DECIMAL(10,2)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,10.50),(2,20.75)")
@@ -241,7 +260,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeTimestampValues", "MERGE with timestamp columns", "merge", "dml") {
+  test("mergeTimestampValues") {
     sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, TIMESTAMP '2024-01-01 10:00:00')")
@@ -256,7 +275,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStringKeys", "MERGE on string key columns", "merge", "dml") {
+  test("mergeStringKeys") {
     sql("""CREATE TABLE tbl (name STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES ('alice',100),('bob',200)")
@@ -272,7 +291,7 @@ new WorkloadSuite("merge") {
 
   // NULL handling
 
-  test("mergeNullHandling", "MERGE with NULL values", "merge", "dml") {
+  test("mergeNullHandling") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a')")
@@ -290,7 +309,7 @@ new WorkloadSuite("merge") {
 
   // Complex types
 
-  test("mergeWithArrayCol", "MERGE with array columns", "merge", "dml") {
+  test("mergeWithArrayCol") {
     sql("""CREATE TABLE tbl (id INT, tags ARRAY<STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, array('a','b'))")
@@ -305,7 +324,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeWithMapCol", "MERGE with map columns", "merge", "dml") {
+  test("mergeWithMapCol") {
     sql("""CREATE TABLE tbl (id INT, props MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, map('k1','v1'))")
@@ -320,7 +339,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeWithNestedStruct", "MERGE with nested struct columns", "merge", "dml") {
+  test("mergeWithNestedStruct") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -340,7 +359,7 @@ new WorkloadSuite("merge") {
 
   // Partitioned tables
 
-  test("mergePartitionedBasic", "MERGE on partitioned table", "merge", "dml", "partitioned") {
+  test("mergePartitionedBasic") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -355,7 +374,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergePartitionedCrossPartition", "MERGE cross-partition row movement", "merge", "dml", "partitioned") {
+  test("mergePartitionedCrossPartition") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount INT) USING delta
       PARTITIONED BY (region)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -369,7 +388,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergePartitionedMultiCol", "MERGE with multiple partition columns", "merge", "dml", "partitioned") {
+  test("mergePartitionedMultiCol") {
     sql("""CREATE TABLE tbl (id INT, country STRING, year INT, amount INT) USING delta
       PARTITIONED BY (country, year)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -387,7 +406,7 @@ new WorkloadSuite("merge") {
 
   // Deletion vectors (DV-enabled tables with prior deletes)
 
-  test("mergeDvBasicInsertUpdate", "Basic merge on DV-enabled table with INSERT+UPDATE", "merge", "dml", "dv") {
+  test("mergeDvBasicInsertUpdate") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -401,7 +420,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvConditionalUpdate", "Conditional UPDATE with DVs", "merge", "dml", "dv") {
+  test("mergeDvConditionalUpdate") {
     sql("""CREATE TABLE tbl (id INT, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200),(3,300),(4,400)")
@@ -415,7 +434,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvDeleteClause", "Merge with DELETE clause on DV-enabled table", "merge", "dml", "dv") {
+  test("mergeDvDeleteClause") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',40),(4,'d',50),(5,'e',60)")
@@ -428,7 +447,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvLargeTable", "Merge on larger DV table (100+ rows)", "merge", "dml", "dv") {
+  test("mergeDvLargeTable") {
     sql("""CREATE TABLE tbl (id INT, name STRING, score INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, CONCAT('name_', CAST(id AS STRING)), id * 100 FROM range(100)")
@@ -445,7 +464,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvMultipleMatched", "Multiple WHEN MATCHED clauses with DVs", "merge", "dml", "dv") {
+  test("mergeDvMultipleMatched") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40),(5,'e',50)")
@@ -460,7 +479,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvMultipleMerges", "Multiple consecutive merges on DV table", "merge", "dml", "dv") {
+  test("mergeDvMultipleMerges") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -479,7 +498,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvNullHandling", "Merge with null values on DV table", "merge", "dml", "dv") {
+  test("mergeDvNullHandling") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,NULL),(3,'c')")
@@ -493,7 +512,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvPartitioned", "Merge on partitioned DV table", "merge", "dml", "dv", "partitioned") {
+  test("mergeDvPartitioned") {
     sql("""CREATE TABLE tbl (region STRING, id INT, value STRING) USING delta
       PARTITIONED BY (region)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -508,7 +527,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvSchemaEvolution", "Schema evolution merge on DV table", "merge", "dml", "dv", "schema_evolution") {
+  test("mergeDvSchemaEvolution") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -524,7 +543,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeDvStarSyntax", "Merge with INSERT * and UPDATE SET * with DVs", "merge", "dml", "dv") {
+  test("mergeDvStarSyntax") {
     sql("""CREATE TABLE tbl (id INT, name STRING, score INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30)")
@@ -540,7 +559,7 @@ new WorkloadSuite("merge") {
 
   // Low-shuffle merge variants
 
-  test("mergeLowShuffleBasic", "Low shuffle merge basic read-back", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleBasic") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -554,7 +573,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleConditional", "Low shuffle with conditional clauses", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleConditional") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30),(4,'d',40)")
@@ -568,7 +587,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleDecimal", "Low shuffle with decimal columns", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleDecimal") {
     sql("""CREATE TABLE tbl (id INT, price DECIMAL(10,2)) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,10.50),(2,20.75),(3,30.00)")
@@ -582,7 +601,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleLargeTable", "Low shuffle on larger table (200+ rows)", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleLargeTable") {
     sql("""CREATE TABLE tbl (id BIGINT, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, CAST(id * 10 AS INT) FROM range(200)")
@@ -597,7 +616,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleMultiClause", "Low shuffle with INSERT+UPDATE+DELETE", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleMultiClause") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',0),(4,'d',40)")
@@ -612,7 +631,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleMultiMerge", "Multiple low shuffle merges in sequence", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleMultiMerge") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -628,7 +647,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleNested", "Low shuffle with nested struct columns", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleNested") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30)),(2, named_struct('name','bob','age',25))")
@@ -642,7 +661,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShufflePartitioned", "Low shuffle merge on partitioned table", "merge", "dml", "low_shuffle", "partitioned") {
+  test("mergeLowShufflePartitioned") {
     sql("""CREATE TABLE tbl (id INT, part STRING, amount INT) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -657,7 +676,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleStar", "Low shuffle with * syntax", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleStar") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -670,7 +689,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeLowShuffleTimestamp", "Low shuffle with timestamp columns", "merge", "dml", "low_shuffle") {
+  test("mergeLowShuffleTimestamp") {
     sql("""CREATE TABLE tbl (id INT, ts TIMESTAMP, label STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, TIMESTAMP '2024-01-01 10:00:00', 'old1'),(2, TIMESTAMP '2024-01-02 10:00:00', 'old2')")
@@ -687,7 +706,7 @@ new WorkloadSuite("merge") {
 
   // Edge cases
 
-  test("mergeEdgeAllMatched", "MERGE where every source row matches target", "merge", "dml", "edge") {
+  test("mergeEdgeAllMatched") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -700,7 +719,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeNoMatched", "MERGE where no source row matches target (all inserts)", "merge", "dml", "edge") {
+  test("mergeEdgeNoMatched") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -714,7 +733,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeEmptySource", "MERGE with empty source (no changes)", "merge", "dml", "edge") {
+  test("mergeEdgeEmptySource") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -727,7 +746,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeEmptyTarget", "MERGE into empty target table", "merge", "dml", "edge") {
+  test("mergeEdgeEmptyTarget") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (999,'placeholder')")
@@ -741,7 +760,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeNullJoinKey", "MERGE with null values in join key", "merge", "dml", "edge") {
+  test("mergeEdgeNullJoinKey") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(NULL,'c')")
@@ -756,7 +775,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeSelfMerge", "MERGE table into itself (self-join)", "merge", "dml", "edge") {
+  test("mergeEdgeSelfMerge") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',20),(3,'c',30)")
@@ -769,7 +788,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeSourceAlias", "MERGE with aliased source subquery", "merge", "dml", "edge") {
+  test("mergeEdgeSourceAlias") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -783,7 +802,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeMultiJoin", "MERGE with complex multi-column join condition", "merge", "dml", "edge") {
+  test("mergeEdgeMultiJoin") {
     sql("""CREATE TABLE tbl (id INT, key STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'x',10),(2,'y',20),(3,'z',30)")
@@ -797,7 +816,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeLargePayload", "MERGE with wide rows (many columns)", "merge", "dml", "edge") {
+  test("mergeEdgeLargePayload") {
     val cols = (1 to 20).map(i => s"col_$i INT").mkString(", ")
     sql(s"""CREATE TABLE tbl (id INT, $cols) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -815,7 +834,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeEdgeDuplicateSourceKeys", "MERGE with duplicate keys in source (write-path error, table unchanged)", "merge", "dml", "edge") {
+  test("mergeEdgeDuplicateSourceKeys") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -832,7 +851,7 @@ new WorkloadSuite("merge") {
 
   // Error cases (table unchanged after failed merge)
 
-  test("mergeErrAmbiguousColumn", "Table state after failed MERGE with ambiguous column", "merge", "dml", "error") {
+  test("mergeErrAmbiguousColumn") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -846,7 +865,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeErrDuplicateSource", "Table state after failed MERGE with duplicate source rows", "merge", "dml", "error") {
+  test("mergeErrDuplicateSource") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -860,7 +879,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeErrNoMatchCondition", "Table state after failed MERGE without ON condition", "merge", "dml", "error") {
+  test("mergeErrNoMatchCondition") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -874,7 +893,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeErrTypeMismatch", "Table state after failed MERGE with type mismatch", "merge", "dml", "error") {
+  test("mergeErrTypeMismatch") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -890,7 +909,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - basic column addition
 
-  test("mergeSchemaEvoAddCol", "Merge adds new column via schema evolution", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoAddCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -906,7 +925,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoAddMultiCols", "Schema evolution adds multiple new columns", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoAddMultiCols") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -923,7 +942,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertNewCol", "INSERT * with extra column in source", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertNewCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -938,7 +957,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertMultipleNewCols", "INSERT adds 3+ new columns", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertMultipleNewCols") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -954,7 +973,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertWithDefault", "INSERT new col, existing rows get null", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertWithDefault") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -969,7 +988,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoUpdateNewCol", "UPDATE SET with column not in target", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoUpdateNewCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -984,7 +1003,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoUpdateStarNewCol", "UPDATE SET * with extra column in source", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoUpdateStarNewCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -999,7 +1018,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertUpdateNewCol", "INSERT and UPDATE add same new column", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertUpdateNewCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -1015,7 +1034,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertUpdateDiffCols", "INSERT adds col A, UPDATE adds col B", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertUpdateDiffCols") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -1032,7 +1051,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoUpdateMultipleClauses", "Multiple WHEN MATCHED clauses with schema evolution", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoUpdateMultipleClauses") {
     sql("""CREATE TABLE tbl (id INT, value STRING, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,'b',25),(3,'c',30)")
@@ -1052,7 +1071,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - nested structs
 
-  test("mergeSchemaEvoAddNestedField", "Add nested struct field via merge", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoAddNestedField") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -1070,7 +1089,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoInsertNestedNewField", "INSERT with nested struct extra field", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoInsertNestedNewField") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice'))")
@@ -1085,7 +1104,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoUpdateNestedField", "UPDATE nested struct with new field", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoUpdateNestedField") {
     sql("""CREATE TABLE tbl (id INT, details STRUCT<city: STRING, zip: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('city','NYC','zip','10001'))")
@@ -1101,7 +1120,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoNestedStructAdd", "Add field to deeply nested struct", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoNestedStructAdd") {
     sql("""CREATE TABLE tbl (id INT, outer_col STRUCT<inner: STRUCT<x: INT>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('inner', named_struct('x', 10)))")
@@ -1118,7 +1137,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - complex types (arrays, maps)
 
-  test("mergeSchemaEvoAddArrayElement", "Merge with array and schema evolution", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoAddArrayElement") {
     sql("""CREATE TABLE tbl (id INT, numbers ARRAY<INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, array(1,2,3)),(2, array(4,5))")
@@ -1135,7 +1154,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoAddMapEntry", "Merge adds map data with schema evolution", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoAddMapEntry") {
     sql("""CREATE TABLE tbl (id INT, props MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, map('k1','v1')),(2, map('k2','v2'))")
@@ -1151,7 +1170,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoArrayStructEvolution", "Array of structs, add struct field", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoArrayStructEvolution") {
     sql("""CREATE TABLE tbl (id INT, items ARRAY<STRUCT<name: STRING, qty: INT>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, array(named_struct('name','item1','qty',10)))")
@@ -1166,7 +1185,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoMapValueType", "Merge with map column and schema evolution", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoMapValueType") {
     sql("""CREATE TABLE tbl (id INT, labels MAP<STRING, STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, map('env','prod')),(2, map('env','dev'))")
@@ -1185,7 +1204,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - struct field operations
 
-  test("mergeSchemaEvoStructAddField", "Merge adds field to existing struct", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoStructAddField") {
     sql("""CREATE TABLE tbl (id INT, metadata STRUCT<key: STRING, val: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('key','k1','val',10))")
@@ -1205,7 +1224,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoStructRemoveField", "Merge with struct missing field (null filled)", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoStructRemoveField") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT, city: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30,'city','NYC'))")
@@ -1220,7 +1239,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoStructReorderFields", "Merge with reordered struct fields", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoStructReorderFields") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<first: STRING, last: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('first','Alice','last','Smith'))")
@@ -1235,7 +1254,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoStructWithArray", "Struct containing array, add new field", "merge", "dml", "schema_evolution") {
+  test("mergeSchemaEvoStructWithArray") {
     sql("""CREATE TABLE tbl (id INT, data STRUCT<tags: ARRAY<STRING>, count: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('tags', array('a','b'), 'count', 2))")
@@ -1252,7 +1271,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - partitioned tables
 
-  test("mergeSchemaEvoPartitionedAddCol", "Schema evolution on partitioned table", "merge", "dml", "schema_evolution", "partitioned") {
+  test("mergeSchemaEvoPartitionedAddCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1270,7 +1289,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoPartitionedStructEvo", "Struct evolution on partitioned table", "merge", "dml", "schema_evolution", "partitioned") {
+  test("mergeSchemaEvoPartitionedStructEvo") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING>, part STRING) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1288,7 +1307,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - type widening and column mapping
 
-  test("mergeSchemaEvoWidenType", "Widen int to long via merge", "merge", "dml", "schema_evolution", "type_widening") {
+  test("mergeSchemaEvoWidenType") {
     sql("""CREATE TABLE tbl (id INT, amount INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200)")
@@ -1306,7 +1325,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoWithColumnMapping", "Schema evolution with column mapping", "merge", "dml", "schema_evolution", "column_mapping") {
+  test("mergeSchemaEvoWithColumnMapping") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -1323,7 +1342,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoDvSchemaEvo", "Schema evolution with deletion vectors", "merge", "dml", "schema_evolution", "dv") {
+  test("mergeSchemaEvoDvSchemaEvo") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -1342,7 +1361,7 @@ new WorkloadSuite("merge") {
 
   // Schema evolution - error cases
 
-  test("mergeSchemaEvoErrDuplicateCol", "Table state after duplicate column error", "merge", "dml", "schema_evolution", "error") {
+  test("mergeSchemaEvoErrDuplicateCol") {
     sql("""CREATE TABLE tbl (id INT, value STRING, extra_value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a','ea'),(2,'b','eb')")
@@ -1359,7 +1378,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoErrIncompatibleType", "Table state after incompatible type evolution error", "merge", "dml", "schema_evolution", "error") {
+  test("mergeSchemaEvoErrIncompatibleType") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")
@@ -1375,7 +1394,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeSchemaEvoErrNarrowType", "Table state after narrowing type error", "merge", "dml", "schema_evolution", "error") {
+  test("mergeSchemaEvoErrNarrowType") {
     sql("""CREATE TABLE tbl (id INT, amount BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,100),(2,200)")
@@ -1393,7 +1412,7 @@ new WorkloadSuite("merge") {
 
   // Struct evolution (deep nesting, null handling)
 
-  test("mergeStructEvoNullNewField", "Merge adds new struct field, existing rows get null for new field", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoNullNewField") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<a: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('a',10)),(2, named_struct('a',20))")
@@ -1409,7 +1428,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoNullableToNonNull", "Merge target has nullable struct field, source has non-null values", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoNullableToNonNull") {
     sql("""CREATE TABLE tbl (id INT, data STRUCT<x: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('x',10)),(2, NULL)")
@@ -1425,7 +1444,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoNestedNullField", "Nested struct gets new nullable field via merge", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoNestedNullField") {
     sql("""CREATE TABLE tbl (id INT, outer_col STRUCT<inner: STRUCT<p: INT>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('inner', named_struct('p',10))),(2, named_struct('inner', named_struct('p',20)))")
@@ -1441,7 +1460,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoMultiStructCols", "Table with multiple struct columns, merge evolves one", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoMultiStructCols") {
     sql("""CREATE TABLE tbl (id INT, s1 STRUCT<a: INT>, s2 STRUCT<x: STRING>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('a',1), named_struct('x','hello'))")
@@ -1457,7 +1476,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoNullInKey", "Merge with null values in struct-type key column", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoNullInKey") {
     sql("""CREATE TABLE tbl (key STRUCT<k1: INT, k2: STRING>, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (named_struct('k1',1,'k2','a'), 10),(named_struct('k1',2,'k2',CAST(NULL AS STRING)), 20)")
@@ -1471,7 +1490,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoArrayOfStructNull", "Array of structs with null fields after merge evolution", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoArrayOfStructNull") {
     sql("""CREATE TABLE tbl (id INT, items ARRAY<STRUCT<a: INT>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, array(named_struct('a',1)))")
@@ -1487,7 +1506,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoMapValueStructNull", "Map with struct values, merge adds nullable field to struct", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoMapValueStructNull") {
     sql("""CREATE TABLE tbl (id INT, props MAP<STRING, STRUCT<v: INT>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, map('k1', named_struct('v',10)))")
@@ -1503,7 +1522,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoDeepNested", "Deeply nested struct (3 levels), add field at leaf level", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoDeepNested") {
     sql("""CREATE TABLE tbl (id INT, deep STRUCT<l1: STRUCT<l2: STRUCT<val: INT>>>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('l1', named_struct('l2', named_struct('val', 10))))")
@@ -1520,7 +1539,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoMixedNull", "Merge where some matched rows get null, others get values for new field", "merge", "dml", "struct_evolution") {
+  test("mergeStructEvoMixedNull") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<a: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('a',10)),(2, named_struct('a',20)),(3, named_struct('a',30))")
@@ -1536,7 +1555,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mergeStructEvoPartitionedStruct", "Struct evolution on partitioned table with null handling", "merge", "dml", "struct_evolution", "partitioned") {
+  test("mergeStructEvoPartitionedStruct") {
     sql("""CREATE TABLE tbl (region STRING, id INT, metrics STRUCT<score: INT>) USING delta
       PARTITIONED BY (region)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1555,7 +1574,7 @@ new WorkloadSuite("merge") {
 
   // NOT MATCHED BY SOURCE (mrb_ prefix workloads)
 
-  test("mrb_all_clause_types", "MERGE with all three clause types", "merge", "dml", "not_matched_by_source") {
+  test("mrb_all_clause_types") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -1569,7 +1588,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mrb_not_matched_by_source_delete", "MERGE with NOT MATCHED BY SOURCE delete", "merge", "dml", "not_matched_by_source") {
+  test("mrb_not_matched_by_source_delete") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -1582,7 +1601,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mrb_not_matched_by_source_update", "MERGE with NOT MATCHED BY SOURCE update", "merge", "dml", "not_matched_by_source") {
+  test("mrb_not_matched_by_source_update") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -1595,7 +1614,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mrb_with_cdf", "MERGE with CDF enabled", "merge", "dml", "not_matched_by_source", "cdf") {
+  test("mrb_with_cdf") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true',
         'delta.enableDeletionVectors' = 'true')""")
@@ -1611,7 +1630,7 @@ new WorkloadSuite("merge") {
     cdf(t, startVersion = 2, endVersion = 2, name = "cdf_merge")
   }
 
-  test("mrb_with_dv", "MERGE with deletion vectors", "merge", "dml", "not_matched_by_source", "dv") {
+  test("mrb_with_dv") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
@@ -1624,7 +1643,7 @@ new WorkloadSuite("merge") {
     snapshot(t)
   }
 
-  test("mrb_with_schema_evolution", "MERGE triggering auto schema evolution", "merge", "dml", "not_matched_by_source", "schema_evolution") {
+  test("mrb_with_schema_evolution") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b')")

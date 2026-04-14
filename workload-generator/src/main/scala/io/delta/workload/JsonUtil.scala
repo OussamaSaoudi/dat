@@ -161,63 +161,7 @@ case class MinimalTableInfo(
     error: String)
 
 // =============================================================================
-// Write spec case classes
-// =============================================================================
-
-/**
- * Write commit — either a high-level operation (SQL semantics) or a low-level "commit"
- * (raw Delta actions).
- *
- * High-level operations:
- * - create_table: schema, partitionColumns?, properties?, dataFiles?
- * - replace_table: schema, partitionColumns?, properties?, dataFiles?
- * - insert: dataFiles?
- * - update: predicate, set
- * - delete: predicate
- * - truncate: (none)
- * - evolve_schema: addColumns?, renameColumns?, dropColumns?
- * - update_properties: set?, remove?
- * - restore: version
- *
- * Low-level operation:
- * - commit: tableProperties?, txn?, addFiles?, removeFiles?,
- *           addDomainMetadata?, removeDomainMetadata?
- */
-@JsonPropertyOrder(Array("operation", "schema", "partitionColumns",
-  "properties", "dataFiles", "predicate", "set",
-  "addColumns", "renameColumns", "dropColumns", "version",
-  "tableProperties", "txn", "addFiles", "removeFiles",
-  "addDomainMetadata", "removeDomainMetadata"))
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class WriteCommit(
-    operation: String,
-    // High-level fields
-    schema: Option[Any] = None,
-    partitionColumns: Option[Seq[String]] = None,
-    properties: Option[Map[String, String]] = None,
-    dataFiles: Option[Seq[String]] = None,
-    predicate: Option[String] = None,
-    set: Option[Map[String, String]] = None,
-    remove: Option[Seq[String]] = None,
-    addColumns: Option[Any] = None,
-    renameColumns: Option[Map[String, String]] = None,
-    dropColumns: Option[Seq[String]] = None,
-    version: Option[Long] = None,
-    // Low-level commit fields (operation = "commit")
-    tableProperties: Option[Map[String, String]] = None,
-    txn: Option[AppTxn] = None,
-    addFiles: Option[Seq[AddFileAction]] = None,
-    removeFiles: Option[Seq[RemoveFileAction]] = None,
-    addDomainMetadata: Option[Seq[AddDomainMetadata]] = None,
-    removeDomainMetadata: Option[Seq[String]] = None)
-
-@JsonPropertyOrder(Array("type", "commits"))
-case class WriteSpec(commits: Seq[WriteCommit]) {
-  val `type`: String = "write"
-}
-
-// =============================================================================
-// Low-level commit types (for operation = "commit")
+// Low-level action types
 // =============================================================================
 
 /** Application transaction for idempotent writes. */

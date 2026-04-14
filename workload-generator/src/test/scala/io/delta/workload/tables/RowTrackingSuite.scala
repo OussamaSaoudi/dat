@@ -1,6 +1,26 @@
-new WorkloadSuite("row_tracking") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("rt_basic_read", "Write and read table without materialized columns", "rowTracking") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class RowTrackingSuite extends WorkloadTestSuite("row_tracking") {
+
+  test("rt_basic_read") {
     sql("""CREATE TABLE tbl (test_data LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -9,7 +29,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_all_null_materialized", "Write and read table with all-null materialized columns", "rowTracking") {
+  test("rt_all_null_materialized") {
     sql("""CREATE TABLE tbl (test_data LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -18,7 +38,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_no_null_materialized", "Write and read table with no-nulls materialized columns", "rowTracking") {
+  test("rt_no_null_materialized") {
     sql("""CREATE TABLE tbl (test_data LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -27,7 +47,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_mixed_materialized", "Write and read table with mixed materialized columns", "rowTracking") {
+  test("rt_mixed_materialized") {
     sql("""CREATE TABLE tbl (test_data LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -36,7 +56,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_conflicting_columns", "Write and read with conflicting columns", "rowTracking") {
+  test("rt_conflicting_columns") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -45,7 +65,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_filter_read", "Read mixed materialized columns with filter", "rowTracking") {
+  test("rt_filter_read") {
     sql("""CREATE TABLE tbl (test_data LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(100)")
@@ -55,7 +75,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_column_projection", "Column subset on RT table", "rowTracking") {
+  test("rt_column_projection") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value DOUBLE) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice', 1.0),(2, 'bob', 2.0),(3, 'charlie', 3.0)")
@@ -65,7 +85,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_read_base_row_id", "Read base row IDs", "rowTracking") {
+  test("rt_read_base_row_id") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(20)")
@@ -77,7 +97,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_read_row_id_and_index", "Read both row id and row index", "rowTracking") {
+  test("rt_read_row_id_and_index") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -91,7 +111,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t)
   }
 
-  test("rt_across_schema_evolution", "Row IDs preserved after ADD COLUMN", "rowTracking") {
+  test("rt_across_schema_evolution") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -107,7 +127,7 @@ new WorkloadSuite("row_tracking") {
     snapshot(t, version = 2)
   }
 
-  test("rt_version_migration", "Upgrade from non-tracking to tracking", "rowTracking") {
+  test("rt_version_migration") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(20)")

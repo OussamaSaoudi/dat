@@ -1,3 +1,23 @@
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
 /**
  * Data skipping, statistics, and partitioning workloads.
  * Covers: equality, range, IN, IS NULL, BETWEEN, LIKE, NOT, AND/OR combinations,
@@ -6,14 +26,13 @@
  * generated columns, DVs, partitioned skipping, partition pruning, projection,
  * stats edge cases (null min/max, numRecords-only, truncated strings).
  */
-
-new WorkloadSuite("data_skipping") {
+class DataSkippingSuite extends WorkloadTestSuite("data_skipping") {
 
   // === Data Skipping ===
 
   // Top-level single value: all comparison operators
 
-  test("ds_top_level_single_1", "top level, single 1", "dataSkipping") {
+  test("ds_top_level_single_1") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -59,7 +78,7 @@ new WorkloadSuite("data_skipping") {
 
   // Nested field predicates
 
-  test("ds_nested_single_1", "nested, single 1", "dataSkipping") {
+  test("ds_nested_single_1") {
     sql("CREATE TABLE tbl (a STRUCT<b: LONG>) USING delta")
     sql("INSERT INTO tbl VALUES (named_struct('b', 1))")
     val t = registerTable("tbl")
@@ -74,7 +93,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_double_nested_single_1", "double nested, single 1", "dataSkipping") {
+  test("ds_double_nested_single_1") {
     sql("CREATE TABLE tbl (a STRUCT<b: STRUCT<c: LONG>>) USING delta")
     sql("INSERT INTO tbl VALUES (named_struct('b', named_struct('c', 1)))")
     val t = registerTable("tbl")
@@ -89,7 +108,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nested_struct_predicate", "Nested struct field predicate", "dataSkipping") {
+  test("ds_nested_struct_predicate") {
     sql("CREATE TABLE tbl (id INT, info STRUCT<score: INT, name: STRING>) USING delta")
     sql("INSERT INTO tbl VALUES (1, named_struct('score', 90, 'name', 'alice'))")
     sql("INSERT INTO tbl VALUES (2, named_struct('score', 50, 'name', 'bob'))")
@@ -99,7 +118,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_complex_nested", "Complex nested predicates", "dataSkipping") {
+  test("ds_complex_nested") {
     sql("CREATE TABLE tbl (a INT, b STRUCT<x: INT, y: INT>) USING delta")
     sql("INSERT INTO tbl VALUES (1, named_struct('x', 10, 'y', 20))")
     sql("INSERT INTO tbl VALUES (2, named_struct('x', 30, 'y', 40))")
@@ -112,7 +131,7 @@ new WorkloadSuite("data_skipping") {
 
   // AND / OR / NOT combinations
 
-  test("ds_and_simple", "and statements - simple", "dataSkipping") {
+  test("ds_and_simple") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -122,7 +141,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_and_two_fields", "and statements - two fields", "dataSkipping") {
+  test("ds_and_two_fields") {
     sql("CREATE TABLE tbl (a LONG, b LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1, 10), (2, 20)")
     val t = registerTable("tbl")
@@ -133,7 +152,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_and_one_side_unsupported", "AND one side unsupported", "dataSkipping") {
+  test("ds_and_one_side_unsupported") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -142,7 +161,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_or_simple", "or statements - simple", "dataSkipping") {
+  test("ds_or_simple") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -152,7 +171,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_or_two_fields", "or statements - two fields", "dataSkipping") {
+  test("ds_or_two_fields") {
     sql("CREATE TABLE tbl (a LONG, b LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1, 10), (2, 20)")
     val t = registerTable("tbl")
@@ -163,7 +182,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_or_one_side_unsupported", "OR one side unsupported", "dataSkipping") {
+  test("ds_or_one_side_unsupported") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -173,7 +192,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_not_simple", "not statements - simple", "dataSkipping") {
+  test("ds_not_simple") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -182,7 +201,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_not_and", "NOT with AND (De Morgan)", "dataSkipping") {
+  test("ds_not_and") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -192,7 +211,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_not_or", "NOT with OR (De Morgan)", "dataSkipping") {
+  test("ds_not_or") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -203,7 +222,7 @@ new WorkloadSuite("data_skipping") {
 
   // LIKE / starts with
 
-  test("ds_starts_with", "starts with", "dataSkipping") {
+  test("ds_starts_with") {
     sql("CREATE TABLE tbl (a STRING) USING delta")
     sql("INSERT INTO tbl VALUES ('apple'), ('banana')")
     val t = registerTable("tbl")
@@ -215,7 +234,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_starts_with_nested", "LIKE on nested string fields", "dataSkipping") {
+  test("ds_starts_with_nested") {
     sql("CREATE TABLE tbl (a STRUCT<b: STRING>) USING delta")
     sql("INSERT INTO tbl VALUES (named_struct('b', 'apple'))")
     sql("INSERT INTO tbl VALUES (named_struct('b', 'banana'))")
@@ -228,7 +247,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_string_patterns", "String comparisons and LIKE", "dataSkipping") {
+  test("ds_string_patterns") {
     sql("CREATE TABLE tbl (name STRING) USING delta")
     sql("INSERT INTO tbl VALUES ('alice'), ('bob')")
     sql("INSERT INTO tbl VALUES ('charlie'), ('diana')")
@@ -246,7 +265,7 @@ new WorkloadSuite("data_skipping") {
 
   // Long strings (prefix truncation edge cases)
 
-  test("ds_long_strings_min", "long strings, long min", "dataSkipping") {
+  test("ds_long_strings_min") {
     sql("CREATE TABLE tbl (a STRING) USING delta")
     // 33-char prefix: "aaa...a" then differ
     val longA = "a" * 32 + "x"
@@ -261,7 +280,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_long_strings_max", "long strings, long max", "dataSkipping") {
+  test("ds_long_strings_max") {
     sql("CREATE TABLE tbl (a STRING) USING delta")
     val longZ = "z" * 32 + "a"
     val longY = "z" * 32 + "b"
@@ -279,7 +298,7 @@ new WorkloadSuite("data_skipping") {
 
   // IN predicates
 
-  test("ds_in_set", "IN set predicates", "dataSkipping") {
+  test("ds_in_set") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = registerTable("tbl")
@@ -289,7 +308,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_in_list", "IN list predicate", "dataSkipping") {
+  test("ds_in_list") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (10), (20)")
     sql("INSERT INTO tbl VALUES (30), (40)")
@@ -299,7 +318,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_in_nested", "IN on nested field", "dataSkipping") {
+  test("ds_in_nested") {
     sql("CREATE TABLE tbl (s STRUCT<x: INT>) USING delta")
     sql("INSERT INTO tbl VALUES (named_struct('x', 1))")
     sql("INSERT INTO tbl VALUES (named_struct('x', 5))")
@@ -309,7 +328,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_in_with_nulls_mixed", "IN list containing NULL", "dataSkipping") {
+  test("ds_in_with_nulls_mixed") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (NULL), (3)")
     val t = registerTable("tbl")
@@ -318,7 +337,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_in_with_nulls_only", "IN list with only nulls in file", "dataSkipping") {
+  test("ds_in_with_nulls_only") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (NULL), (NULL)")
     val t = registerTable("tbl")
@@ -327,7 +346,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_in_with_thresholds", "IN with varying size", "dataSkipping") {
+  test("ds_in_with_thresholds") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
     val t = registerTable("tbl")
@@ -340,7 +359,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_not_in", "NOT IN predicate", "dataSkipping") {
+  test("ds_not_in") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = registerTable("tbl")
@@ -352,7 +371,7 @@ new WorkloadSuite("data_skipping") {
 
   // NULL predicates
 
-  test("ds_is_null", "IS NULL predicate pushdown", "dataSkipping") {
+  test("ds_is_null") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (NULL), (3)")
     val t = registerTable("tbl")
@@ -360,7 +379,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_is_not_null", "IS NOT NULL predicate pushdown", "dataSkipping") {
+  test("ds_is_not_null") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (NULL), (3)")
     val t = registerTable("tbl")
@@ -368,7 +387,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_isnull_complex_expr", "IS NULL with complex expressions", "dataSkipping") {
+  test("ds_isnull_complex_expr") {
     sql("CREATE TABLE tbl (a INT, b STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'x'), (NULL, NULL)")
     sql("INSERT INTO tbl VALUES (3, 'y'), (NULL, 'z')")
@@ -379,7 +398,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nulls_only_null", "nulls - only null in file", "dataSkipping") {
+  test("ds_nulls_only_null") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (NULL)")
     val t = registerTable("tbl")
@@ -402,7 +421,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nulls_only_nonnull", "only non-null in file", "dataSkipping") {
+  test("ds_nulls_only_nonnull") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -411,7 +430,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nulls_mixed", "nulls - null + not-null in same file", "dataSkipping") {
+  test("ds_nulls_mixed") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (NULL), (3)")
     val t = registerTable("tbl")
@@ -435,7 +454,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nulls_nonnulls_only", "non-nulls only in file", "dataSkipping") {
+  test("ds_nulls_nonnulls_only") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = registerTable("tbl")
@@ -446,7 +465,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nulls_partial_stats", "non-nulls only, partial stats", "dataSkipping") {
+  test("ds_nulls_partial_stats") {
     sql("""CREATE TABLE tbl (a LONG, b STRING) USING delta
       TBLPROPERTIES ('delta.dataSkippingNumIndexedCols' = '1')""")
     sql("INSERT INTO tbl VALUES (1, 'x'), (2, 'y'), (3, 'z')")
@@ -463,7 +482,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_null_safe_eq", "Null-safe equals operator (<=>)", "dataSkipping") {
+  test("ds_null_safe_eq") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (NULL), (3)")
     val t = registerTable("tbl")
@@ -474,7 +493,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_null_string_partition", "Null string partition values", "dataSkipping") {
+  test("ds_null_string_partition") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, NULL), (3, 'b')")
     val t = registerTable("tbl")
@@ -483,8 +502,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_null_mixed_partitions", "Mix of null and non-null across partitions",
-      "dataSkipping") {
+  test("ds_null_mixed_partitions") {
     sql("""CREATE TABLE tbl (id INT, p1 STRING, p2 INT) USING delta
       PARTITIONED BY (p1, p2)""")
     sql("INSERT INTO tbl VALUES (1, 'a', 1), (2, NULL, 2), (3, 'b', NULL), (4, NULL, NULL)")
@@ -497,7 +515,7 @@ new WorkloadSuite("data_skipping") {
 
   // BETWEEN
 
-  test("ds_between", "BETWEEN predicate for range queries", "dataSkipping") {
+  test("ds_between") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (5), (10)")
     sql("INSERT INTO tbl VALUES (15), (20), (25)")
@@ -511,7 +529,7 @@ new WorkloadSuite("data_skipping") {
 
   // Boolean column
 
-  test("ds_boolean", "boolean comparisons", "dataSkipping") {
+  test("ds_boolean") {
     sql("CREATE TABLE tbl (a BOOLEAN) USING delta")
     sql("INSERT INTO tbl VALUES (true)")
     sql("INSERT INTO tbl VALUES (false)")
@@ -523,7 +541,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_boolean_column", "Boolean column skipping", "dataSkipping") {
+  test("ds_boolean_column") {
     sql("CREATE TABLE tbl (id INT, active BOOLEAN) USING delta")
     sql("INSERT INTO tbl VALUES (1, true), (2, true)")
     sql("INSERT INTO tbl VALUES (3, false), (4, false)")
@@ -535,7 +553,7 @@ new WorkloadSuite("data_skipping") {
 
   // Numeric types
 
-  test("ds_numeric_types", "Numeric type comparisons", "dataSkipping") {
+  test("ds_numeric_types") {
     sql("CREATE TABLE tbl (i INT, l LONG, f FLOAT, d DOUBLE) USING delta")
     sql("INSERT INTO tbl VALUES (1, 100, 1.5, 2.5)")
     sql("INSERT INTO tbl VALUES (10, 1000, 10.5, 20.5)")
@@ -549,7 +567,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_tinyint_smallint", "TINYINT and SMALLINT column stats", "dataSkipping") {
+  test("ds_tinyint_smallint") {
     sql("CREATE TABLE tbl (t TINYINT, s SMALLINT) USING delta")
     sql("INSERT INTO tbl VALUES (1, 100)")
     sql("INSERT INTO tbl VALUES (127, 32767)")
@@ -560,7 +578,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_float_special_values", "FLOAT with NaN, Infinity, -0.0", "dataSkipping") {
+  test("ds_float_special_values") {
     sql("CREATE TABLE tbl (f FLOAT) USING delta")
     sql("INSERT INTO tbl VALUES (CAST('NaN' AS FLOAT)), (CAST('Infinity' AS FLOAT)), (CAST('-0.0' AS FLOAT))")
     val t = registerTable("tbl")
@@ -569,7 +587,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_binary_type", "BINARY column (no min/max, only nullCount)", "dataSkipping") {
+  test("ds_binary_type") {
     sql("CREATE TABLE tbl (id INT, data BINARY) USING delta")
     sql("INSERT INTO tbl VALUES (1, X'0102'), (2, NULL)")
     val t = registerTable("tbl")
@@ -578,7 +596,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_implicit_cast", "Implicit type cast in predicate", "dataSkipping") {
+  test("ds_implicit_cast") {
     sql("CREATE TABLE tbl (a LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -590,7 +608,7 @@ new WorkloadSuite("data_skipping") {
 
   // Date/time predicates
 
-  test("ds_datetime", "Date and timestamp predicates", "dataSkipping") {
+  test("ds_datetime") {
     sql("CREATE TABLE tbl (d DATE, ts TIMESTAMP) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-01-01', TIMESTAMP'2024-01-01 00:00:00')")
     sql("INSERT INTO tbl VALUES (DATE'2024-06-15', TIMESTAMP'2024-06-15 12:00:00')")
@@ -602,8 +620,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_timestamp_microsecond", "Microsecond precision timestamp skipping",
-      "dataSkipping") {
+  test("ds_timestamp_microsecond") {
     sql("CREATE TABLE tbl (ts TIMESTAMP) USING delta")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-01-01 00:00:00.000001')")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-01-01 00:00:00.000002')")
@@ -614,7 +631,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_timestamp_ntz_skipping", "NTZ-specific data skipping", "dataSkipping") {
+  test("ds_timestamp_ntz_skipping") {
     sql("""CREATE TABLE tbl (ts TIMESTAMP_NTZ) USING delta
       TBLPROPERTIES ('delta.minReaderVersion' = '3', 'delta.minWriterVersion' = '7',
         'delta.feature.timestampNtz' = 'supported')""")
@@ -627,7 +644,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_year_function", "year() extraction on Date", "dataSkipping") {
+  test("ds_year_function") {
     sql("CREATE TABLE tbl (d DATE, value INT) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-03-15', 1), (DATE'2024-11-20', 2)")
     sql("INSERT INTO tbl VALUES (DATE'2025-01-05', 3)")
@@ -638,7 +655,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_month_function", "month() with predicates", "dataSkipping") {
+  test("ds_month_function") {
     sql("CREATE TABLE tbl (d DATE, value INT) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-01-15', 1), (DATE'2024-06-20', 2)")
     sql("INSERT INTO tbl VALUES (DATE'2024-12-05', 3)")
@@ -649,7 +666,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_trunc_date", "trunc() on Date", "dataSkipping") {
+  test("ds_trunc_date") {
     sql("CREATE TABLE tbl (d DATE) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-03-15'), (DATE'2024-03-20')")
     sql("INSERT INTO tbl VALUES (DATE'2024-06-01'), (DATE'2024-06-30')")
@@ -660,7 +677,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_date_trunc_timestamp", "date_trunc() on Timestamp", "dataSkipping") {
+  test("ds_date_trunc_timestamp") {
     sql("CREATE TABLE tbl (ts TIMESTAMP) USING delta")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-03-15 10:30:00')")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-06-01 14:00:00')")
@@ -671,7 +688,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_datediff", "datediff() predicate", "dataSkipping") {
+  test("ds_datediff") {
     sql("CREATE TABLE tbl (d DATE) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-01-01'), (DATE'2024-01-10')")
     sql("INSERT INTO tbl VALUES (DATE'2024-06-01')")
@@ -681,7 +698,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_date_add_sub", "date_add()/date_sub()", "dataSkipping") {
+  test("ds_date_add_sub") {
     sql("CREATE TABLE tbl (d DATE) USING delta")
     sql("INSERT INTO tbl VALUES (DATE'2024-01-01'), (DATE'2024-01-15')")
     sql("INSERT INTO tbl VALUES (DATE'2024-06-01')")
@@ -694,7 +711,7 @@ new WorkloadSuite("data_skipping") {
 
   // Multi-file range skipping
 
-  test("ds_multi_file_ranges", "Multiple files with different ranges", "dataSkipping") {
+  test("ds_multi_file_ranges") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")   // file 1: 1-10
     sql("INSERT INTO tbl SELECT id FROM range(11, 21)")  // file 2: 11-20
@@ -711,7 +728,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_multi_file_time", "TIME type multi-file data skipping", "dataSkipping") {
+  test("ds_multi_file_time") {
     sql("CREATE TABLE tbl (ts TIMESTAMP, value INT) USING delta")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-01-01 00:00:00', 1), (TIMESTAMP'2024-01-15 00:00:00', 2)")
     sql("INSERT INTO tbl VALUES (TIMESTAMP'2024-06-01 00:00:00', 3), (TIMESTAMP'2024-12-31 00:00:00', 4)")
@@ -724,8 +741,7 @@ new WorkloadSuite("data_skipping") {
 
   // Typed stats (decimal, date, timestamp, float, double)
 
-  test("ds_typed_stats", "DECIMAL/DATE/TIMESTAMP/FLOAT/DOUBLE data skipping stats",
-      "dataSkipping") {
+  test("ds_typed_stats") {
     sql("""CREATE TABLE tbl (
       c1 LONG, c2 STRING, c3 FLOAT, c4 DOUBLE,
       c5 TIMESTAMP, c6 TIMESTAMP_NTZ, c7 DATE,
@@ -764,7 +780,7 @@ new WorkloadSuite("data_skipping") {
 
   // Variant null stats
 
-  test("ds_variant_null_stats", "VARIANT NULL/NOT NULL data skipping", "dataSkipping") {
+  test("ds_variant_null_stats") {
     sql("""CREATE TABLE tbl (
       v VARIANT, v_struct STRUCT<v: VARIANT>,
       null_v VARIANT, null_v_struct STRUCT<v: VARIANT>
@@ -786,7 +802,7 @@ new WorkloadSuite("data_skipping") {
 
   // Indexed columns / stats configuration
 
-  test("ds_indexed_names_empty", "empty indexed names disables stats", "dataSkipping") {
+  test("ds_indexed_names_empty") {
     sql("""CREATE TABLE tbl (a LONG, b LONG) USING delta
       TBLPROPERTIES ('delta.dataSkippingStatsColumns' = '')""")
     sql("INSERT INTO tbl VALUES (1, 10), (2, 20)")
@@ -797,7 +813,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_indexed_names_subset", "index subset of leaf columns", "dataSkipping") {
+  test("ds_indexed_names_subset") {
     sql("""CREATE TABLE tbl (a LONG, b LONG, c LONG) USING delta
       TBLPROPERTIES ('delta.dataSkippingStatsColumns' = 'a,c')""")
     sql("INSERT INTO tbl VALUES (1, 10, 100)")
@@ -818,8 +834,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_indexed_names_nested", "naming nested column indexes leaves",
-      "dataSkipping") {
+  test("ds_indexed_names_nested") {
     sql("""CREATE TABLE tbl (
       a STRUCT<x: LONG, y: LONG>,
       b STRUCT<p: LONG, q: LONG>
@@ -844,7 +859,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_indexed_names_complex", "nested columns with complex types", "dataSkipping") {
+  test("ds_indexed_names_complex") {
     sql("""CREATE TABLE tbl (
       a STRUCT<x: LONG, y: STRUCT<z: LONG>>,
       b LONG
@@ -861,7 +876,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_indexed_names_backtick", "backtick escapes", "dataSkipping") {
+  test("ds_indexed_names_backtick") {
     sql("CREATE TABLE tbl (`a.b` LONG, `c d` LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1, 10)")
     val t = registerTable("tbl")
@@ -871,7 +886,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_more_cols_than_indexed", "more columns than indexed", "dataSkipping") {
+  test("ds_more_cols_than_indexed") {
     sql("""CREATE TABLE tbl (a LONG, b LONG, c LONG, d LONG) USING delta
       TBLPROPERTIES ('delta.dataSkippingNumIndexedCols' = '2')""")
     sql("INSERT INTO tbl VALUES (1, 10, 100, 1000)")
@@ -883,7 +898,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_missing_stats_cols", "missing stats columns", "dataSkipping") {
+  test("ds_missing_stats_cols") {
     sql("""CREATE TABLE tbl (a LONG) USING delta
       TBLPROPERTIES ('delta.dataSkippingNumIndexedCols' = '1')""")
     sql("INSERT INTO tbl VALUES (1), (2)")
@@ -897,8 +912,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_missing_stats_graceful", "Stats missing, read still works (full scan)",
-      "dataSkipping") {
+  test("ds_missing_stats_graceful") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2), (3)")
     val t = registerTable("tbl")
@@ -914,8 +928,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_stats_config_change", "Stats config changing across versions",
-      "dataSkipping") {
+  test("ds_stats_config_change") {
     sql("""CREATE TABLE tbl (a INT, b INT) USING delta
       TBLPROPERTIES ('delta.dataSkippingNumIndexedCols' = '2')""")
     sql("INSERT INTO tbl VALUES (1, 10)")
@@ -930,7 +943,7 @@ new WorkloadSuite("data_skipping") {
 
   // Nested indexed columns (delta.dataSkippingNumIndexedCols with nested schema)
 
-  test("ds_nested_indexed_0", "nested schema, indexed=0", "dataSkipping") {
+  test("ds_nested_indexed_0") {
     sql("""CREATE TABLE tbl (a STRUCT<x: LONG, y: LONG>, b LONG) USING delta
       TBLPROPERTIES ('delta.dataSkippingNumIndexedCols' = '0')""")
     sql("INSERT INTO tbl VALUES (named_struct('x',1,'y',10), 100)")
@@ -942,7 +955,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nested_indexed_3", "nested schema, indexed=3", "dataSkipping") {
+  test("ds_nested_indexed_3") {
     sql("""CREATE TABLE tbl (
       a STRUCT<x: LONG, y: LONG>,
       b LONG,
@@ -963,7 +976,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nested_indexed_6", "nested schema, indexed=6", "dataSkipping") {
+  test("ds_nested_indexed_6") {
     sql("""CREATE TABLE tbl (
       a STRUCT<x: LONG, y: LONG, z: LONG>,
       b STRUCT<p: LONG, q: LONG>,
@@ -980,7 +993,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nested_indexed_9", "nested schema, indexed=9", "dataSkipping") {
+  test("ds_nested_indexed_9") {
     sql("""CREATE TABLE tbl (
       a STRUCT<x: LONG, y: LONG, z: LONG>,
       b STRUCT<p: LONG, q: LONG, r: LONG>,
@@ -1002,7 +1015,7 @@ new WorkloadSuite("data_skipping") {
 
   // Partitioned + stats combined
 
-  test("ds_partitioned", "Partitioned table data skipping", "dataSkipping") {
+  test("ds_partitioned") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'a')")
     sql("INSERT INTO tbl VALUES (3, 'b'), (4, 'b')")
@@ -1016,8 +1029,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_partition_and_stats", "Partition pruning + stats skipping combined",
-      "dataSkipping") {
+  test("ds_partition_and_stats") {
     sql("CREATE TABLE tbl (id INT, value INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 10, 'a'), (2, 20, 'a')")
     sql("INSERT INTO tbl VALUES (3, 30, 'b'), (4, 40, 'b')")
@@ -1028,7 +1040,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_partition_or_predicate", "OR predicate on partition column", "dataSkipping") {
+  test("ds_partition_or_predicate") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b'), (3, 'c')")
     val t = registerTable("tbl")
@@ -1039,7 +1051,7 @@ new WorkloadSuite("data_skipping") {
 
   // Schema order mismatch and nonexistent col filter
 
-  test("ds_schema_order_mismatch", "Query columns in different order", "dataSkipping") {
+  test("ds_schema_order_mismatch") {
     sql("CREATE TABLE tbl (a INT, b INT, c INT) USING delta")
     sql("INSERT INTO tbl VALUES (1, 2, 3)")
     val t = registerTable("tbl")
@@ -1048,7 +1060,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_nonexistent_col_filter", "Filter on non-existent column", "dataSkipping") {
+  test("ds_nonexistent_col_filter") {
     sql("CREATE TABLE tbl (a INT) USING delta")
     sql("INSERT INTO tbl VALUES (1), (2)")
     val t = registerTable("tbl")
@@ -1059,8 +1071,7 @@ new WorkloadSuite("data_skipping") {
 
   // Generated columns
 
-  test("ds_generated_col_skipping", "Skipping using generated column stats",
-      "dataSkipping") {
+  test("ds_generated_col_skipping") {
     sql("""CREATE TABLE tbl (
       date_col DATE, value INT,
       year_col INT GENERATED ALWAYS AS (YEAR(date_col))
@@ -1075,7 +1086,7 @@ new WorkloadSuite("data_skipping") {
 
   // DVs + data skipping
 
-  test("ds_with_dvs_edge", "Data skipping + DVs combined", "dataSkipping", "dv") {
+  test("ds_with_dvs_edge") {
     sql("""CREATE TABLE tbl (a INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")   // file 1: 1-10
@@ -1088,8 +1099,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_with_dvs_edge_1", "Data skipping + DVs: predicate skips file with DV",
-      "dataSkipping", "dv") {
+  test("ds_with_dvs_edge_1") {
     sql("""CREATE TABLE tbl (a INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(1, 11)")
@@ -1101,8 +1111,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_with_dvs_edge_2", "Data skipping + DVs: entire file deleted via DV",
-      "dataSkipping", "dv") {
+  test("ds_with_dvs_edge_2") {
     sql("""CREATE TABLE tbl (a INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(1, 6)")
@@ -1116,8 +1125,7 @@ new WorkloadSuite("data_skipping") {
 
   // Column mapping: stats after drop/rename
 
-  test("ds_stats_col_drop", "Data skipping after column drop (CM=name)",
-      "dataSkipping", "columnMapping") {
+  test("ds_stats_col_drop") {
     sql("""CREATE TABLE tbl (a INT, b INT, c INT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -1130,8 +1138,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_stats_col_rename", "Data skipping after column rename (CM=name)",
-      "dataSkipping", "columnMapping") {
+  test("ds_stats_col_rename") {
     sql("""CREATE TABLE tbl (a INT, old_name INT) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -1144,8 +1151,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_stats_after_drop", "Stats after column drop with column mapping",
-      "dataSkipping", "columnMapping") {
+  test("ds_stats_after_drop") {
     sql("""CREATE TABLE tbl (
       c1 LONG, c2 STRING, c3 FLOAT, c4 DOUBLE,
       c5 TIMESTAMP, c6 TIMESTAMP_NTZ, c7 DATE,
@@ -1180,8 +1186,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("ds_stats_after_rename", "Stats after column rename with column mapping",
-      "dataSkipping", "columnMapping") {
+  test("ds_stats_after_rename") {
     sql("""CREATE TABLE tbl (
       c1 LONG, c2 STRING, c3 FLOAT, c4 DOUBLE,
       c5 TIMESTAMP, c6 TIMESTAMP_NTZ, c7 DATE,
@@ -1223,8 +1228,7 @@ new WorkloadSuite("data_skipping") {
 
   // Error test: field not found
 
-  test("ds_err_001_field_not_found", "FIELD_NOT_FOUND for row commit version filter",
-      "dataSkipping", "error") {
+  test("ds_err_001_field_not_found") {
     sql("""CREATE TABLE tbl (a INT) USING delta
       TBLPROPERTIES ('delta.enableRowTracking' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -1235,7 +1239,7 @@ new WorkloadSuite("data_skipping") {
 
   // === Statistics ===
 
-  test("stats_null_in_min_max", "Stats with all-null column (null min/max)", "data-skipping", "stats", "edge-case") {
+  test("stats_null_in_min_max") {
     sql("""CREATE TABLE tbl (id INT, nullable_col STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, null),(2, null),(3, null)")
@@ -1246,7 +1250,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_numrecords_only", "Stats with only numRecords", "data-skipping", "stats", "edge-case") {
+  test("stats_numrecords_only") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b')")
@@ -1272,7 +1276,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_numrecords_with_dv", "numRecords is physical count, not logical (with DVs)", "data-skipping", "stats", "deletion-vectors", "edge-case") {
+  test("stats_numrecords_with_dv") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -1283,7 +1287,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_partition_col_no_stats", "Partition column excluded from data statistics", "data-skipping", "stats", "partition", "edge-case") {
+  test("stats_partition_col_no_stats") {
     sql("""CREATE TABLE tbl (id INT, country STRING, amount INT) USING delta
       PARTITIONED BY (country) TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'US', 100),(2, 'UK', 200),(3, 'US', 300),(4, 'UK', 400)")
@@ -1294,7 +1298,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_string_truncation", "Stats with truncated string min/max (must not over-prune)", "data-skipping", "stats", "string-truncation", "edge-case") {
+  test("stats_string_truncation") {
     sql("""CREATE TABLE tbl (id INT, long_str STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     // Include a string longer than 32 chars to trigger truncation
@@ -1309,7 +1313,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_empty_string", "Stats with empty string values", "data-skipping", "stats", "edge-case") {
+  test("stats_empty_string") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, ''),(2, 'a'),(3, '')")
@@ -1325,7 +1329,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_missing_entirely", "Stats field missing entirely", "data-skipping", "stats", "edge-case") {
+  test("stats_missing_entirely") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'a'),(2, 'b')")
@@ -1342,7 +1346,7 @@ new WorkloadSuite("data_skipping") {
 
   // === Partitioning ===
 
-  test("single_partition", "Single partition column", "partitioned") {
+  test("single_partition") {
     sql("""CREATE TABLE tbl (id INT, region STRING, value DOUBLE)
       USING delta PARTITIONED BY (region)""")
     sql("INSERT INTO tbl VALUES (1,'us',10),(2,'us',20),(3,'eu',30),(4,'eu',40),(5,'asia',50)")
@@ -1354,7 +1358,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("multi_partition", "Multiple partition columns", "partitioned") {
+  test("multi_partition") {
     sql("""CREATE TABLE tbl (id INT, year INT, month INT, data STRING)
       USING delta PARTITIONED BY (year, month)""")
     sql("""INSERT INTO tbl VALUES
@@ -1368,7 +1372,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("null_partition", "NULL partition values", "partitioned", "nulls") {
+  test("null_partition") {
     sql("""CREATE TABLE tbl (id INT, category STRING, value INT)
       USING delta PARTITIONED BY (category)""")
     sql("INSERT INTO tbl VALUES (1,'a',10),(2,NULL,20),(3,'b',30),(4,NULL,40)")
@@ -1380,7 +1384,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("stats_skipping", "Data skipping via column stats", "skipping") {
+  test("stats_skipping") {
     sql("CREATE TABLE tbl (id INT, value INT) USING delta")
     sql("INSERT INTO tbl SELECT id, id * 10 FROM range(100) WHERE id < 50")
     sql("INSERT INTO tbl SELECT id, id * 10 FROM range(100) WHERE id >= 50")
@@ -1393,7 +1397,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("partition_pruning", "Partition pruning + stats", "partitioned", "skipping") {
+  test("partition_pruning") {
     sql("""CREATE TABLE tbl (id INT, region STRING, amount DOUBLE)
       USING delta PARTITIONED BY (region)""")
     sql("INSERT INTO tbl VALUES (1,'us',10),(2,'us',20)")
@@ -1407,7 +1411,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("column_projection", "Column subsets", "projection") {
+  test("column_projection") {
     sql("CREATE TABLE tbl (a INT, b STRING, c DOUBLE, d BOOLEAN, e DATE) USING delta")
     sql("""INSERT INTO tbl VALUES
       (1,'x',1.1,true,DATE'2024-01-01'),
@@ -1422,7 +1426,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("part_date_type", "Partition with date type", "partitioned") {
+  test("part_date_type") {
     sql("""CREATE TABLE tbl (id INT, value STRING, dt DATE) USING delta
       PARTITIONED BY (dt)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1436,7 +1440,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("part_null_values", "Partition with NULL values", "partitioned") {
+  test("part_null_values") {
     sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1448,7 +1452,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("part_or_predicate", "Partition pruning with OR predicate", "partitioned") {
+  test("part_or_predicate") {
     sql("""CREATE TABLE tbl (id INT, value STRING, part STRING) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -1460,7 +1464,7 @@ new WorkloadSuite("data_skipping") {
     snapshot(t)
   }
 
-  test("part_multi_column", "Multi-column partitioning with 3 columns", "partitioned") {
+  test("part_multi_column") {
     sql("""CREATE TABLE tbl (id INT, value STRING, a INT, b STRING, c BOOLEAN) USING delta
       PARTITIONED BY (a, b, c)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")

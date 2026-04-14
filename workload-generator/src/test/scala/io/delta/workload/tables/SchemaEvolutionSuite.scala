@@ -1,6 +1,26 @@
-new WorkloadSuite("schema_evolution") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("schema_add_column", "ADD COLUMN", "schema_evolution") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class SchemaEvolutionSuite extends WorkloadTestSuite("schema_evolution") {
+
+  test("schema_add_column") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'before')")
     sql("ALTER TABLE tbl ADD COLUMN (new_col DOUBLE)")
@@ -13,7 +33,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_add_nested_field", "Add field to nested struct", "schema_evolution") {
+  test("schema_add_nested_field") {
     sql("CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
@@ -25,7 +45,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_rename", "RENAME COLUMN", "schema_evolution", "column_mapping") {
+  test("schema_rename") {
     sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -39,7 +59,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_drop_column", "DROP COLUMN", "schema_evolution", "column_mapping") {
+  test("schema_drop_column") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -52,7 +72,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_multiple_renames", "Chain of renames a→b→c", "schema_evolution", "column_mapping") {
+  test("schema_multiple_renames") {
     sql("""CREATE TABLE tbl (id INT, a STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -67,7 +87,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("schema_predicate_on_added", "Predicate on null-filled added column", "schema_evolution") {
+  test("schema_predicate_on_added") {
     sql("CREATE TABLE tbl (id INT, name STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob')")
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
@@ -81,7 +101,7 @@ new WorkloadSuite("schema_evolution") {
   }
 
 
-  test("schema_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution") {
+  test("schema_add_col_pred_eq") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c')")
     sql("ALTER TABLE tbl ADD COLUMNS (score INT)")
@@ -93,7 +113,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_drop_col_pred", "Data skipping after column drop", "schema_evolution", "column_mapping") {
+  test("schema_drop_col_pred") {
     sql("""CREATE TABLE tbl (id INT, name STRING, category STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -107,7 +127,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_rename_pred", "Predicate on renamed column", "schema_evolution", "column_mapping") {
+  test("schema_rename_pred") {
     sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -121,7 +141,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_rename_partition", "Partition pruning on renamed partition column", "schema_evolution", "column_mapping") {
+  test("schema_rename_partition") {
     sql("""CREATE TABLE tbl (id INT, category STRING) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
@@ -136,7 +156,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_drop_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+  test("schema_drop_readd_same_name") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -149,7 +169,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("schema_readd_pred", "Predicate on re-added column (new physical name)", "schema_evolution", "column_mapping") {
+  test("schema_readd_pred") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -164,7 +184,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("schema_dv_pred_null", "Null-fill predicate + DVs combined", "schema_evolution", "dv") {
+  test("schema_dv_pred_null") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob'),(3,'charlie'),(4,'diana')")
@@ -178,7 +198,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("schema_rename_read_v1", "Version read before rename", "schema_evolution", "column_mapping") {
+  test("schema_rename_read_v1") {
     sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -191,7 +211,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_nested_field_pred", "Predicate on added nested field", "schema_evolution") {
+  test("schema_nested_field_pred") {
     sql("CREATE TABLE tbl (id INT, info STRUCT<name: STRING>) USING delta")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice'))")
     sql("ALTER TABLE tbl ADD COLUMNS (info.email STRING)")
@@ -204,7 +224,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("schema_proj_at_old_version", "Project column at version before schema change", "schema_evolution") {
+  test("schema_proj_at_old_version") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'one'),(2,'two')")
     sql("ALTER TABLE tbl ADD COLUMNS (extra INT)")
@@ -216,7 +236,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 3L) snapshot(t, version = v)
   }
 
-  test("schema_type_coercion_insert", "INSERT with implicit type cast int to long", "schema_evolution") {
+  test("schema_type_coercion_insert") {
     sql("CREATE TABLE tbl (id LONG, value LONG) USING delta")
     sql("INSERT INTO tbl VALUES (1, 100)")
     // Insert int values into long columns (implicit coercion)
@@ -227,7 +247,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 2L) snapshot(t, version = v)
   }
 
-  test("schema_merge_with_evolution", "MERGE with schema evolution", "schema_evolution") {
+  test("schema_merge_with_evolution") {
     sql("""CREATE TABLE target (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableTypeWidening' = 'false')""")
     sql("INSERT INTO target VALUES (1,'alice'),(2,'bob')")
@@ -243,7 +263,7 @@ new WorkloadSuite("schema_evolution") {
   }
 
 
-  test("se_add_col_pred_eq", "Equality predicate on column missing stats in old files", "schema_evolution", "predicate") {
+  test("se_add_col_pred_eq") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -258,7 +278,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_add_col_pred_null", "Predicate on null-filled column from old files", "schema_evolution", "predicate") {
+  test("se_add_col_pred_null") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -274,7 +294,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_add_col_read_v1", "Time travel to version before column was added", "schema_evolution", "timeTravel") {
+  test("se_add_col_read_v1") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -288,7 +308,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("se_add_column_with_default", "Column added then populated with explicit values", "schema_evolution") {
+  test("se_add_column_with_default") {
     sql("""CREATE TABLE tbl (id INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -301,7 +321,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_drop_column", "Read after column drop with column mapping", "schemaEvolution") {
+  test("se_drop_column") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name')""")
@@ -314,7 +334,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_drop_col_pred", "Data skipping after column drop", "schema_evolution", "column_mapping") {
+  test("se_drop_col_pred") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -332,7 +352,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("se_drop_col_read_v1", "Time travel to version before column was dropped", "schema_evolution", "column_mapping") {
+  test("se_drop_col_read_v1") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -348,7 +368,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("se_drop_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+  test("se_drop_readd_same_name") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -362,7 +382,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_dv_pred_null", "Null-fill predicate + DVs combined", "schema_evolution", "dv") {
+  test("se_dv_pred_null") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -380,7 +400,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_merge_with_evolution", "MERGE with schema evolution", "schema_evolution") {
+  test("se_merge_with_evolution") {
     sql("""CREATE TABLE target (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO target VALUES (1, 'alice')")
@@ -396,7 +416,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_nested_field_pred", "Predicate on added nested field", "schema_evolution") {
+  test("se_nested_field_pred") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -410,7 +430,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_nested_field_project", "Nested struct projection with null-fill for old files", "schema_evolution") {
+  test("se_nested_field_project") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -424,7 +444,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_pred_on_added_col", "IS NOT NULL on added column", "schema_evolution", "predicate") {
+  test("se_pred_on_added_col") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -438,7 +458,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_proj_at_old_version", "Project column at version before schema change", "schema_evolution") {
+  test("se_proj_at_old_version") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 'alice')")
@@ -453,7 +473,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("se_readd_pred", "Predicate on re-added column (new physical name)", "schema_evolution", "column_mapping") {
+  test("se_readd_pred") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -471,7 +491,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("se_rename_chain", "Multiple renames a -> b -> c", "schema_evolution", "column_mapping") {
+  test("se_rename_chain") {
     sql("""CREATE TABLE tbl (id INT, a STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -487,7 +507,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_rename_column", "Read after column rename", "schema_evolution", "column_mapping") {
+  test("se_rename_column") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -502,7 +522,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_rename_part_pred", "Partition pruning on renamed partition column", "schema_evolution", "column_mapping") {
+  test("se_rename_part_pred") {
     sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
@@ -521,7 +541,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 5L) snapshot(t, version = v)
   }
 
-  test("se_rename_partition_column", "Rename partition column", "schema_evolution", "column_mapping") {
+  test("se_rename_partition_column") {
     sql("""CREATE TABLE tbl (id INT, category STRING, value INT) USING delta
       PARTITIONED BY (category)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
@@ -537,7 +557,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_rename_pred", "Predicate on renamed column", "schema_evolution", "column_mapping") {
+  test("se_rename_pred") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -554,7 +574,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("se_rename_read_v1", "Version read before rename", "schema_evolution", "column_mapping") {
+  test("se_rename_read_v1") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -570,7 +590,7 @@ new WorkloadSuite("schema_evolution") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("se_type_coercion_insert", "INSERT with implicit type cast int to long", "schema_evolution") {
+  test("se_type_coercion_insert") {
     sql("""CREATE TABLE tbl (id LONG, value LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, 100)")
@@ -582,7 +602,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_add_nested_struct_field", "Add field to nested struct", "schema_evolution") {
+  test("se_add_nested_struct_field") {
     sql("""CREATE TABLE tbl (id INT, info STRUCT<name: STRING, age: INT>) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1, named_struct('name','alice','age',30))")
@@ -594,7 +614,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_drop_and_readd_same_name", "Drop and re-add column with different type", "schema_evolution", "column_mapping") {
+  test("se_drop_and_readd_same_name") {
     sql("""CREATE TABLE tbl (id INT, x STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -608,7 +628,7 @@ new WorkloadSuite("schema_evolution") {
     snapshot(t)
   }
 
-  test("se_add_top_level_column", "Add top-level column via auto merge", "schema_evolution") {
+  test("se_add_top_level_column") {
     sql("""CREATE TABLE tbl (id INT, name STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.enableTypeWidening' = 'false')""")

@@ -1,6 +1,26 @@
-new WorkloadSuite("time_travel") {
+/*
+ * Copyright (2025) The Delta Lake Project Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-  test("time_travel_versions", "Read at multiple versions") {
+package io.delta.workload.tables
+
+import io.delta.workload.WorkloadTestSuite
+
+class TimeTravelSuite extends WorkloadTestSuite("time_travel") {
+
+  test("time_travel_versions") {
     sql("CREATE TABLE tbl (id INT, val STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1, 'v1')")
     sql("INSERT INTO tbl VALUES (2, 'v2')")
@@ -18,7 +38,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t, version = 1)
   }
 
-  test("time_travel_timestamps", "Timestamp-based reads") {
+  test("time_travel_timestamps") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     sql("INSERT INTO tbl VALUES (3),(4)")
@@ -33,7 +53,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_schema_change", "Time travel across schema change") {
+  test("time_travel_schema_change") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("ALTER TABLE tbl ADD COLUMNS (name STRING)")
@@ -45,7 +65,7 @@ new WorkloadSuite("time_travel") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("time_travel_dv", "Time travel with deletion vectors") {
+  test("time_travel_dv") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -59,7 +79,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_bad_version", "Error: non-existent version") {
+  test("time_travel_bad_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -67,7 +87,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_negative_version", "Error: negative version") {
+  test("time_travel_negative_version") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -75,7 +95,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_deleted_version", "Error: deleted commit file") {
+  test("time_travel_deleted_version") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
@@ -88,7 +108,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_checkpoint", "Time travel across checkpoint") {
+  test("time_travel_checkpoint") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '5')")
     for (i <- 1 to 8) sql(s"INSERT INTO tbl SELECT id FROM range(${(i-1)*10}, ${i*10})")
     val t = registerTable("tbl")
@@ -98,7 +118,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_partition_filter", "Time travel + partition filter") {
+  test("time_travel_partition_filter") {
     sql("CREATE TABLE tbl (id BIGINT, part BIGINT) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20)")
     sql("INSERT INTO tbl SELECT id, id % 4 FROM range(20, 40)")
@@ -110,7 +130,7 @@ new WorkloadSuite("time_travel") {
   }
 
 
-  test("time_travel_column_mapping", "Time travel with column mapping changes") {
+  test("time_travel_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, old_name STRING) USING delta
       TBLPROPERTIES ('delta.columnMapping.mode' = 'name',
         'delta.minReaderVersion' = '2', 'delta.minWriterVersion' = '5')""")
@@ -128,7 +148,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t, version = 3)
   }
 
-  test("time_travel_column_defaults", "Time travel with column defaults") {
+  test("time_travel_column_defaults") {
     sql("""CREATE TABLE tbl (id INT, value STRING DEFAULT 'default_val') USING delta""")
     // version 0: empty table
     sql("INSERT INTO tbl (id) VALUES (1)")
@@ -145,7 +165,7 @@ new WorkloadSuite("time_travel") {
     read(t, timestamp = ts1)
   }
 
-  test("time_travel_deleted_retention", "Deleted version due to retention - version not found") {
+  test("time_travel_deleted_retention") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
@@ -160,7 +180,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_after_vacuum", "Time travel after VACUUM removes old files") {
+  test("time_travel_after_vacuum") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -183,7 +203,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_checkpoint_between", "Time travel with checkpoint between versions") {
+  test("time_travel_checkpoint_between") {
     sql("CREATE TABLE tbl (id BIGINT) USING delta TBLPROPERTIES ('delta.checkpointInterval' = '3')")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
@@ -202,7 +222,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_relation_caching", "Correct relation caching for queries with time travel spec") {
+  test("time_travel_relation_caching") {
     sql("CREATE TABLE tbl (id INT, val STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'v1')")
     sql("INSERT INTO tbl VALUES (2,'v2')")
@@ -216,7 +236,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_sql_syntax", "Time travel SQL syntax variants") {
+  test("time_travel_sql_syntax") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'first')")
     sql("INSERT INTO tbl VALUES (2,'second')")
@@ -231,7 +251,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_exact_timestamp", "As of exact timestamp of commit") {
+  test("time_travel_exact_timestamp") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     sql("INSERT INTO tbl VALUES (3),(4)")
@@ -244,7 +264,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_multi_version_scans", "Scans on different versions of same table") {
+  test("time_travel_multi_version_scans") {
     sql("CREATE TABLE tbl (id INT, value INT) USING delta")
     sql("INSERT INTO tbl VALUES (1,10),(2,20)")
     sql("INSERT INTO tbl VALUES (3,30),(4,40)")
@@ -258,7 +278,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_partition_evolution", "Time travel with partition changes") {
+  test("time_travel_partition_evolution") {
     sql("CREATE TABLE tbl (id INT, part STRING) USING delta PARTITIONED BY (part)")
     sql("INSERT INTO tbl VALUES (1,'A'),(2,'B')")
     // Overwrite partition A
@@ -276,7 +296,7 @@ new WorkloadSuite("time_travel") {
     read(t, timestamp = ts1)
   }
 
-  test("time_travel_timestamp_between", "Timestamp between commits resolves to earlier version") {
+  test("time_travel_timestamp_between") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     // Force a delay so timestamps differ
@@ -297,7 +317,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_version_0_empty", "Time travel to version 0 of empty table") {
+  test("time_travel_version_0_empty") {
     sql("CREATE TABLE tbl (id INT, value STRING) USING delta")
     sql("INSERT INTO tbl VALUES (1,'data')")
     val t = registerTable("tbl")
@@ -306,7 +326,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_future_timestamp_error", "As of timestamp after last commit should fail") {
+  test("time_travel_future_timestamp_error") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1),(2)")
     val t = registerTable("tbl")
@@ -314,7 +334,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("time_travel_invalid_timestamp_error", "As of timestamp on invalid timestamp") {
+  test("time_travel_invalid_timestamp_error") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
@@ -323,7 +343,7 @@ new WorkloadSuite("time_travel") {
   }
 
 
-  test("tt_after_vacuum", "Time travel after VACUUM removes old files", "timeTravel") {
+  test("tt_after_vacuum") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -350,7 +370,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_at_syntax", "Time travel path with @ syntax", "timeTravel") {
+  test("tt_at_syntax") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -364,7 +384,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_checkpoint_between", "Time travel with checkpoint between versions", "timeTravel") {
+  test("tt_checkpoint_between") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true', 'delta.checkpointInterval' = '5')""")
     for (i <- 0 until 7)
@@ -378,7 +398,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_column_defaults", "Time travel support with column defaults", "timeTravel") {
+  test("tt_column_defaults") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (NULL)")
@@ -395,7 +415,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_column_mapping", "Time travel with column mapping changes", "timeTravel", "columnMapping") {
+  test("tt_column_mapping") {
     sql("""CREATE TABLE tbl (id INT, name STRING, value INT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true',
         'delta.columnMapping.mode' = 'name',
@@ -412,7 +432,7 @@ new WorkloadSuite("time_travel") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("tt_dv_between_versions", "Time travel with DV changes between versions", "timeTravel", "deletionVectors") {
+  test("tt_dv_between_versions") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1,'a'),(2,'b'),(3,'c'),(4,'d'),(5,'e')")
@@ -426,7 +446,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_exact_timestamp", "As of exact timestamp of commit", "timeTravel") {
+  test("tt_exact_timestamp") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -440,7 +460,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_future_timestamp_error", "As of timestamp after last commit should fail", "timeTravel") {
+  test("tt_future_timestamp_error") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -449,7 +469,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_invalid_timestamp_error", "As of timestamp on invalid timestamp", "timeTravel") {
+  test("tt_invalid_timestamp_error") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -459,7 +479,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_multi_version_scans", "Scans on different versions of same table", "timeTravel") {
+  test("tt_multi_version_scans") {
     sql("""CREATE TABLE tbl (key BIGINT, value BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id, id * 10 FROM range(3)")
@@ -473,7 +493,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_non_existent_version", "Time travel to non-existent version", "timeTravel") {
+  test("tt_non_existent_version") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -483,7 +503,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_nonexistent_version_error", "As of with versions - non-existent version", "timeTravel") {
+  test("tt_nonexistent_version_error") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -494,7 +514,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_partition_evolution", "Time travel with partition changes", "timeTravel") {
+  test("tt_partition_evolution") {
     sql("""CREATE TABLE tbl (id BIGINT, part5 BIGINT) USING delta
       PARTITIONED BY (part5)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -512,7 +532,7 @@ new WorkloadSuite("time_travel") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("tt_partition_filter", "Time travel with partition filter", "timeTravel") {
+  test("tt_partition_filter") {
     sql("""CREATE TABLE tbl (id BIGINT, part BIGINT) USING delta
       PARTITIONED BY (part)
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
@@ -527,7 +547,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_relation_caching", "Correct relation caching for queries with time travel", "timeTravel") {
+  test("tt_relation_caching") {
     sql("""CREATE TABLE tbl (c BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl VALUES (1)")
@@ -541,7 +561,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_sql_syntax", "Time travel support in SQL - underlying reads", "timeTravel") {
+  test("tt_sql_syntax") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -555,7 +575,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_timestamp_between_commits", "Timestamp between commits resolves to earlier version", "timeTravel") {
+  test("tt_timestamp_between_commits") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -575,7 +595,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_version_0", "Time travel to version 0 (initial commit)", "timeTravel") {
+  test("tt_version_0") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -588,7 +608,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_version_0_empty", "Time travel to version 0 of empty table", "timeTravel") {
+  test("tt_version_0_empty") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     val t = registerTable("tbl")
@@ -596,7 +616,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_version_read", "As of with versions", "timeTravel") {
+  test("tt_version_read") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -614,7 +634,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_deleted_version_retention_error", "Deleted version due to retention - version not found", "timeTravel") {
+  test("tt_deleted_version_retention_error") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10)")
@@ -630,7 +650,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_schema_evolution", "Time travel with schema changes", "timeTravel") {
+  test("tt_schema_evolution") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -649,7 +669,7 @@ new WorkloadSuite("time_travel") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("tt_timestamp_travel", "Basic timestamp-based time travel", "timeTravel") {
+  test("tt_timestamp_travel") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -664,7 +684,7 @@ new WorkloadSuite("time_travel") {
     snapshot(t)
   }
 
-  test("tt_timestamp_before_retention_error", "Timestamp before retention window error", "timeTravel") {
+  test("tt_timestamp_before_retention_error") {
     sql("""CREATE TABLE tbl (id BIGINT) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(10, 20)")
