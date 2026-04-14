@@ -47,7 +47,7 @@ class ReadsSuite extends WorkloadTestSuite("reads") {
   test("read_empty_path") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     sql("INSERT INTO tbl VALUES (1)")
-    val t = registerTable("tbl")
+    val t = registerTable("tbl", expectTableInfoFailure = true)
     mutateTable(t) { dir =>
       val logDir = dir.resolve("_delta_log")
       if (java.nio.file.Files.exists(logDir)) {

@@ -525,7 +525,7 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
   test("cp_err_missing_metadata") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
-    val t = registerTable("tbl")
+    val t = registerTable("tbl", expectTableInfoFailure = true)
     mutateTable(t) { tableDir =>
       val logDir = tableDir.resolve("_delta_log")
       import scala.collection.JavaConverters._
@@ -543,7 +543,7 @@ class CheckpointsSuite extends WorkloadTestSuite("checkpoints") {
   test("cp_err_missing_protocol") {
     sql("CREATE TABLE tbl (id INT) USING delta")
     checkpoint("tbl")
-    val t = registerTable("tbl")
+    val t = registerTable("tbl", expectTableInfoFailure = true)
     mutateTable(t) { tableDir =>
       val logDir = tableDir.resolve("_delta_log")
       import scala.collection.JavaConverters._

@@ -214,62 +214,6 @@ case class LastCheckpointInfo(
     v2Checkpoint: Option[V2CheckpointInfo] = None)
 
 // =============================================================================
-// Checkpoint spec case classes
-// =============================================================================
-
-@JsonPropertyOrder(Array("type", "version", "expected"))
-case class CheckpointSpec(
-    version: Long,
-    expected: CheckpointExpected) {
-  val `type`: String = "checkpoint"
-}
-
-@JsonPropertyOrder(Array("protocol", "metadata", "txn"))
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class CheckpointExpected(
-    protocol: Any,
-    metadata: Any,
-    txn: Option[Seq[TxnAction]] = None)
-
-// =============================================================================
-// CRC spec case classes
-// =============================================================================
-
-@JsonPropertyOrder(Array("type", "version", "expected"))
-case class CrcSpec(
-    version: Long,
-    expected: CrcExpected) {
-  val `type`: String = "crc"
-}
-
-@JsonPropertyOrder(Array("tableSizeBytes", "numFiles", "numRemoveFiles",
-  "numTransactions", "protocol", "metadata",
-  "txn", "histograms", "deletionVectors", "inCommitTimestamp"))
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class CrcExpected(
-    tableSizeBytes: Option[Long] = None,
-    numFiles: Option[Long] = None,
-    numRemoveFiles: Option[Long] = None,
-    numTransactions: Option[Long] = None,
-    protocol: Option[ProtocolInfo] = None,
-    metadata: Option[Any] = None,  // Complex nested structure, keep as Any
-    txn: Option[Seq[TxnAction]] = None,
-    histograms: Option[CrcHistograms] = None,
-    deletionVectors: Option[CrcDeletionVectorStats] = None,
-    inCommitTimestamp: Option[Long] = None)
-
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class CrcHistograms(
-    addFiles: Option[Any] = None,
-    removeFiles: Option[Any] = None)
-
-@JsonInclude(JsonInclude.Include.NON_ABSENT)
-case class CrcDeletionVectorStats(
-    numDeletionVectors: Option[Long] = None,
-    numLogicalDeletionVectorRows: Option[Long] = None,
-    deletionVectorSizeInBytes: Option[Long] = None)
-
-// =============================================================================
 // JSON and DataFrame utilities
 // =============================================================================
 
