@@ -8,7 +8,7 @@ Write a script that creates Delta tables with normal SQL, declare what specs to 
 
 | Document | Description |
 |----------|-------------|
-| **[Spec Format Reference](docs/spec-reference.md)** | Complete JSON schema for every spec type (read, snapshot, checkpoint, CRC) with exhaustive examples |
+| **[Spec Format Reference](docs/spec-reference.md)** | Complete JSON schema for every spec type (read, snapshot, CDF, domain metadata, appTxn, checkpoint, CRC) with exhaustive examples |
 | **[Coverage Matrix](docs/coverage-matrix.md)** | All tests across 40 suites — what Delta features your engine gets tested on |
 | **[Harness Implementation Guide](docs/harness-implementation-guide.md)** | Step-by-step guide to build a test harness that runs workloads against your engine, with Rust and Python examples |
 | **[Authoring Guide](docs/authoring-guide.md)** | How to write new workload suites, patterns, recipes, and debugging tips |
@@ -50,6 +50,9 @@ WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite
 │  │   val t = registerTable("tbl") // Get table handle              ││
 │  │   read(t)                      // Declare read spec             ││
 │  │   snapshot(t)                  // Declare snapshot spec         ││
+│  │   cdf(t, startVersion = 0)     // Declare CDF spec              ││
+│  │   domainMetadata(t, ...)       // Declare domain metadata spec  ││
+│  │   appTxn(t, appId, txnVer)     // Declare appTxn spec           ││
 │  │ }                                                               ││
 │  └─────────────────────────────────────────────────────────────────┘│
 └───────────────────────────────┬─────────────────────────────────────┘
@@ -83,10 +86,13 @@ WORKLOAD_FORCE=true WORKLOAD_OUTPUT_DIR=/tmp/workloads sbt "testOnly *ReadsSuite
 | Component | Purpose |
 |-----------|---------|
 | `WorkloadTestSuite` | ScalaTest base class with workload generation integration |
-| `WorkloadOps` | DSL trait: `sql()`, `registerTable()`, `read()`, `snapshot()` |
+| `WorkloadOps` | DSL trait: `sql()`, `registerTable()`, `read()`, `snapshot()`, `cdf()`, `domainMetadata()`, `appTxn()` |
 | `WorkloadGenerator` | Orchestrates table copy, spec capture, and validation |
 | `ReadCapture` | Captures read specs with expected row data |
 | `SnapshotCapture` | Captures snapshot specs with protocol/metadata |
+| `CdfCapture` | Captures CDF (Change Data Feed) specs with change rows |
+| `DomainMetadataCapture` | Captures domain metadata specs |
+| `AppTxnCapture` | Captures SetTransaction (appTxn) specs |
 | `TableInfoWriter` | Writes table metadata (schema, protocol, stats) |
 | `JsonUtil` | Shared JSON utilities, multiset comparison |
 
@@ -159,6 +165,9 @@ See the [Spec Format Reference](docs/spec-reference.md) for the complete JSON sc
 |------|--------------|---------|
 | **Read** | Data reads with time travel, predicates, column projection, data skipping | [Reference](docs/spec-reference.md#read-spec) |
 | **Snapshot** | Protocol and metadata reconstruction from log replay | [Reference](docs/spec-reference.md#snapshot-spec) |
+| **CDF** | Change Data Feed reads with version ranges, timestamps, insert/update/delete tracking | [Reference](docs/spec-reference.md#cdf-spec) |
+| **Domain Metadata** | Domain metadata actions in the transaction log | [Reference](docs/spec-reference.md#domain-metadata-spec) |
+| **AppTxn** | SetTransaction actions for application-level idempotency | [Reference](docs/spec-reference.md#apptxn-spec) |
 
 ## Workload Suites
 

@@ -33,6 +33,9 @@ import org.apache.spark.sql.functions._
 @JsonPropertyOrder(Array("errorCode", "errorMessage"))
 case class SpecError(errorCode: String, errorMessage: String)
 
+/** CDF success data. */
+case class CdfExpected(rowCount: Long)
+
 /** Read success data. */
 @JsonPropertyOrder(Array("rowCount", "fileCount", "filesSkipped"))
 case class ReadExpected(rowCount: Long, fileCount: Int, filesSkipped: Long)
@@ -41,9 +44,32 @@ case class ReadExpected(rowCount: Long, fileCount: Int, filesSkipped: Long)
 @JsonPropertyOrder(Array("protocol", "metadata"))
 case class SnapshotExpected(protocol: Any, metadata: Any)
 
+/** Domain metadata success data. */
+@JsonPropertyOrder(Array("domain", "configuration", "removed"))
+case class DomainMetadataExpected(domain: String, configuration: String, removed: Boolean)
+
+/** AppTxn (SetTransaction) success data. */
+@JsonPropertyOrder(Array("appId", "txnVersion"))
+case class TxnExpected(appId: String, txnVersion: Long)
+
 // =============================================================================
 // Spec case classes
 // =============================================================================
+
+@JsonPropertyOrder(Array("type", "startVersion", "startTimestamp", "endVersion", "endTimestamp",
+  "predicate", "columns", "expected", "expectedError"))
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
+case class CdfSpec(
+    startVersion: Option[Long] = None,
+    endVersion: Option[Long] = None,
+    startTimestamp: Option[String] = None,
+    endTimestamp: Option[String] = None,
+    predicate: Option[String] = None,
+    columns: Option[Seq[String]] = None,
+    expected: Option[CdfExpected] = None,
+    expectedError: Option[SpecError] = None) {
+  val `type`: String = "cdf"
+}
 
 @JsonPropertyOrder(Array("type", "version", "timestamp", "predicate", "columns", "expected", "expectedError"))
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
@@ -65,6 +91,24 @@ case class SnapshotSpec(
     expected: Option[SnapshotExpected] = None,
     expectedError: Option[SpecError] = None) {
   val `type`: String = "snapshot"
+}
+
+@JsonPropertyOrder(Array("type", "version", "expected", "expectedError"))
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
+case class DomainMetadataSpec(
+    version: Option[Long] = None,
+    expected: Option[DomainMetadataExpected] = None,
+    expectedError: Option[SpecError] = None) {
+  val `type`: String = "domain_metadata"
+}
+
+@JsonPropertyOrder(Array("type", "version", "expected", "expectedError"))
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
+case class TxnSpec(
+    version: Option[Long] = None,
+    expected: Option[TxnExpected] = None,
+    expectedError: Option[SpecError] = None) {
+  val `type`: String = "appTxn"
 }
 
 // =============================================================================
@@ -244,11 +288,20 @@ object JsonUtil {
   def writeSpec(path: Path, spec: Any): Unit =
     Files.write(path, prettyWriter.writeValueAsBytes(spec))
 
+  def readCdfSpec(path: Path): CdfSpec =
+    mapper.readValue(Files.readAllBytes(path), classOf[CdfSpec])
+
   def readReadSpec(path: Path): ReadSpec =
     mapper.readValue(Files.readAllBytes(path), classOf[ReadSpec])
 
   def readSnapshotSpec(path: Path): SnapshotSpec =
     mapper.readValue(Files.readAllBytes(path), classOf[SnapshotSpec])
+
+  def readDomainMetadataSpec(path: Path): DomainMetadataSpec =
+    mapper.readValue(Files.readAllBytes(path), classOf[DomainMetadataSpec])
+
+  def readTxnSpec(path: Path): TxnSpec =
+    mapper.readValue(Files.readAllBytes(path), classOf[TxnSpec])
 
   def toRowMultiset(df: DataFrame): Map[String, Int] =
     df.toJSON.collect().groupBy(identity).view.mapValues(_.length).toMap

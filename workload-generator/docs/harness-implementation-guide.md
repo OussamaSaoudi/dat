@@ -193,6 +193,124 @@ pub fn validate_snapshot(
 }
 ```
 
+### CDF Specs
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "endVersion": 3,
+  "predicate": "id > 5",
+  "columns": ["id", "name"],
+  "expected": { "rowCount": 42 }
+}
+```
+
+**Execute:** Open `delta/`, read the change data feed from `startVersion` to `endVersion` (or `startTimestamp`/`endTimestamp`), apply predicate and column projection.
+
+**Validate:** Compare results against `expected/<spec_name>/expected_data/*.parquet` as an **order-independent multiset**. CDF rows include metadata columns: `_change_type` (insert/update_preimage/update_postimage/delete), `_commit_version`, `_commit_timestamp`.
+
+```rust
+pub fn execute_cdf_workload(
+    engine: Arc<dyn Engine>, table_root: &Url, cdf_spec: &CdfSpec,
+) -> DeltaResult<CdfResult> {
+    let table = Table::try_from_uri(table_root)?;
+    let mut builder = table.change_data_feed_builder();
+
+    if let Some(start) = cdf_spec.start_version {
+        builder = builder.with_starting_version(start);
+    }
+    if let Some(end) = cdf_spec.end_version {
+        builder = builder.with_ending_version(end);
+    }
+
+    let batches: Vec<RecordBatch> = builder.build()?.execute(engine)?
+        .map(|data| data?.try_into_record_batch())
+        .try_collect()?;
+
+    let row_count = batches.iter().map(|b| b.num_rows() as u64).sum();
+    Ok(CdfResult { batches, row_count })
+}
+```
+
+### Domain Metadata Specs
+
+```json
+{
+  "type": "domain_metadata",
+  "version": 2,
+  "expected": {
+    "domain": "testDomain1",
+    "configuration": "{\"key\":\"value\"}",
+    "removed": false
+  }
+}
+```
+
+**Execute:** Build a snapshot at the given version. Extract domain metadata actions.
+
+**Validate:** Assert the specified domain exists (if `removed: false`) or is absent (if `removed: true`), and that `configuration` matches.
+
+```rust
+pub fn validate_domain_metadata(
+    result: DeltaResult<Snapshot>, expected: &DomainMetadataExpected,
+) -> Result<(), String> {
+    let snapshot = result?;
+    let domain_actions = snapshot.domain_metadata();
+    let matching = domain_actions.iter()
+        .find(|dm| dm.domain == expected.domain);
+
+    if expected.removed {
+        if matching.is_some() {
+            return Err(format!("Domain '{}' should be removed but is present", expected.domain));
+        }
+    } else {
+        let dm = matching.ok_or_else(||
+            format!("Domain '{}' not found", expected.domain))?;
+        if dm.configuration != expected.configuration {
+            return Err(format!("Configuration mismatch for domain '{}'", expected.domain));
+        }
+    }
+    Ok(())
+}
+```
+
+### AppTxn Specs
+
+```json
+{
+  "type": "appTxn",
+  "version": 1,
+  "expected": {
+    "appId": "myapp",
+    "txnVersion": 42
+  }
+}
+```
+
+**Execute:** Build a snapshot at the given version. Extract SetTransaction (txn) actions.
+
+**Validate:** Assert a SetTransaction for `appId` exists with the expected `txnVersion`.
+
+```rust
+pub fn validate_app_txn(
+    result: DeltaResult<Snapshot>, expected: &TxnExpected,
+) -> Result<(), String> {
+    let snapshot = result?;
+    let txn_map = snapshot.transactions();
+    let actual_version = txn_map.get(&expected.app_id)
+        .ok_or_else(|| format!("No SetTransaction for appId '{}'", expected.app_id))?;
+
+    if *actual_version != expected.txn_version {
+        return Err(format!(
+            "SetTransaction version mismatch for '{}': expected {}, got {}",
+            expected.app_id, expected.txn_version, actual_version
+        ));
+    }
+    Ok(())
+}
+```
+
 ### Error Specs
 
 Any spec type can have `"expectedError"` instead of `"expected"`:

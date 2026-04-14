@@ -123,6 +123,7 @@ class TypesSuite extends WorkloadTestSuite("types") {
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
     read(t)
+    cdf(t, startVersion = 0)
     snapshot(t)
   }
 

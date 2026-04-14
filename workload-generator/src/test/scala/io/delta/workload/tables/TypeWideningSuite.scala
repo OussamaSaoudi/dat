@@ -21,7 +21,7 @@ import io.delta.workload.WorkloadTestSuite
 /**
  * Type widening workloads: numeric chains, float->double, decimal precision,
  * date->timestampNTZ, nested fields, arrays, maps, partitions, DVs,
- * column mapping, data skipping, projections, and null handling.
+ * column mapping, CDF, data skipping, projections, and null handling.
  */
 class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
 
@@ -267,7 +267,7 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     for (v <- 0L to 4L) snapshot(t, version = v)
   }
 
-  test("tw_change_tracking_across_widening") {
+  test("tw_cdf_across_widening") {
     sql("""CREATE TABLE tbl (id INT, amount SHORT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableTypeWidening' = 'true',
         'delta.enableDeletionVectors' = 'true')""")
@@ -277,6 +277,7 @@ class TypeWideningSuite extends WorkloadTestSuite("type_widening") {
     val t = registerTable("tbl")
     read(t, name = "read_all")
     read(t, version = 1, name = "read_original")
+    cdf(t, startVersion = 0, name = "cdf_all_versions")
     snapshot(t)
   }
 

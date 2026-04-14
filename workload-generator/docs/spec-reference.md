@@ -22,6 +22,9 @@ Exactly one of `expected` or `expectedError` is present. The other is omitted (n
 - [Common Types](#common-types)
 - [Read Spec](#read-spec)
 - [Snapshot Spec](#snapshot-spec)
+- [CDF Spec](#cdf-spec)
+- [Domain Metadata Spec](#domain-metadata-spec)
+- [AppTxn Spec](#apptxn-spec)
 - [table_info.json](#table_infojson)
 - [Expected Data Layout](#expected-data-layout)
 
@@ -347,6 +350,239 @@ These are the raw Delta protocol and metadata JSON structures — not simplified
 
 ---
 
+## CDF Spec
+
+**Type:** `"cdf"`
+
+Tests reading Change Data Feed (CDF) from a Delta table with version ranges and optional filtering.
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"cdf"` |
+| `startVersion` | `long` | no* | Start of version range |
+| `endVersion` | `long` | no | End of version range (latest if omitted) |
+| `startTimestamp` | `string` | no* | Alternative to startVersion (format: `yyyy-MM-dd HH:mm:ss.SSS`) |
+| `endTimestamp` | `string` | no | Alternative to endVersion |
+| `predicate` | `string` | no | SQL WHERE clause to filter changes |
+| `columns` | `string[]` | no | Columns to select (projection pushdown) |
+| `expected` | `CdfExpected` | no | Present on success |
+| `expectedError` | `SpecError` | no | Present on expected failure |
+
+*Either `startVersion` or `startTimestamp` is required. Cannot specify both version and timestamp bounds.
+
+### CdfExpected
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `rowCount` | `long` | Total change rows returned |
+
+### Expected Data
+
+When `expected` is present, the directory `expected/<spec_name>/` contains:
+
+- **`expected_data/`** — Parquet files with the exact change rows. Includes metadata columns: `_change_type` (insert/update_preimage/update_postimage/delete), `_commit_version`, `_commit_timestamp`.
+
+### Examples
+
+**Basic CDF read:**
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "endVersion": 3,
+  "expected": {
+    "rowCount": 10
+  }
+}
+```
+
+**CDF with single version:**
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 2,
+  "endVersion": 2,
+  "expected": {
+    "rowCount": 3
+  }
+}
+```
+
+**CDF with timestamp bounds:**
+
+```json
+{
+  "type": "cdf",
+  "startTimestamp": "2025-01-15 10:00:00.000",
+  "endTimestamp": "2025-01-15 12:00:00.000",
+  "expected": {
+    "rowCount": 50
+  }
+}
+```
+
+**CDF with predicate:**
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "predicate": "id > 100",
+  "expected": {
+    "rowCount": 25
+  }
+}
+```
+
+**Error: CDF not enabled:**
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "expectedError": {
+    "errorCode": "DELTA_CHANGE_DATA_FEED_DISABLED",
+    "errorMessage": "Change Data Feed is not enabled for this table"
+  }
+}
+```
+
+---
+
+## Domain Metadata Spec
+
+**Type:** `"domain_metadata"`
+
+Tests reading domain metadata actions from the Delta transaction log.
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"domain_metadata"` |
+| `version` | `long` | no | Check at this version (latest if omitted) |
+| `expected` | `DomainMetadataExpected` | no | Present on success |
+| `expectedError` | `SpecError` | no | Present on expected failure |
+
+### DomainMetadataExpected
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `domain` | `string` | Domain name to check |
+| `configuration` | `string` | Expected configuration string (often JSON) |
+| `removed` | `boolean` | If true, domain should be absent; if false, domain should exist |
+
+### Examples
+
+**Domain present:**
+
+```json
+{
+  "type": "domain_metadata",
+  "version": 2,
+  "expected": {
+    "domain": "testDomain1",
+    "configuration": "",
+    "removed": false
+  }
+}
+```
+
+**Domain with JSON configuration:**
+
+```json
+{
+  "type": "domain_metadata",
+  "expected": {
+    "domain": "myFeature",
+    "configuration": "{\"key\":\"value\",\"enabled\":true}",
+    "removed": false
+  }
+}
+```
+
+**Domain removed:**
+
+```json
+{
+  "type": "domain_metadata",
+  "expected": {
+    "domain": "oldDomain",
+    "configuration": "",
+    "removed": true
+  }
+}
+```
+
+---
+
+## AppTxn Spec
+
+**Type:** `"appTxn"`
+
+Tests reading SetTransaction actions used for application-level idempotency (e.g., streaming writers).
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"appTxn"` |
+| `version` | `long` | no | Check at this version (latest if omitted) |
+| `expected` | `TxnExpected` | no | Present on success |
+| `expectedError` | `SpecError` | no | Present on expected failure |
+
+### TxnExpected
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `appId` | `string` | Application identifier |
+| `txnVersion` | `long` | Expected transaction version for this appId |
+
+### Examples
+
+**Basic SetTransaction:**
+
+```json
+{
+  "type": "appTxn",
+  "version": 1,
+  "expected": {
+    "appId": "myapp",
+    "txnVersion": 42
+  }
+}
+```
+
+**SetTransaction at latest version:**
+
+```json
+{
+  "type": "appTxn",
+  "expected": {
+    "appId": "streaming-writer-1",
+    "txnVersion": 1000
+  }
+}
+```
+
+**SetTransaction with large version:**
+
+```json
+{
+  "type": "appTxn",
+  "expected": {
+    "appId": "app-future",
+    "txnVersion": 999999
+  }
+}
+```
+
+---
+
 ## table_info.json
 
 Written to the workload output root. Provides metadata about the generated table for discovery and filtering.
@@ -478,3 +714,7 @@ Spec files and expected directories share names derived from the test and spec p
 | `read(t, columns=Seq("id"))` | `<test>_read_cols_id.json` |
 | `snapshot(t)` | `<test>_snapshot.json` |
 | `snapshot(t, version=2)` | `<test>_snapshot_v2.json` |
+| `cdf(t, startVersion=0)` | `<test>_cdf_v0.json` |
+| `cdf(t, startVersion=1, endVersion=3)` | `<test>_cdf_v1_to_v3.json` |
+| `domainMetadata(t, domain="myDomain", ...)` | `<test>_dm_myDomain.json` |
+| `appTxn(t, appId="myapp", ...)` | `<test>_txn_myapp.json` |

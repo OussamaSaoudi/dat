@@ -92,6 +92,8 @@ Inside a test body, these methods are available directly (via `WorkloadOps` trai
 | SQL | `sql(statement)` | — |
 | Table handles | `registerTable(name)`, `registerTableFromPath(path)` | → `TableHandle` |
 | Read specs | `read(t, ...)`, `snapshot(t, ...)` | `TableHandle` → `SpecRef` |
+| CDF specs | `cdf(t, startVersion, ...)` | `TableHandle` → `SpecRef` |
+| Metadata specs | `domainMetadata(t, ...)`, `appTxn(t, ...)` | `TableHandle` → `SpecRef` |
 | Checkpointing | `forceCheckpoint(tableName)` — triggers a checkpoint via DeltaLog | — |
 | Mutations | `mutateTable(t) { dir => ... }`, `modifyCommitActions(t, version) { ... }` | `TableHandle` |
 
@@ -284,6 +286,103 @@ Produces `specs/<test>_snapshot[_v<N>].json`:
 ```
 
 If neither `version` nor `timestamp` is given, captures the latest snapshot. If no `snapshot()` call is made at all, a default latest-version snapshot is generated automatically.
+
+### `cdf(t, ...)`
+
+```scala
+cdf(t,
+  startVersion: Long,     // required: start of version range
+  endVersion: Long,       // optional: end of version range (latest if omitted)
+  startTimestamp: String, // alternative to startVersion
+  endTimestamp: String,   // alternative to endVersion
+  predicate: String,      // SQL WHERE clause to filter changes
+  columns: Seq[String],   // column projection
+  name: String            // override auto-generated spec name
+)
+```
+
+Produces `specs/<test>_<name>.json`:
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "endVersion": 3,
+  "expected": { "rowCount": 42 }
+}
+```
+
+Or on error (CDF not enabled, invalid version range):
+
+```json
+{
+  "type": "cdf",
+  "startVersion": 0,
+  "expectedError": { "errorCode": "DELTA_CHANGE_DATA_FEED_DISABLED", "errorMessage": "..." }
+}
+```
+
+Auto-naming: `cdf_v0` -> `cdf_v0_to_v3` -> `cdf_ts_2025-01-15`.
+
+Expected data: `expected/<test>_<name>/expected_data/*.parquet` (multiset comparison). CDF rows include `_change_type` column with values `insert`, `update_preimage`, `update_postimage`, or `delete`.
+
+### `domainMetadata(t, ...)`
+
+```scala
+domainMetadata(t,
+  domain: String,         // required: domain name
+  configuration: String,  // required: expected configuration string
+  removed: Boolean,       // default false: true if domain should be absent
+  version: Long,          // optional: check at specific version
+  name: String            // override auto-generated spec name
+)
+```
+
+Produces `specs/<test>_<name>.json`:
+
+```json
+{
+  "type": "domain_metadata",
+  "version": 2,
+  "expected": {
+    "domain": "testDomain1",
+    "configuration": "{\"key\":\"value\"}",
+    "removed": false
+  }
+}
+```
+
+Auto-naming: `dm_<domain>`.
+
+Domain metadata actions are typically injected via `mutateTable()` since Spark SQL doesn't expose them directly. See the Testing Domain Metadata pattern below.
+
+### `appTxn(t, ...)`
+
+```scala
+appTxn(t,
+  appId: String,          // required: application identifier
+  txnVersion: Long,       // required: expected transaction version
+  version: Long,          // optional: check at specific snapshot version
+  name: String            // override auto-generated spec name
+)
+```
+
+Produces `specs/<test>_<name>.json`:
+
+```json
+{
+  "type": "appTxn",
+  "version": 1,
+  "expected": {
+    "appId": "myapp",
+    "txnVersion": 42
+  }
+}
+```
+
+Auto-naming: `txn_<appId>`.
+
+SetTransaction actions are typically injected via `mutateTable()` since they are used for streaming idempotency. See the Testing SetTransaction pattern below.
 
 ---
 
@@ -534,6 +633,79 @@ test("cm_rename") {
   read(t)
   read(t, version = 1)
   for (v <- 0L to 3) snapshot(t, version = v)
+}
+```
+
+### Testing Change Data Feed (CDF)
+
+```scala
+test("cdc_basic") {
+  sql("""CREATE TABLE tbl (id LONG, name STRING) USING delta
+    TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
+  sql("INSERT INTO tbl VALUES (1,'alice'),(2,'bob')")
+  sql("UPDATE tbl SET name = 'ALICE' WHERE id = 1")
+  sql("DELETE FROM tbl WHERE id = 2")
+
+  val t = registerTable("tbl")
+  read(t)
+  cdf(t, startVersion = 0, endVersion = 3)  // All changes
+  cdf(t, startVersion = 1, endVersion = 1)  // Just the insert
+  cdf(t, startVersion = 2, endVersion = 2)  // Just the update
+  cdf(t, startVersion = 3, endVersion = 3)  // Just the delete
+  snapshot(t)
+}
+```
+
+CDF spec captures rows with `_change_type` column (`insert`, `update_preimage`, `update_postimage`, `delete`), `_commit_version`, and `_commit_timestamp`.
+
+### Testing Domain Metadata
+
+Domain metadata actions aren't exposed via SQL, so inject them using `mutateTable()`:
+
+```scala
+test("dm_basic") {
+  sql("""CREATE TABLE tbl (id INT) USING delta
+    TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
+  sql("INSERT INTO tbl VALUES (1)")
+  sql("DELETE FROM tbl")  // Creates version 2
+
+  val t = registerTable("tbl")
+
+  // Inject domain metadata into version 2
+  mutateTable(t) { tableDir =>
+    val commitFile = tableDir.resolve("_delta_log/00000000000000000002.json")
+    val content = new String(java.nio.file.Files.readAllBytes(commitFile), "UTF-8")
+    val dmAction = """{"domainMetadata":{"domain":"myDomain","configuration":"{\"key\":\"value\"}","removed":false}}"""
+    java.nio.file.Files.write(commitFile,
+      (content.trim + "\n" + dmAction + "\n").getBytes("UTF-8"))
+  }
+
+  domainMetadata(t, domain = "myDomain", configuration = """{"key":"value"}""",
+    removed = false, name = "dm")
+}
+```
+
+### Testing SetTransaction (AppTxn)
+
+SetTransaction actions are used by streaming writers for idempotency. Inject them via mutation:
+
+```scala
+test("txn_basic") {
+  sql("CREATE TABLE tbl USING delta AS SELECT 1 AS value")
+  sql("INSERT INTO tbl VALUES (2)")
+
+  val t = registerTable("tbl")
+
+  // Inject SetTransaction into version 1
+  mutateTable(t) { tableDir =>
+    val v1 = tableDir.resolve("_delta_log/00000000000000000001.json")
+    val content = new String(java.nio.file.Files.readAllBytes(v1), "UTF-8")
+    val txnAction = """{"txn":{"appId":"myapp","version":42,"lastUpdated":1709251200000}}"""
+    java.nio.file.Files.write(v1,
+      (content.trim + "\n" + txnAction + "\n").getBytes("UTF-8"))
+  }
+
+  appTxn(t, appId = "myapp", txnVersion = 42, version = 1, name = "txn")
 }
 ```
 
