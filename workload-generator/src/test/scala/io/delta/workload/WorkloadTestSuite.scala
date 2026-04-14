@@ -18,6 +18,7 @@ package io.delta.workload
 
 import java.nio.file.{Files, Path, Paths}
 
+import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.funsuite.AnyFunSuite
@@ -46,7 +47,7 @@ import org.scalatest.funsuite.AnyFunSuite
  *   WORKLOAD_OUTPUT_DIR - Output directory (default: /tmp/workloads)
  *   WORKLOAD_FORCE - Regenerate even if output exists (default: false)
  */
-abstract class WorkloadTestSuite(val suiteName: String)
+abstract class WorkloadTestSuite(override val suiteName: String)
     extends AnyFunSuite
     with BeforeAndAfterAll
     with BeforeAndAfterEach
@@ -141,9 +142,6 @@ abstract class WorkloadTestSuite(val suiteName: String)
   }
 
   private def cleanupDir(dir: Path): Unit = {
-    if (Files.exists(dir)) {
-      TableCopier.cleanOutputDir(dir)
-      try { Files.deleteIfExists(dir) } catch { case _: Exception => }
-    }
+    if (Files.exists(dir)) FileUtils.deleteDirectory(dir.toFile)
   }
 }

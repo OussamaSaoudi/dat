@@ -92,8 +92,6 @@ Inside a test body, these methods are available directly (via `WorkloadOps` trai
 | SQL | `sql(statement)` | — |
 | Table handles | `registerTable(name)`, `registerTableFromPath(path)` | → `TableHandle` |
 | Read specs | `read(t, ...)`, `snapshot(t, ...)` | `TableHandle` → `SpecRef` |
-| CDF specs | `cdf(t, ...)` | `TableHandle` → `SpecRef` |
-| Metadata specs | `domainMetadata(t, ...)`, `appTxn(t, ...)` | `TableHandle` → `SpecRef` |
 | Checkpointing | `forceCheckpoint(tableName)` — triggers a checkpoint via DeltaLog | — |
 | Mutations | `mutateTable(t) { dir => ... }`, `modifyCommitActions(t, version) { ... }` | `TableHandle` |
 
@@ -205,7 +203,7 @@ Each test produces one directory per registered table:
 │   ├── <test>_read/
 │   │   ├── expected_data/       # Parquet files — the rows the read should return
 │   │   └── expected_metadata/   # Parquet file — AddFile actions that were scanned
-│   ├── <test>_cdf_v1/
+│   ├── <test>_read_v0/
 │   │   └── expected_data/
 │   └── <test>_checkpoint_v2/
 │       ├── expected_checkpoint/ # Raw checkpoint files copied from _delta_log
@@ -287,78 +285,6 @@ Produces `specs/<test>_snapshot[_v<N>].json`:
 
 If neither `version` nor `timestamp` is given, captures the latest snapshot. If no `snapshot()` call is made at all, a default latest-version snapshot is generated automatically.
 
-### `cdf(t, ...)`
-
-```scala
-cdf(t,
-  startVersion: Long,
-  endVersion: Long,
-  startTimestamp: String,
-  endTimestamp: String,
-  predicate: String,
-  columns: Seq[String],
-  name: String
-)
-```
-
-Produces `specs/<test>_<name>.json`:
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 1,
-  "endVersion": 3,
-  "predicate": "id > 100",
-  "columns": ["id", "_change_type"],
-  "expected": { "rowCount": 75 }
-}
-```
-
-Auto-naming: `cdf_v1` → `cdf_v1_to_v3`. Expected data: `expected/<test>_<name>/expected_data/*.parquet` (includes `_change_type`, `_commit_version`, `_commit_timestamp` columns).
-
-### `domainMetadata(t, ...)`
-
-```scala
-domainMetadata(t,
-  domain: String,         // required — domain identifier
-  configuration: String,  // required — JSON config string
-  removed: Boolean,       // default false — logical delete flag
-  version: Long,          // read at this table version
-  name: String
-)
-```
-
-Produces `specs/<test>_dm_<domain>.json`:
-
-```json
-{
-  "type": "domain_metadata",
-  "version": 3,
-  "expected": { "domain": "myApp.config", "configuration": "{\"version\":2}", "removed": false }
-}
-```
-
-### `appTxn(t, ...)`
-
-```scala
-appTxn(t,
-  appId: String,          // required
-  txnVersion: Long,       // required — expected transaction version
-  version: Long,          // read at this table version
-  name: String
-)
-```
-
-Produces `specs/<test>_txn_<appId>.json`:
-
-```json
-{
-  "type": "appTxn",
-  "version": 5,
-  "expected": { "appId": "batch-job", "txnVersion": 100 }
-}
-```
-
 ---
 
 ## Table Mutations
@@ -430,7 +356,6 @@ test("inject_txn", "Inject txn action") {
       (content.trim + "\n" + txnLine + "\n").getBytes("UTF-8"))
   }
 
-  appTxn(t, appId = "test-app", txnVersion = 42)
 }
 ```
 
@@ -457,7 +382,6 @@ Common tags used across the codebase:
 |-----|---------|
 | `dv` | Deletion vectors |
 | `column_mapping` | Column mapping (name or id mode) |
-| `cdf` | Change data feed |
 | `checkpoint` | Checkpoint scenarios |
 | `merge` | MERGE operations |
 | `partitioned` | Partitioned tables |
@@ -511,11 +435,6 @@ read(t, predicate = "id > 5").assert { spec: ReadSpec =>
   require(spec.expected.get.rowCount > 0, s"Expected rows")
 }
 
-// Assert on CDF row count
-cdf(t, startVersion = 0, endVersion = 2).assert { spec: CdfSpec =>
-  require(spec.expected.get.rowCount == 3)
-}
-
 // Assert on snapshot protocol/metadata
 snapshot(t).assert { spec: SnapshotSpec =>
   require(spec.expected.isDefined)
@@ -526,7 +445,7 @@ read(t)
 snapshot(t)
 ```
 
-Assertions are checked during generation after the spec is written. Failed assertions appear as warnings in the generation output.
+Assertions are checked during generation after the spec is written. Failed assertions cause the test to fail.
 
 ### Testing Data Skipping
 
@@ -577,24 +496,6 @@ test("checkpoint_basic") {
   val t = registerTable("tbl")
   read(t)
   snapshot(t)
-}
-```
-
-### Testing CDF (Change Data Feed)
-
-```scala
-test("cdf_full") {
-  sql("""CREATE TABLE tbl (id INT, val STRING) USING delta
-    TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-  sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")       // v1: inserts
-  sql("UPDATE tbl SET val = 'updated' WHERE id = 1")      // v2: update
-  sql("DELETE FROM tbl WHERE id = 2")                      // v3: delete
-
-  val t = registerTable("tbl")
-  read(t)
-  cdf(t, startVersion = 1)                    // All changes
-  cdf(t, startVersion = 2, endVersion = 2)     // Just the update
-  cdf(t, startVersion = 1, predicate = "id = 1")  // Filtered
 }
 ```
 
@@ -706,7 +607,7 @@ This generates 12 independent workloads (`2 partition modes × 2 DV modes × 3 p
 
 Every spec is self-validated during generation:
 
-1. **Read/CDF specs:** The framework reads the table, writes expected Parquet, re-reads, and compares multisets
+1. **Read specs:** The framework reads the table, writes expected Parquet, re-reads, and compares multisets
 2. **Snapshot specs:** The framework loads the snapshot, writes the spec, re-loads, and deep-compares protocol/metadata JSON
 3. **Error specs:** The framework triggers the error, writes the spec, re-triggers, and verifies the same error occurs
 

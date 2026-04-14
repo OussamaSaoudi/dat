@@ -256,7 +256,7 @@ class IdentityColumnsSuite extends WorkloadTestSuite("identity_columns") {
     for (v <- 0L to N) snapshot(t, version = v)
   }
 
-  test("ic_016_update_with_cdf") {
+  test("ic_016_update") {
     sql("""CREATE TABLE tbl (
       id LONG GENERATED ALWAYS AS IDENTITY (START WITH 0 INCREMENT BY 1),
       value INT

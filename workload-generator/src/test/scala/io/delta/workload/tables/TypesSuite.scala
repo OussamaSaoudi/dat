@@ -118,15 +118,6 @@ class TypesSuite extends WorkloadTestSuite("types") {
     snapshot(t)
   }
 
-  test("error_cdf_not_enabled") {
-    sql("CREATE TABLE tbl (id INT) USING delta")
-    sql("INSERT INTO tbl VALUES (1)")
-    val t = registerTable("tbl")
-    read(t)
-    cdf(t, startVersion = 0)
-    snapshot(t)
-  }
-
   // === Void Type ===
 
   test("void_001_void_top_level") {

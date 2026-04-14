@@ -1614,7 +1614,7 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     snapshot(t)
   }
 
-  test("mrb_with_cdf") {
+  test("mrb_with_change_tracking") {
     sql("""CREATE TABLE tbl (id INT, value STRING) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true',
         'delta.enableDeletionVectors' = 'true')""")
@@ -1626,8 +1626,6 @@ class MergeSuite extends WorkloadTestSuite("merge") {
     val t = registerTable("tbl")
     read(t)
     snapshot(t)
-    cdf(t, startVersion = 0, endVersion = 2, name = "cdf_all")
-    cdf(t, startVersion = 2, endVersion = 2, name = "cdf_merge")
   }
 
   test("mrb_with_dv") {

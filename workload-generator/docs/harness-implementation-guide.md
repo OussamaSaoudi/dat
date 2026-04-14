@@ -207,93 +207,6 @@ Any spec type can have `"expectedError"` instead of `"expected"`:
 
 Run the operation and assert it fails. Matching the exact error code is ideal but optional — just asserting failure is a valid starting point.
 
-### CDF Specs (Change Data Feed)
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 1,
-  "endVersion": 3,
-  "expected": { "rowCount": 150 }
-}
-```
-
-**Execute:** read change data feed between the given versions (or timestamps if `startTimestamp`/`endTimestamp` provided).
-
-**Validate:** compare CDF results against `expected/<spec_name>/expected_data/*.parquet`. The expected data includes `_change_type`, `_commit_version`, and `_commit_timestamp` columns.
-
-```rust
-pub fn execute_cdf_workload(
-    engine: Arc<dyn Engine>, table_root: &Url, cdf_spec: &CdfSpec,
-) -> DeltaResult<CdfResult> {
-    let table = Table::new(table_root.clone());
-    let cdf_scan = table.table_changes(engine.as_ref(),
-        cdf_spec.start_version, cdf_spec.end_version)?;
-
-    let batches: Vec<RecordBatch> = cdf_scan.execute(engine)?
-        .map(|data| data?.try_into_record_batch())
-        .try_collect()?;
-
-    Ok(CdfResult { batches, row_count: batches.iter().map(|b| b.num_rows()).sum() })
-}
-```
-
-### Domain Metadata Specs
-
-```json
-{
-  "type": "domain_metadata",
-  "version": 2,
-  "expected": {
-    "domains": [
-      { "domain": "myApp.txnState", "configuration": "{\"key\":\"value\"}", "removed": false }
-    ]
-  }
-}
-```
-
-**Execute:** build a snapshot at the given version and extract domain metadata actions.
-
-**Validate:** assert the domain metadata entries match expected (domain name, configuration JSON, removed flag).
-
-```rust
-pub fn execute_domain_metadata_workload(
-    engine: Arc<dyn Engine>, table_root: &Url, spec: &DomainMetadataSpec,
-) -> DeltaResult<Vec<DomainMetadata>> {
-    let snapshot = Snapshot::try_new(table_root.clone(), engine.as_ref(),
-        Some(spec.version))?;
-    Ok(snapshot.domain_metadata().collect())
-}
-```
-
-### AppTxn Specs (Application Transactions)
-
-```json
-{
-  "type": "appTxn",
-  "version": 3,
-  "expected": {
-    "transactions": [
-      { "appId": "myApp", "version": 5, "lastUpdated": 1234567890 }
-    ]
-  }
-}
-```
-
-**Execute:** build a snapshot and extract SetTransaction actions for the given app IDs.
-
-**Validate:** assert transaction versions match expected.
-
-```rust
-pub fn execute_app_txn_workload(
-    engine: Arc<dyn Engine>, table_root: &Url, spec: &AppTxnSpec,
-) -> DeltaResult<Vec<SetTransaction>> {
-    let snapshot = Snapshot::try_new(table_root.clone(), engine.as_ref(),
-        Some(spec.version))?;
-    Ok(snapshot.transactions().collect())
-}
-```
-
 ---
 
 ## Step 4: Incremental Adoption
@@ -308,7 +221,6 @@ Don't try to pass every test at once. Use `table_info.json` protocol fields and 
 | 4 | Column mapping | ~650 |
 | 5 | Checkpoints, snapshot specs | ~800 |
 | 6 | Error handling | ~900 |
-| 7 | CDF, metadata | ~1400+ |
 
 ---
 

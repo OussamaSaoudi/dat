@@ -20,7 +20,7 @@ import io.delta.workload.WorkloadTestSuite
 
 /**
  * VARIANT type workloads: basic reads, data skipping, nested JSON, array/map variants,
- * column mapping, schema evolution, time travel, CDF, and edge cases.
+ * column mapping, schema evolution, time travel, and edge cases.
  */
 class VariantSuite extends WorkloadTestSuite("variant") {
 
@@ -348,7 +348,7 @@ class VariantSuite extends WorkloadTestSuite("variant") {
     snapshot(t)
   }
 
-  test("var_cdf_read") {
+  test("var_change_tracking_read") {
     sql("""CREATE TABLE tbl (id INT, data VARIANT) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("""INSERT INTO tbl VALUES
@@ -357,7 +357,6 @@ class VariantSuite extends WorkloadTestSuite("variant") {
     sql("UPDATE tbl SET data = PARSE_JSON('{\"v\":\"updated\"}') WHERE id = 1")
     val t = registerTable("tbl")
     read(t, name = "read_all")
-    cdf(t, startVersion = 0, name = "cdf_all")
     snapshot(t)
   }
 

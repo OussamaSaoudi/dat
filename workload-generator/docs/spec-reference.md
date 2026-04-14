@@ -22,9 +22,6 @@ Exactly one of `expected` or `expectedError` is present. The other is omitted (n
 - [Common Types](#common-types)
 - [Read Spec](#read-spec)
 - [Snapshot Spec](#snapshot-spec)
-- [CDF Spec (Change Data Feed)](#cdf-spec-change-data-feed)
-- [Domain Metadata Spec](#domain-metadata-spec)
-- [AppTxn Spec (Application Transaction)](#apptxn-spec-application-transaction)
 - [table_info.json](#table_infojson)
 - [Expected Data Layout](#expected-data-layout)
 
@@ -66,7 +63,7 @@ Appears in snapshot, checkpoint, CRC, and table_info specs:
   "minReaderVersion": 3,
   "minWriterVersion": 7,
   "readerFeatures": ["deletionVectors"],
-  "writerFeatures": ["deletionVectors", "domainMetadata"]
+  "writerFeatures": ["deletionVectors"]
 }
 ```
 
@@ -296,7 +293,7 @@ These are the raw Delta protocol and metadata JSON structures — not simplified
       "minReaderVersion": 3,
       "minWriterVersion": 7,
       "readerFeatures": ["deletionVectors"],
-      "writerFeatures": ["deletionVectors", "domainMetadata"]
+      "writerFeatures": ["deletionVectors"]
     },
     "metadata": {
       "id": "abc123",
@@ -344,243 +341,6 @@ These are the raw Delta protocol and metadata JSON structures — not simplified
   "expectedError": {
     "errorCode": "DELTA_UNSUPPORTED_FEATURES_FOR_READ",
     "errorMessage": "Table requires reader feature 'unknownFeature' which is not supported"
-  }
-}
-```
-
----
-
-## CDF Spec (Change Data Feed)
-
-**Type:** `"cdf"`
-
-Tests reading the change data feed between version or timestamp bounds. Requires the table to have `delta.enableChangeDataFeed = true`.
-
-### Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | `string` | yes | Always `"cdf"` |
-| `startVersion` | `long` | no* | Starting version (inclusive) |
-| `endVersion` | `long` | no | Ending version (inclusive). Defaults to latest. |
-| `startTimestamp` | `string` | no* | Starting timestamp |
-| `endTimestamp` | `string` | no | Ending timestamp |
-| `predicate` | `string` | no | SQL filter on change rows |
-| `columns` | `string[]` | no | Column projection |
-| `expected` | `CdfExpected` | no | Present on success |
-| `expectedError` | `SpecError` | no | Present on expected failure |
-
-*Exactly one of `startVersion` or `startTimestamp` is required. Cannot mix version and timestamp bounds.
-
-### CdfExpected
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `rowCount` | `long` | Total change rows returned |
-
-### Expected Data
-
-When `expected` is present: `expected/<spec_name>/expected_data/` contains Parquet files with all change rows. These include the CDF system columns:
-
-| Column | Type | Description |
-|--------|------|-------------|
-| `_change_type` | `string` | One of: `insert`, `update_preimage`, `update_postimage`, `delete` |
-| `_commit_version` | `long` | Commit version that produced this change |
-| `_commit_timestamp` | `timestamp` | Commit timestamp |
-
-### Examples
-
-**Version range:**
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 1,
-  "endVersion": 3,
-  "expected": {
-    "rowCount": 150
-  }
-}
-```
-
-**Start version only (reads to latest):**
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 2,
-  "expected": {
-    "rowCount": 75
-  }
-}
-```
-
-**With predicate filter:**
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 1,
-  "predicate": "id > 100",
-  "expected": {
-    "rowCount": 30
-  }
-}
-```
-
-**With column projection:**
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 0,
-  "endVersion": 5,
-  "columns": ["id", "status", "_change_type", "_commit_version"],
-  "expected": {
-    "rowCount": 200
-  }
-}
-```
-
-**Error: CDF not enabled on table:**
-
-```json
-{
-  "type": "cdf",
-  "startVersion": 0,
-  "expectedError": {
-    "errorCode": "DELTA_CHANGE_DATA_CAPTURE_NOT_ENABLED",
-    "errorMessage": "Change Data Feed is not enabled for this table"
-  }
-}
-```
-
----
-
-## Domain Metadata Spec
-
-**Type:** `"domain_metadata"`
-
-Tests reading domain metadata entries from the Delta log. Domain metadata is a protocol feature (writer feature `domainMetadata`) that allows applications to attach arbitrary key-value metadata to a table's log.
-
-### Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | `string` | yes | Always `"domain_metadata"` |
-| `version` | `long` | no | Read domain metadata at this version (latest if omitted) |
-| `expected` | `DomainMetadataExpected` | yes | The expected domain metadata entry |
-
-Domain metadata specs never have `expectedError` — invalid states are tested via read/snapshot error specs instead.
-
-### DomainMetadataExpected
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `domain` | `string` | Domain name (e.g., `"delta.rowTracking"`) |
-| `configuration` | `string` | Domain configuration JSON string |
-| `removed` | `boolean` | Whether this domain was removed at this version |
-
-### Examples
-
-**Basic domain metadata:**
-
-```json
-{
-  "type": "domain_metadata",
-  "expected": {
-    "domain": "myApp.featureFlags",
-    "configuration": "{\"enabled\":true,\"version\":2}",
-    "removed": false
-  }
-}
-```
-
-**Domain metadata at specific version:**
-
-```json
-{
-  "type": "domain_metadata",
-  "version": 3,
-  "expected": {
-    "domain": "delta.rowTracking",
-    "configuration": "{}",
-    "removed": false
-  }
-}
-```
-
-**Removed domain:**
-
-```json
-{
-  "type": "domain_metadata",
-  "expected": {
-    "domain": "myApp.deprecated",
-    "configuration": "{}",
-    "removed": true
-  }
-}
-```
-
----
-
-## AppTxn Spec (Application Transaction)
-
-**Type:** `"appTxn"`
-
-Tests reading application transaction (`SetTransaction`) entries from the Delta log. These are used for idempotent writes — an application writes its transaction ID so it can detect duplicate commits.
-
-### Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | `string` | yes | Always `"appTxn"` |
-| `version` | `long` | no | Read txn state at this version (latest if omitted) |
-| `expected` | `TxnExpected` | yes | The expected txn entry |
-
-### TxnExpected
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `appId` | `string` | Application identifier |
-| `txnVersion` | `long` | Transaction version for this application |
-
-### Examples
-
-**Basic appTxn:**
-
-```json
-{
-  "type": "appTxn",
-  "expected": {
-    "appId": "my-streaming-app",
-    "txnVersion": 42
-  }
-}
-```
-
-**AppTxn at specific version:**
-
-```json
-{
-  "type": "appTxn",
-  "version": 5,
-  "expected": {
-    "appId": "batch-etl-job",
-    "txnVersion": 100
-  }
-}
-```
-
-**Multiple apps (separate spec per app):**
-
-```json
-{
-  "type": "appTxn",
-  "expected": {
-    "appId": "app-A",
-    "txnVersion": 10
   }
 }
 ```
@@ -689,7 +449,7 @@ Each workload output directory has this structure:
 │   ├── <test>_read.json
 │   ├── <test>_read_v0.json
 │   ├── <test>_snapshot.json
-│   ├── <test>_cdf_v1.json
+│   ├── <test>_read_v0.json
 │   └── ...
 ├── expected/                       # Expected data per spec
 │   ├── <test>_read/
@@ -698,8 +458,9 @@ Each workload output directory has this structure:
 │   ├── <test>_read_v0/
 │   │   ├── expected_data/
 │   │   └── expected_metadata/
-│   └── <test>_cdf_v1/
-│       └── expected_data/          # Parquet: change rows
+│   └── <test>_read_v0/
+│       ├── expected_data/
+│       └── expected_metadata/
 ├── table_info.json                 # Table metadata
 └── repro/
     └── generate.scala              # Script to reproduce this workload
@@ -717,7 +478,3 @@ Spec files and expected directories share names derived from the test and spec p
 | `read(t, columns=Seq("id"))` | `<test>_read_cols_id.json` |
 | `snapshot(t)` | `<test>_snapshot.json` |
 | `snapshot(t, version=2)` | `<test>_snapshot_v2.json` |
-| `cdf(t, startVersion=1)` | `<test>_cdf_v1.json` |
-| `cdf(t, startVersion=1, endVersion=3)` | `<test>_cdf_v1_to_v3.json` |
-| `domainMetadata(t, "myDom", ...)` | `<test>_dm_myDom.json` |
-| `appTxn(t, "app-1", ...)` | `<test>_txn_app-1.json` |

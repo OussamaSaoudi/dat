@@ -20,6 +20,7 @@ import java.nio.file.{Files, Path}
 
 import scala.jdk.CollectionConverters._
 
+import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.SparkSession
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
@@ -111,10 +112,7 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
   }
 
   private def cleanupDir(dir: Path): Unit = {
-    if (Files.exists(dir)) {
-      TableCopier.cleanOutputDir(dir)
-      try { Files.deleteIfExists(dir) } catch { case _: Exception => }
-    }
+    if (Files.exists(dir)) FileUtils.deleteDirectory(dir.toFile)
   }
 
   private def assertPassed(results: Seq[TestResult]): Unit = {
@@ -395,151 +393,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
   }
 
   // =========================================================================
-  // CDF specs
-  // =========================================================================
-
-  test("cdf: captures change data feed rows") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT, val STRING) USING delta
-        TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1, 'a'), (2, 'b')")
-      sql("UPDATE tbl SET val = 'updated' WHERE id = 1")
-      val t = registerTable("tbl")
-      cdf(t, startVersion = 1)
-    }
-    assertPassed(results)
-    val spec = readSpec("t_c1", "cdf_v1")
-    assert(spec.get("type").asText() == "cdf")
-    val rowCount = spec.get("expected").get("rowCount").asInt()
-    assert(rowCount >= 2, s"CDF should capture at least 2 change rows (insert + update), got $rowCount")
-  }
-
-  test("cdf: version range") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("INSERT INTO tbl VALUES (2)")
-      sql("INSERT INTO tbl VALUES (3)")
-      val t = registerTable("tbl")
-      cdf(t, startVersion = 1, endVersion = 2)
-    }
-    assertPassed(results)
-    val spec = readSpec("t_c2", "cdf_v1_to_v2")
-    assert(spec.get("type").asText() == "cdf")
-  }
-
-  // =========================================================================
-  // Domain metadata specs
-  // =========================================================================
-
-  test("domain metadata: injected and validated") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("DELETE FROM tbl")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        val f = tableDir.resolve("_delta_log/00000000000000000002.json")
-        val c = new String(Files.readAllBytes(f), "UTF-8")
-        Files.write(f, (c.trim + "\n" +
-          """{"domainMetadata":{"domain":"d1","configuration":"cfg1","removed":false}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      domainMetadata(t, domain = "d1", configuration = "cfg1", name = "dm")
-    }
-    assertPassed(results)
-    val spec = readSpec("t_dm1", "dm")
-    assert(spec.get("type").asText() == "domain_metadata")
-    assert(spec.get("expected").get("domain").asText() == "d1")
-    assert(spec.get("expected").get("configuration").asText() == "cfg1")
-    assert(spec.get("expected").get("removed").asBoolean() == false)
-  }
-
-  test("domain metadata: removed domain not found") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("DELETE FROM tbl")
-      sql("INSERT INTO tbl VALUES (2)")
-      sql("DELETE FROM tbl")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        val f2 = tableDir.resolve("_delta_log/00000000000000000002.json")
-        val c2 = new String(Files.readAllBytes(f2), "UTF-8")
-        Files.write(f2, (c2.trim + "\n" +
-          """{"domainMetadata":{"domain":"d1","configuration":"","removed":false}}""" +
-          "\n").getBytes("UTF-8"))
-        val f4 = tableDir.resolve("_delta_log/00000000000000000004.json")
-        val c4 = new String(Files.readAllBytes(f4), "UTF-8")
-        Files.write(f4, (c4.trim + "\n" +
-          """{"domainMetadata":{"domain":"d1","configuration":"","removed":true}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      domainMetadata(t, domain = "d1", configuration = "", removed = true, name = "dm")
-    }
-    assertPassed(results)
-  }
-
-  // =========================================================================
-  // Txn specs
-  // =========================================================================
-
-  test("txn: injected and validated") {
-    val results = run() { _ =>
-      sql("CREATE TABLE tbl (id INT) USING delta")
-      sql("INSERT INTO tbl VALUES (1)")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        val f = tableDir.resolve("_delta_log/00000000000000000001.json")
-        val c = new String(Files.readAllBytes(f), "UTF-8")
-        Files.write(f, (c.trim + "\n" +
-          """{"txn":{"appId":"myapp","version":42,"lastUpdated":1000}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      appTxn(t, appId = "myapp", txnVersion = 42, name = "tx")
-    }
-    assertPassed(results)
-    val spec = readSpec("t_tx1", "tx")
-    assert(spec.get("type").asText() == "appTxn")
-    assert(spec.get("expected").get("appId").asText() == "myapp")
-    assert(spec.get("expected").get("txnVersion").asLong() == 42)
-  }
-
-  test("txn: version-scoped scan returns correct version") {
-    val results = run() { _ =>
-      sql("CREATE TABLE tbl (id INT) USING delta")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("INSERT INTO tbl VALUES (2)")
-      sql("INSERT INTO tbl VALUES (3)")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        // Inject txn at version 1 with version=1
-        val f1 = tableDir.resolve("_delta_log/00000000000000000001.json")
-        val c1 = new String(Files.readAllBytes(f1), "UTF-8")
-        Files.write(f1, (c1.trim + "\n" +
-          """{"txn":{"appId":"app-1","version":1,"lastUpdated":1}}""" +
-          "\n").getBytes("UTF-8"))
-        // Inject txn at version 3 with version=10
-        val f3 = tableDir.resolve("_delta_log/00000000000000000003.json")
-        val c3 = new String(Files.readAllBytes(f3), "UTF-8")
-        Files.write(f3, (c3.trim + "\n" +
-          """{"txn":{"appId":"app-1","version":10,"lastUpdated":2}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      appTxn(t, appId = "app-1", txnVersion = 1, version = 1, name = "txn_v1")
-      appTxn(t, appId = "app-1", txnVersion = 10, name = "txn_latest")
-    }
-    assertPassed(results)
-    val specV1 = readSpec("t_tx2", "txn_v1")
-    assert(specV1.get("expected").get("txnVersion").asLong() == 1)
-    val specLatest = readSpec("t_tx2", "txn_latest")
-    assert(specLatest.get("expected").get("txnVersion").asLong() == 10)
-  }
-
-  // =========================================================================
   // Snapshot: DummySnapshot (corrupted/empty log) handling
   // =========================================================================
 
@@ -616,44 +469,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
       s"Should report protocol mismatch, got: ${ex.getMessage}")
   }
 
-  test("validation: domain metadata config mismatch caught") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("DELETE FROM tbl")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        val f = tableDir.resolve("_delta_log/00000000000000000002.json")
-        val c = new String(Files.readAllBytes(f), "UTF-8")
-        Files.write(f, (c.trim + "\n" +
-          """{"domainMetadata":{"domain":"d","configuration":"real","removed":false}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      domainMetadata(t, domain = "d", configuration = "WRONG", name = "dm")
-    }
-    assert(!results.head.passed)
-    assert(results.head.errors.exists(_.contains("configuration")))
-  }
-
-  test("validation: txn version mismatch caught") {
-    val results = run() { _ =>
-      sql("CREATE TABLE tbl (id INT) USING delta")
-      sql("INSERT INTO tbl VALUES (1)")
-      val t = registerTable("tbl")
-      mutateTable(t) { tableDir =>
-        val f = tableDir.resolve("_delta_log/00000000000000000001.json")
-        val c = new String(Files.readAllBytes(f), "UTF-8")
-        Files.write(f, (c.trim + "\n" +
-          """{"txn":{"appId":"a","version":10,"lastUpdated":1}}""" +
-          "\n").getBytes("UTF-8"))
-      }
-      appTxn(t, appId = "a", txnVersion = 999, name = "tx")
-    }
-    assert(!results.head.passed)
-    assert(results.head.errors.exists(_.contains("version")))
-  }
-
   test("validation: assertMultisetsEqual reports count mismatches") {
     val ex = intercept[RuntimeException] {
       JsonUtil.assertMultisetsEqual(
@@ -722,31 +537,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
     }
     assert(ex.getMessage.contains("mismatch"),
       s"Should report row mismatch, got: ${ex.getMessage}")
-  }
-
-  test("validation: tampered CDF expected_data caught by validateFromSpec") {
-    run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1),(2)")
-      val t = registerTable("tbl")
-      cdf(t, startVersion = 1)
-    }
-    // Tamper: replace CDF expected_data with wrong rows
-    val cdfDataDir = expected("t_v8").resolve("t_v8_cdf_v1/expected_data")
-    if (Files.exists(cdfDataDir)) {
-      org.apache.commons.io.FileUtils.deleteDirectory(cdfDataDir.toFile)
-      spark.sql("SELECT 999 AS id").write.parquet(cdfDataDir.toString)
-
-      val specPath = specs("t_v8").resolve("t_v8_cdf_v1.json")
-      val ex = intercept[RuntimeException] {
-        CdfCapture.validateFromSpec(
-          spark, delta("t_v8"), expected("t_v8").resolve("t_v8_cdf_v1"),
-          specPath)
-      }
-      assert(ex.getMessage.contains("mismatch"),
-        s"Should report CDF mismatch, got: ${ex.getMessage}")
-    }
   }
 
   // =========================================================================
@@ -935,22 +725,6 @@ class WorkloadGeneratorSuite extends AnyFunSuite with BeforeAndAfterAll with Wor
     assert(Files.exists(specs("t_an1").resolve("t_an1_read_id_lt_3.json")))
     assert(Files.exists(specs("t_an1").resolve("t_an1_read_id_eq_1.json")))
     assert(Files.exists(specs("t_an1").resolve("t_an1_read_id_is_null.json")))
-  }
-
-  test("auto-naming: cdf version range") {
-    val results = run() { _ =>
-      sql("""CREATE TABLE tbl (id INT) USING delta
-        TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true')""")
-      sql("INSERT INTO tbl VALUES (1)")
-      sql("INSERT INTO tbl VALUES (2)")
-      sql("INSERT INTO tbl VALUES (3)")
-      val t = registerTable("tbl")
-      cdf(t, startVersion = 1, endVersion = 2)
-      cdf(t, startVersion = 2)
-    }
-    assertPassed(results)
-    assert(Files.exists(specs("t_an2").resolve("t_an2_cdf_v1_to_v2.json")))
-    assert(Files.exists(specs("t_an2").resolve("t_an2_cdf_v2.json")))
   }
 
   // =========================================================================

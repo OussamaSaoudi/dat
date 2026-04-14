@@ -72,7 +72,7 @@ class ProtocolVersionsSuite extends WorkloadTestSuite("protocol_versions") {
     snapshot(t)
   }
 
-  test("pv_001f_protocol_cdf") {
+  test("pv_001f_protocol_change_tracking") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -351,7 +351,7 @@ class ProtocolVersionsSuite extends WorkloadTestSuite("protocol_versions") {
 
   // pv_046-047: ALTER TABLE to add features
 
-  test("pv_046_alter_add_cdf") {
+  test("pv_046_alter_add_change_tracking") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")
@@ -517,7 +517,7 @@ class ProtocolVersionsSuite extends WorkloadTestSuite("protocol_versions") {
     snapshot(t, version = 1)
   }
 
-  test("pv_105_remove_cdf") {
+  test("pv_105_remove_change_tracking") {
     sql("""CREATE TABLE tbl (id LONG) USING delta
       TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true', 'delta.enableDeletionVectors' = 'true')""")
     sql("INSERT INTO tbl SELECT id FROM range(5)")

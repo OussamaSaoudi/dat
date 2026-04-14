@@ -32,8 +32,7 @@ object TableInfoWriter {
       name: String,
       description: String,
       tags: Seq[String] = Seq.empty): Unit = {
-    try {
-      val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
+    val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       val snapshot = deltaLog.update()
 
       val schemaObj = JsonUtil.mapper.readValue(snapshot.metadata.schemaString, classOf[Any])
@@ -111,17 +110,5 @@ object TableInfoWriter {
         tags = if (tags.nonEmpty) Some(tags) else None)
 
       JsonUtil.writeSpec(outputDir.resolve("table_info.json"), tableInfo)
-    } catch {
-      case e: Exception =>
-        System.err.println(s"WARN: Could not write full table_info.json: ${e.getMessage}")
-        // Write minimal table_info.json so skip-on-rerun sentinel exists
-        try {
-          val minimal = MinimalTableInfo(
-            name = name,
-            description = description,
-            error = s"Metadata scan failed: ${e.getMessage}")
-          JsonUtil.writeSpec(outputDir.resolve("table_info.json"), minimal)
-        } catch { case _: Exception => }
-    }
   }
 }
