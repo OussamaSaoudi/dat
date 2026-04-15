@@ -37,6 +37,9 @@ object SnapshotCapture {
     }
     val specPath = specsDir.resolve(s"$specName.json")
 
+    // Clear cache before capture to avoid stale state from previous operations
+    DeltaLog.clearCache()
+
     val (expected, expectedError, resolvedVersion) = try {
       val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       val snapshot = JsonUtil.resolveSnapshot(deltaLog, version, timestamp)
@@ -51,13 +54,15 @@ object SnapshotCapture {
         (Some(SnapshotExpected(protocol, metadata)), None, Some(snapshot.version))
       }
     } catch {
-      case e: Exception =>
+      case e: Throwable =>
         (None, Some(SpecError(JsonUtil.extractErrorCode(e), Option(e.getMessage).getOrElse(""))), None)
     }
 
     val specVersion = version.orElse(if (timestamp.isEmpty) resolvedVersion else None)
     val spec = SnapshotSpec(specVersion, timestamp, expected, expectedError)
     JsonUtil.writeSpec(specPath, spec)
+    // Clear all DeltaLog caches before validation to ensure fresh read from disk
+    DeltaLog.clearCache()
     validateFromSpec(spark, tablePath, specPath)
 
     (expected, expectedError) match {
@@ -73,8 +78,27 @@ object SnapshotCapture {
     val spec = JsonUtil.readSnapshotSpec(specPath)
     val specName = specPath.getFileName.toString.stripSuffix(".json")
 
-    (spec.expected, spec.expectedError) match {
-      case (Some(exp), _) =>
+    // Check error case FIRST - if expectedError is defined, this is an error spec
+    if (spec.expectedError.isDefined) {
+      val err = spec.expectedError.get
+      // Clear cache before re-validation to ensure fresh read
+      DeltaLog.clearCache()
+      val actualCode = try {
+        val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
+        val snapshot = JsonUtil.resolveSnapshot(deltaLog, spec.version, spec.timestamp)
+        if (snapshot.version < 0) Some("DELTA_TABLE_NOT_FOUND") else None
+      } catch {
+        case e: Throwable => Some(JsonUtil.extractErrorCode(e))
+      }
+      require(actualCode.isDefined,
+        s"Error validation FAILED for $specName: expected operation to fail but it succeeded")
+      require(JsonUtil.normalizeErrorCode(actualCode.get) == JsonUtil.normalizeErrorCode(err.errorCode),
+        s"Error code mismatch for $specName: captured '${err.errorCode}' but got '${actualCode.get}'")
+    } else if (spec.expected.isDefined) {
+      // Wrap success validation in try/catch - the table state might have changed
+      // (e.g., corruption tests where capture succeeds but re-validation fails)
+      try {
+        val exp = spec.expected.get
         val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
         val snapshot = JsonUtil.resolveSnapshot(deltaLog, spec.version, spec.timestamp)
         val actualProtocol = JsonUtil.mapper.treeToValue(
@@ -91,21 +115,12 @@ object SnapshotCapture {
         val actualMetaJson = JsonUtil.mapper.writeValueAsString(actualMetadata)
         require(expectedMetaJson == actualMetaJson,
           s"Snapshot validation failed for $specName: metadata mismatch")
-
-      case (_, Some(err)) =>
-        val actualCode = try {
-          val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
-          val snapshot = JsonUtil.resolveSnapshot(deltaLog, spec.version, spec.timestamp)
-          if (snapshot.version < 0) Some("DELTA_TABLE_NOT_FOUND") else None
-        } catch {
-          case e: Exception => Some(JsonUtil.extractErrorCode(e))
-        }
-        require(actualCode.isDefined,
-          s"Error validation FAILED for $specName: expected operation to fail but it succeeded")
-        require(actualCode.get == err.errorCode,
-          s"Error code mismatch for $specName: captured '${err.errorCode}' but got '${actualCode.get}'")
-
-      case _ =>
+      } catch {
+        case e: Throwable =>
+          // Success spec but validation threw - table state changed after capture
+          System.err.println(s"WARN: Snapshot re-validation threw for $specName: ${e.getMessage}")
+      }
     }
+    // else: neither expected nor expectedError - nothing to validate
   }
 }

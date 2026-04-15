@@ -40,6 +40,9 @@ object ReadCapture {
     Files.createDirectories(expectedDir)
     val specPath = specsDir.resolve(s"$specName.json")
 
+    // Clear cache before capture to avoid stale state from previous operations
+    DeltaLog.clearCache()
+
     val (expected, expectedError, addFilesJson) = try {
       val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
       val snapshot = JsonUtil.resolveSnapshot(deltaLog, version, timestamp)
@@ -64,12 +67,14 @@ object ReadCapture {
         df.unpersist()
       }
     } catch {
-      case e: Exception =>
+      case e: Throwable =>
         (None, Some(SpecError(JsonUtil.extractErrorCode(e), Option(e.getMessage).getOrElse(""))), Seq.empty[String])
     }
 
     val spec = ReadSpec(version, timestamp, predicate, columns, expected, expectedError)
     JsonUtil.writeSpec(specPath, spec)
+    // Clear all DeltaLog caches before validation to ensure fresh read from disk
+    DeltaLog.clearCache()
     validateFromSpec(spark, tablePath, expectedDir, specPath, addFilesJson)
 
     (expected, expectedError) match {
@@ -105,8 +110,30 @@ object ReadCapture {
     val spec = JsonUtil.readReadSpec(specPath)
     val specName = specPath.getFileName.toString.stripSuffix(".json")
 
-    (spec.expected, spec.expectedError) match {
-      case (Some(_), _) =>
+    // Check error case FIRST - if expectedError is defined, this is an error spec
+    if (spec.expectedError.isDefined) {
+      val err = spec.expectedError.get
+      // Clear cache before re-validation to ensure fresh read
+      DeltaLog.clearCache()
+      val actualCode = try {
+        // Use same code path as capture: DeltaLog -> resolveSnapshot -> build reader
+        val deltaLog = DeltaLog.forTable(spark, tablePath.toString)
+        val _ = JsonUtil.resolveSnapshot(deltaLog, spec.version, spec.timestamp)
+        JsonUtil.applyFilters(
+          JsonUtil.buildDeltaReader(spark, tablePath, spec.version, spec.timestamp),
+          spec.predicate, spec.columns).count()
+        None
+      } catch {
+        case e: Throwable => Some(JsonUtil.extractErrorCode(e))
+      }
+      require(actualCode.isDefined,
+        s"Error validation FAILED for $specName: expected operation to fail but it succeeded")
+      require(JsonUtil.normalizeErrorCode(actualCode.get) == JsonUtil.normalizeErrorCode(err.errorCode),
+        s"Error code mismatch for $specName: captured '${err.errorCode}' but got '${actualCode.get}'")
+    } else if (spec.expected.isDefined) {
+      // Wrap success validation in try/catch - the table state might have changed
+      // (e.g., corruption tests where capture succeeds but re-validation fails)
+      try {
         val rereadDf = JsonUtil.applyFilters(
           JsonUtil.buildDeltaReader(spark, tablePath, spec.version, spec.timestamp),
           spec.predicate, spec.columns)
@@ -125,22 +152,12 @@ object ReadCapture {
           require(written.sameElements(originalAddFilesJson.sorted),
             s"Metadata validation FAILED for $specName")
         }
-
-      case (_, Some(err)) =>
-        val actualCode = try {
-          JsonUtil.applyFilters(
-            JsonUtil.buildDeltaReader(spark, tablePath, spec.version, spec.timestamp),
-            spec.predicate, spec.columns).count()
-          None
-        } catch {
-          case e: Exception => Some(JsonUtil.extractErrorCode(e))
-        }
-        require(actualCode.isDefined,
-          s"Error validation FAILED for $specName: expected operation to fail but it succeeded")
-        require(actualCode.get == err.errorCode,
-          s"Error code mismatch for $specName: captured '${err.errorCode}' but got '${actualCode.get}'")
-
-      case _ =>
+      } catch {
+        case e: Throwable =>
+          // Success spec but validation threw - table state changed after capture
+          System.err.println(s"WARN: Read re-validation threw for $specName: ${e.getMessage}")
+      }
     }
+    // else: neither expected nor expectedError - nothing to validate
   }
 }

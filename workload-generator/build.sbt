@@ -52,6 +52,11 @@ lazy val root = (project in file("."))
     ),
     Test / fork := true,
     Test / javaOptions ++= jvmOptions,
+    // Parallel test execution within suites
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-P4"),
+    // Enable parallel suite execution across multiple JVMs
+    Test / testForkedParallel := true,
+    concurrentRestrictions in Global := Seq(Tags.limit(Tags.ForkedTestGroup, 4)),
     // Include provided dependencies on the runtime classpath for runMain
     Compile / run / fork := true,
     Compile / run / javaOptions ++= jvmOptions,

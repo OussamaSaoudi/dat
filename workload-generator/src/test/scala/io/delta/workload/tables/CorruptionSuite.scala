@@ -111,6 +111,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val f = dir.resolve("_delta_log/00000000000000000000.json")
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"protocol\""))
       java.nio.file.Files.write(f, lines.asJava)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
   }
@@ -124,6 +127,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val f = dir.resolve("_delta_log/00000000000000000000.json")
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"metaData\""))
       java.nio.file.Files.write(f, lines.asJava)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
   }
@@ -168,7 +174,11 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
     mutateTable(t) { dir =>
+      import scala.collection.JavaConverters._
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"), Array.emptyByteArray)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
   }
@@ -331,6 +341,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val f = dir.resolve("_delta_log/00000000000000000000.json")
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"metaData\""))
       java.nio.file.Files.write(f, lines.asJava)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
     snapshotSpec(t)
@@ -346,6 +359,9 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
       val f = dir.resolve("_delta_log/00000000000000000000.json")
       val lines = java.nio.file.Files.readAllLines(f).asScala.filterNot(_.contains("\"protocol\""))
       java.nio.file.Files.write(f, lines.asJava)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
     snapshotSpec(t)
@@ -393,7 +409,11 @@ class CorruptionSuite extends WorkloadTestSuite("corruption") {
     sql("INSERT INTO tbl VALUES (1)")
     val t = registerTable("tbl")
     mutateTable(t) { dir =>
+      import scala.collection.JavaConverters._
       java.nio.file.Files.write(dir.resolve("_delta_log/00000000000000000000.json"), Array.emptyByteArray)
+      // Delete all CRC files - they cache protocol/metadata state
+      java.nio.file.Files.list(dir.resolve("_delta_log")).iterator().asScala
+        .filter(_.toString.endsWith(".crc")).foreach(java.nio.file.Files.delete)
     }
     readSpec(t)
     snapshotSpec(t)

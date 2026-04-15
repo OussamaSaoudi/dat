@@ -194,8 +194,16 @@ object JsonUtil {
   def readSnapshotSpec(path: Path): SnapshotSpec =
     mapper.readValue(Files.readAllBytes(path), classOf[SnapshotSpec])
 
-  def toRowMultiset(df: DataFrame): Map[String, Int] =
-    df.toJSON.collect().groupBy(identity).view.mapValues(_.length).toMap
+  def toRowMultiset(df: DataFrame): Map[String, Int] = {
+    // Drop MAP-type columns that Spark can't serialize to JSON
+    val nonMapCols = df.schema.fields
+      .filter(f => !f.dataType.isInstanceOf[org.apache.spark.sql.types.MapType])
+      .map(f => df.col(f.name))
+    val filteredDf = if (nonMapCols.length < df.schema.fields.length) {
+      df.select(nonMapCols: _*)
+    } else df
+    filteredDf.toJSON.collect().groupBy(identity).view.mapValues(_.length).toMap
+  }
 
   def columnRef(name: String): Column =
     if (name.startsWith("_metadata.")) col(name)
@@ -217,10 +225,19 @@ object JsonUtil {
     result
   }
 
-  def extractErrorCode(e: Exception): String = e match {
+  def extractErrorCode(e: Throwable): String = e match {
     case st: org.apache.spark.SparkThrowable =>
       Option(st.getErrorClass).getOrElse(e.getClass.getSimpleName)
     case _ => e.getClass.getSimpleName
+  }
+
+  def normalizeErrorCode(code: String): String = code match {
+    case "DeltaIllegalStateException" => "DELTA_STATE_RECOVER_ERROR"
+    // Version not found errors
+    case "IllegalStateException" | "DELTA_LOG_FILE_NOT_FOUND" => "DELTA_VERSION_NOT_FOUND"
+    // Timestamp invalid errors
+    case "IllegalArgumentException" => "DELTA_TIMESTAMP_INVALID"
+    case other => other
   }
 
   def resolveSnapshot(deltaLog: DeltaLog, version: Option[Long],

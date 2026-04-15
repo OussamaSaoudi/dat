@@ -22,6 +22,7 @@ import scala.jdk.CollectionConverters._
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.delta.DeltaLog
+import org.apache.spark.sql.functions.{col, to_json}
 
 object TableInfoWriter {
 
@@ -47,7 +48,7 @@ object TableInfoWriter {
 
       val logSegment = snapshot.logSegment
 
-      val numActions = try {
+      val numActions = {
         val deltaLogDir = tablePath.resolve("_delta_log")
         val stream = Files.list(deltaLogDir)
         try {
@@ -56,9 +57,9 @@ object TableInfoWriter {
             .map(p => Files.readAllLines(p).size().toLong)
             .sum
         } finally { stream.close() }
-      } catch { case _: Exception => 0L }
+      }
 
-      val lastCrcVersion = try {
+      val lastCrcVersion = {
         val deltaLogDir = tablePath.resolve("_delta_log")
         val stream = Files.list(deltaLogDir)
         try {
@@ -71,11 +72,9 @@ object TableInfoWriter {
             }
             .toSeq.sorted.lastOption.getOrElse(-1L)
         } finally { stream.close() }
-      } catch { case _: Exception => -1L }
+      }
 
-      val numCheckpointFiles = try {
-        logSegment.checkpointProvider.topLevelFiles.size
-      } catch { case _: Exception => 0 }
+      val numCheckpointFiles = logSegment.checkpointProvider.topLevelFiles.size
 
       val logInfo = LogInfo(
         numAddFiles = snapshot.numOfFiles,
@@ -89,9 +88,8 @@ object TableInfoWriter {
 
       val partCols = snapshot.metadata.partitionColumns
       val numDistinctPartitions = if (partCols.nonEmpty) {
-        try {
-          snapshot.allFiles.select("partitionValues").distinct().count()
-        } catch { case _: Exception => 0L }
+        // Convert MAP to JSON string for distinct() since Spark doesn't support set ops on MAP types
+        snapshot.allFiles.select(to_json(col("partitionValues"))).distinct().count()
       } else 0L
 
       val dataLayout = DataLayoutInfo(

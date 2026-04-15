@@ -47,16 +47,10 @@ import org.apache.spark.sql.delta.DeltaLog
  */
 object WorkloadGenerator {
 
-  private def checkAssertion(
-      config: HasAssertion[_], specPath: Path, warnings: mutable.ArrayBuffer[String]): Unit = {
+  private def checkAssertion(config: HasAssertion[_], specPath: Path): Unit = {
     config.assertion.foreach { check =>
-      try {
-        val node = JsonUtil.mapper.readTree(Files.readAllBytes(specPath))
-        check(node)
-      } catch {
-        case e: Exception =>
-          warnings += s"Assertion failed for ${specPath.getFileName}: ${e.getMessage}"
-      }
+      val node = JsonUtil.mapper.readTree(Files.readAllBytes(specPath))
+      check(node)
     }
   }
 
@@ -85,8 +79,6 @@ object WorkloadGenerator {
       mutate(destTablePath)
     }
 
-    val warnings = mutable.ArrayBuffer[String]()
-
     // Snapshot specs
     val snapshotNames = mutable.ArrayBuffer[String]()
     val explicits = if (ts.snapshotSpecs.isEmpty) {
@@ -102,7 +94,7 @@ object WorkloadGenerator {
         case _ => s"${dirName}_snapshot"
       }
       if (!snapshotNames.contains(specName)) snapshotNames += specName
-      checkAssertion(ss, specsDir.resolve(s"$specName.json"), warnings)
+      checkAssertion(ss, specsDir.resolve(s"$specName.json"))
     }
 
     // Read specs
@@ -113,12 +105,17 @@ object WorkloadGenerator {
         timestamp = rs.timestamp, columns = rs.columns)
       val specName = s"${dirName}_${rs.name}"
       readNames += specName
-      checkAssertion(rs, specsDir.resolve(s"$specName.json"), warnings)
+      checkAssertion(rs, specsDir.resolve(s"$specName.json"))
     }
 
-    // table_info.json
-    TableInfoWriter.write(spark, destTablePath, testOutputDir,
-      name = dirName, description = ts.description, tags = ts.tags)
+    // table_info.json - wrap in try/catch for corrupt tables
+    try {
+      TableInfoWriter.write(spark, destTablePath, testOutputDir,
+        name = dirName, description = ts.description, tags = ts.tags)
+    } catch {
+      case e: Throwable =>
+        System.err.println(s"WARN: Could not write table_info.json for $dirName: ${e.getMessage}")
+    }
 
     // Repro placeholder
     val reproDir = testOutputDir.resolve("repro")
@@ -130,8 +127,7 @@ object WorkloadGenerator {
     println(s"  $dirName: $total specs")
 
     WorkloadResult(testOutputDir.toString, dirName, total,
-      readNames.toSeq, snapshotNames.toSeq,
-      warnings.isEmpty, warnings.toSeq)
+      readNames.toSeq, snapshotNames.toSeq)
   }
 
 }
@@ -418,16 +414,21 @@ class WorkloadContext private[workload] (
 
   private[workload] def cleanup(): Unit = {
     val warehouseDir = spark.conf.get("spark.sql.warehouse.dir", "")
+    val errors = mutable.ArrayBuffer[String]()
+
     _createdTables.foreach { t =>
-      // Get location before dropping
+      // Get location before dropping (table may not exist in catalog, which is OK)
       val location = try {
         val tableId = spark.sessionState.catalog.getTableMetadata(
           org.apache.spark.sql.catalyst.TableIdentifier(t))
         Option(tableId.location).map(_.toString)
-      } catch { case _: Exception => None }
+      } catch {
+        case _: org.apache.spark.sql.catalyst.analysis.NoSuchTableException => None
+        case _: org.apache.spark.sql.catalyst.analysis.NoSuchDatabaseException => None
+      }
 
       // Drop from catalog
-      try { spark.sql(s"DROP TABLE IF EXISTS `$t`") } catch { case _: Exception => }
+      spark.sql(s"DROP TABLE IF EXISTS `$t`")
 
       // Delete directory: try catalog location, then fall back to warehouse/tableName
       val pathsToDelete = location.toSeq.map { loc =>
@@ -439,11 +440,9 @@ class WorkloadContext private[workload] (
       } else Seq.empty)
 
       pathsToDelete.distinct.foreach { path =>
-        try {
-          if (Files.exists(path)) {
-            org.apache.commons.io.FileUtils.deleteDirectory(path.toFile)
-          }
-        } catch { case _: Exception => }
+        if (Files.exists(path)) {
+          org.apache.commons.io.FileUtils.deleteDirectory(path.toFile)
+        }
       }
     }
   }
@@ -538,9 +537,7 @@ case class WorkloadResult(
     testId: String,
     specsGenerated: Int,
     readSpecs: Seq[String],
-    snapshotSpecs: Seq[String],
-    validationPassed: Boolean,
-    warnings: Seq[String])
+    snapshotSpecs: Seq[String])
 
 private[workload] case class ReadSpecConfig(
     name: String, predicate: Option[String], version: Option[Long],
