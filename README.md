@@ -58,7 +58,59 @@ For an example implementation of this, see the example PySpark tests in `tests/p
 
 ## Testing Writers
 
-TBD.
+Writer test cases verify that Delta Lake writer implementations produce correct table state. Unlike reader tests (which provide a pre-built table to read), writer tests provide a **write spec**: a portable, implementation-agnostic description of write operations to perform. The writer under test replays these operations to construct a Delta table, then the resulting table is compared against expected data.
+
+A write spec is a JSON document that describes a sequence of commits (write operations) such as creating a table, inserting rows, deleting rows, updating rows, or modifying schema/properties. Each operation is described declaratively—specifying *what* to do, not *how*—so any conforming Delta writer can interpret and execute it.
+
+All writer test cases are stored in the directory `out/writer_tests/generated`. They follow the directory structure:
+
+```
+|-- {table_name}
+  |-- test_case_info.json
+  |-- write_spec.json
+  |-- data
+  | |-- commit_0
+  |   |-- part-0000-xxxx.snappy.parquet
+  | |-- commit_1
+  |   |-- ...
+  |-- expected
+    |-- latest
+      |-- table_version_metadata.json
+      |-- table_content
+    |-- v1
+      |-- table_version_metadata.json
+      |-- table_content
+```
+
+Each test case is a folder, named for its test. It contains:
+
+ * `test_case_info.json`: document that provides the name and human-friendly description of the test.
+ * `write_spec.json`: a JSON document describing the sequence of write operations (commits) to replay.
+ * `data`: a folder containing Parquet data files organized by commit, referenced by the write spec.
+ * `expected`: a folder containing expected results after replaying all commits (same structure as reader tests).
+
+### Write Spec Format
+
+The `write_spec.json` file contains an ordered list of commits to replay. Each commit specifies an operation and its parameters:
+
+**High-level operations** (SQL semantics):
+ * `create_table`: Creates a new table with `schema`, optional `partitionColumns`, `properties`, and `dataFiles`.
+ * `insert`: Appends rows via `dataFiles`.
+ * `update`: Updates rows matching `predicate` with `set` assignments.
+ * `delete`: Removes rows matching `predicate`.
+ * `truncate`: Removes all rows from the table.
+ * `evolve_schema`: Schema changes via `addColumns`, `renameColumns`, or `dropColumns`.
+ * `update_properties`: Modifies table properties via `set` and/or `remove`.
+ * `restore`: Restores the table to a previous `version`.
+
+**Low-level operation** (raw Delta actions):
+ * `commit`: Directly specifies Delta actions including `addFiles`, `removeFiles`, `txn`, `addDomainMetadata`, and `removeDomainMetadata`.
+
+To test a writer:
+
+ 1. Parse the `write_spec.json` to get the list of commits.
+ 2. Replay each commit in order using your writer implementation.
+ 3. After replaying all commits, verify the resulting table matches the expected data in the `expected/latest` folder.
 
 ## Generated tables
 
