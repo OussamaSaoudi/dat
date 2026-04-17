@@ -294,6 +294,183 @@ pub fn execute_app_txn_workload(
 }
 ```
 
+### Write Specs
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": { "type": "struct", "fields": [...] },
+      "properties": { "delta.enableDeletionVectors": "true" }
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_1/part-0000-abc.parquet"]
+    },
+    {
+      "operation": "delete",
+      "predicate": "id > 100"
+    }
+  ]
+}
+```
+
+**Execute:** replay each commit in order using your writer implementation:
+1. For `create_table`: create a new Delta table with the given schema and properties
+2. For `insert`: append the referenced data files to the table
+3. For `update`/`delete`: apply the operation with the given predicate
+4. For `evolve_schema`: apply schema changes (add/rename/drop columns)
+5. For low-level `commit`: directly apply the specified Delta actions
+
+**Validate:** after replaying all commits, compare the resulting table against `expected/latest/table_content/*.parquet`.
+
+```rust
+pub fn execute_write_workload(
+    engine: Arc<dyn Engine>, output_dir: &Path, write_spec: &WriteSpec,
+) -> DeltaResult<()> {
+    let table_path = output_dir.join("result_table");
+
+    for (idx, commit) in write_spec.commits.iter().enumerate() {
+        match commit.operation.as_str() {
+            "create_table" => {
+                create_table(engine.clone(), &table_path, &commit.schema,
+                    commit.partition_columns.as_deref(),
+                    commit.properties.as_ref())?;
+            }
+            "insert" => {
+                let data_files = commit.data_files.as_ref()
+                    .map(|files| resolve_data_paths(output_dir, files));
+                insert_data(engine.clone(), &table_path, data_files)?;
+            }
+            "delete" => {
+                delete_rows(engine.clone(), &table_path,
+                    commit.predicate.as_deref().unwrap())?;
+            }
+            "update" => {
+                update_rows(engine.clone(), &table_path,
+                    commit.predicate.as_deref().unwrap(),
+                    commit.set.as_ref().unwrap())?;
+            }
+            // ... handle other operations
+            _ => {}
+        }
+    }
+    Ok(())
+}
+```
+
+### Checkpoint Specs
+
+```json
+{
+  "type": "checkpoint",
+  "version": 10,
+  "expected": {
+    "protocol": { "minReaderVersion": 1, "minWriterVersion": 2 },
+    "metadata": { "id": "abc123", ... },
+    "txn": [{ "appId": "app-1", "version": 42 }],
+    "domainMetadata": [{ "domain": "myApp.config", "configuration": "{}" }]
+  }
+}
+```
+
+**Execute:** build a snapshot at the checkpoint version and extract protocol, metadata, transactions, and domain metadata.
+
+**Validate:** assert all extracted values match the expected checkpoint state. Optionally validate that the checkpoint file itself can be read directly.
+
+```rust
+pub fn execute_checkpoint_workload(
+    engine: Arc<dyn Engine>, table_root: &Url, spec: &CheckpointSpec,
+) -> DeltaResult<CheckpointResult> {
+    let snapshot = Snapshot::try_new(table_root.clone(), engine.as_ref(),
+        Some(spec.version))?;
+
+    Ok(CheckpointResult {
+        protocol: snapshot.protocol().clone(),
+        metadata: snapshot.metadata().clone(),
+        txn: snapshot.transactions().collect(),
+        domain_metadata: snapshot.domain_metadata().collect(),
+    })
+}
+
+pub fn validate_checkpoint(
+    result: DeltaResult<CheckpointResult>, expected: &CheckpointExpected,
+) -> Result<(), String> {
+    let result = result.map_err(|e| format!("Checkpoint read failed: {}", e))?;
+
+    assert_eq!(result.protocol, expected.protocol,
+        "Protocol mismatch");
+    assert_eq!(result.metadata.id, expected.metadata.id,
+        "Metadata ID mismatch");
+
+    if let Some(expected_txn) = &expected.txn {
+        let actual_txn: HashSet<_> = result.txn.iter().collect();
+        let expected_txn: HashSet<_> = expected_txn.iter().collect();
+        assert_eq!(actual_txn, expected_txn, "Transaction mismatch");
+    }
+
+    Ok(())
+}
+```
+
+### CRC Specs (Checksum)
+
+```json
+{
+  "type": "crc",
+  "version": 5,
+  "expected": {
+    "tableSizeBytes": 12345,
+    "numFiles": 3,
+    "numRemoveFiles": 0,
+    "protocol": { ... },
+    "metadata": { ... }
+  }
+}
+```
+
+**Execute:** read the `.crc` sidecar file for the given version and parse its contents.
+
+**Validate:** assert that the CRC statistics match the expected values. This tests that your implementation correctly reads and interprets CRC files.
+
+```rust
+pub fn execute_crc_workload(
+    table_root: &Url, spec: &CrcSpec,
+) -> DeltaResult<CrcResult> {
+    let crc_path = format!("{}/_delta_log/{:020}.crc",
+        table_root.path(), spec.version);
+    let crc_content = std::fs::read_to_string(&crc_path)?;
+    let crc: CrcFile = serde_json::from_str(&crc_content)?;
+
+    Ok(CrcResult {
+        table_size_bytes: crc.table_size_bytes,
+        num_files: crc.num_files,
+        num_remove_files: crc.num_remove_files,
+        num_transactions: crc.num_transactions,
+        num_domain_metadata: crc.num_domain_metadata,
+        deletion_vectors: crc.deletion_vectors,
+    })
+}
+
+pub fn validate_crc(
+    result: DeltaResult<CrcResult>, expected: &CrcExpected,
+) -> Result<(), String> {
+    let result = result.map_err(|e| format!("CRC read failed: {}", e))?;
+
+    if let Some(exp) = expected.table_size_bytes {
+        assert_eq!(result.table_size_bytes, exp, "tableSizeBytes mismatch");
+    }
+    if let Some(exp) = expected.num_files {
+        assert_eq!(result.num_files, exp, "numFiles mismatch");
+    }
+    // ... validate other fields
+
+    Ok(())
+}
+```
+
 ---
 
 ## Step 4: Incremental Adoption
@@ -306,9 +483,11 @@ Don't try to pass every test at once. Use `table_info.json` protocol fields and 
 | 2 | Time travel, predicates | ~500 |
 | 3 | Deletion vectors | ~600 |
 | 4 | Column mapping | ~650 |
-| 5 | Checkpoints, snapshot specs | ~800 |
+| 5 | Checkpoints, CRC, snapshot specs | ~800 |
 | 6 | Error handling | ~900 |
-| 7 | CDF, metadata | ~1400+ |
+| 7 | CDF, metadata | ~1200 |
+| 8 | Write specs (basic: create, insert) | ~1400 |
+| 9 | Write specs (full: update, delete, schema evolution) | ~1600+ |
 
 ---
 

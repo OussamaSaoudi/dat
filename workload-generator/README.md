@@ -166,8 +166,11 @@ See the [Spec Format Reference](docs/spec-reference.md) for the complete JSON sc
 | Type | What It Tests | Details |
 |------|--------------|---------|
 | **Read** | Data reads with time travel, predicates, column projection, data skipping | [Reference](docs/spec-reference.md#read-spec) |
+| **Write** | Writer implementations by replaying a sequence of write operations | [Reference](docs/spec-reference.md#write-spec) |
 | **Snapshot** | Protocol and metadata reconstruction from log replay | [Reference](docs/spec-reference.md#snapshot-spec) |
 | **CDF** | Change data feed across version/timestamp ranges | [Reference](docs/spec-reference.md#cdf-spec-change-data-feed) |
+| **Checkpoint** | Checkpoint file reading and validation | [Reference](docs/spec-reference.md#checkpoint-spec) |
+| **CRC** | CRC sidecar file validation (pre-computed statistics) | [Reference](docs/spec-reference.md#crc-spec-checksum) |
 | **Domain Metadata** | Domain metadata entries in the log | [Reference](docs/spec-reference.md#domain-metadata-spec) |
 | **AppTxn** | Application transaction IDs (SetTransaction) | [Reference](docs/spec-reference.md#apptxn-spec-application-transaction) |
 

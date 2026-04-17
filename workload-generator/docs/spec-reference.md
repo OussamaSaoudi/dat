@@ -21,10 +21,13 @@ Exactly one of `expected` or `expectedError` is present. The other is omitted (n
 
 - [Common Types](#common-types)
 - [Read Spec](#read-spec)
+- [Write Spec](#write-spec)
 - [Snapshot Spec](#snapshot-spec)
 - [CDF Spec (Change Data Feed)](#cdf-spec-change-data-feed)
 - [Domain Metadata Spec](#domain-metadata-spec)
 - [AppTxn Spec (Application Transaction)](#apptxn-spec-application-transaction)
+- [Checkpoint Spec](#checkpoint-spec)
+- [CRC Spec (Checksum)](#crc-spec-checksum)
 - [table_info.json](#table_infojson)
 - [Expected Data Layout](#expected-data-layout)
 
@@ -230,6 +233,316 @@ When `expected` is present, the directory `expected/<spec_name>/` contains:
     "errorCode": "FAILED_READ_FILE",
     "errorMessage": "Failed to read file: part-00000-abc.parquet"
   }
+}
+```
+
+---
+
+## Write Spec
+
+**Type:** `"write"`
+
+Tests Delta writer implementations by providing a sequence of write operations to replay. Unlike read specs (which verify reading an existing table), write specs describe *how to construct* a table from scratch.
+
+A write spec is a portable, implementation-agnostic recipe: it specifies what operations to perform (create table, insert, delete, update, etc.) declaratively, so any conforming Delta writer can interpret and execute it. After replaying all commits, the resulting table is compared against expected data.
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"write"` |
+| `commits` | `WriteCommit[]` | yes | Ordered list of commits to replay |
+
+### WriteCommit
+
+Each commit represents a single Delta transaction. There are two categories: high-level operations (SQL semantics) and low-level operations (raw Delta actions).
+
+#### High-Level Operations
+
+These map to SQL-like operations. The writer should translate them to appropriate Delta actions.
+
+| Operation | Fields | Description |
+|-----------|--------|-------------|
+| `create_table` | `schema`, `partitionColumns?`, `properties?`, `dataFiles?` | Create a new table with the given schema |
+| `replace_table` | `schema`, `partitionColumns?`, `properties?`, `dataFiles?` | Replace table with new schema |
+| `insert` | `dataFiles?` | Append rows from data files |
+| `update` | `predicate`, `set` | Update rows matching predicate |
+| `delete` | `predicate` | Delete rows matching predicate |
+| `truncate` | — | Remove all rows |
+| `evolve_schema` | `addColumns?`, `renameColumns?`, `dropColumns?` | Modify table schema |
+| `update_properties` | `set?`, `remove?` | Modify table properties |
+| `restore` | `version` | Restore table to previous version |
+
+#### Low-Level Operation
+
+| Operation | Fields | Description |
+|-----------|--------|-------------|
+| `commit` | `schema?`, `tableProperties?`, `txn?`, `addFiles?`, `removeFiles?`, `addDomainMetadata?`, `removeDomainMetadata?` | Directly specify Delta actions |
+
+### WriteCommit Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `operation` | `string` | Operation type (see above) |
+| `schema` | `object` | Table schema in Delta JSON format |
+| `partitionColumns` | `string[]` | Partition column names |
+| `properties` | `map` | Table properties (e.g., `delta.enableDeletionVectors`) |
+| `dataFiles` | `string[]` | Relative paths to Parquet data files in `data/` directory |
+| `predicate` | `string` | SQL WHERE clause for update/delete |
+| `set` | `map` | Column assignments for update (column → expression) or properties to set |
+| `remove` | `string[]` | Property names to remove |
+| `addColumns` | `object[]` | Columns to add (each with `name`, `type`, `nullable`) |
+| `renameColumns` | `map` | Column renames (old name → new name) |
+| `dropColumns` | `string[]` | Column names to drop |
+| `version` | `long` | Target version for restore |
+| `tableProperties` | `map` | Properties for low-level commit |
+| `txn` | `AppTxn` | Application transaction for idempotent writes |
+| `addFiles` | `AddFileAction[]` | Files to add (low-level) |
+| `removeFiles` | `RemoveFileAction[]` | Files to remove (low-level) |
+| `addDomainMetadata` | `DomainMetadata[]` | Domain metadata to add |
+| `removeDomainMetadata` | `string[]` | Domain names to remove |
+
+### AddFileAction (Low-Level)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dataFile` | `string` | Relative path to Parquet file |
+| `partitionValues` | `map?` | Partition values for this file |
+| `dataChange` | `boolean?` | Whether this is a data change (default true) |
+| `deletionVector` | `DeletionVector?` | Deletion vector descriptor |
+
+### RemoveFileAction (Low-Level)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `path` | `string` | Path of file to remove |
+| `dataChange` | `boolean?` | Whether this is a data change (default true) |
+
+### Expected Data
+
+Write specs include expected data in the same format as read specs:
+
+- **`expected/latest/`** — Expected table state after replaying all commits
+  - `table_content/` — Parquet files with expected rows
+  - `table_version_metadata.json` — Protocol and metadata
+- **`expected/v{N}/`** — Expected state at intermediate versions (optional)
+
+### Directory Structure
+
+```
+<test_name>/
+├── write_spec.json              # The write spec
+├── data/                        # Data files referenced by commits
+│   ├── commit_0/
+│   │   └── part-0000-xxx.parquet
+│   ├── commit_1/
+│   │   └── part-0000-yyy.parquet
+│   └── ...
+├── expected/
+│   ├── latest/
+│   │   ├── table_content/
+│   │   └── table_version_metadata.json
+│   └── v1/
+│       ├── table_content/
+│       └── table_version_metadata.json
+└── test_case_info.json
+```
+
+### Examples
+
+**Create table and insert:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": {
+        "type": "struct",
+        "fields": [
+          { "name": "id", "type": "integer", "nullable": false, "metadata": {} },
+          { "name": "name", "type": "string", "nullable": true, "metadata": {} }
+        ]
+      },
+      "properties": {
+        "delta.enableDeletionVectors": "true"
+      }
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_1/part-0000-abc.parquet"]
+    }
+  ]
+}
+```
+
+**Delete with predicate:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": { ... }
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_1/part-0000-abc.parquet"]
+    },
+    {
+      "operation": "delete",
+      "predicate": "id > 100"
+    }
+  ]
+}
+```
+
+**Update with SET:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": { ... }
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_1/part-0000-abc.parquet"]
+    },
+    {
+      "operation": "update",
+      "predicate": "status = 'pending'",
+      "set": {
+        "status": "'active'",
+        "updated_at": "current_timestamp()"
+      }
+    }
+  ]
+}
+```
+
+**Schema evolution (add column):**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": {
+        "type": "struct",
+        "fields": [
+          { "name": "id", "type": "integer", "nullable": false, "metadata": {} }
+        ]
+      }
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_1/part-0000-abc.parquet"]
+    },
+    {
+      "operation": "evolve_schema",
+      "addColumns": [
+        { "name": "email", "type": "string", "nullable": true }
+      ]
+    },
+    {
+      "operation": "insert",
+      "dataFiles": ["data/commit_3/part-0000-def.parquet"]
+    }
+  ]
+}
+```
+
+**Partitioned table:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": {
+        "type": "struct",
+        "fields": [
+          { "name": "id", "type": "integer", "nullable": false, "metadata": {} },
+          { "name": "region", "type": "string", "nullable": false, "metadata": {} },
+          { "name": "value", "type": "double", "nullable": true, "metadata": {} }
+        ]
+      },
+      "partitionColumns": ["region"]
+    },
+    {
+      "operation": "insert",
+      "dataFiles": [
+        "data/commit_1/region=east/part-0000-abc.parquet",
+        "data/commit_1/region=west/part-0000-def.parquet"
+      ]
+    }
+  ]
+}
+```
+
+**Low-level commit with domain metadata:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": { ... },
+      "properties": {
+        "delta.feature.domainMetadata": "enabled"
+      }
+    },
+    {
+      "operation": "commit",
+      "addFiles": [
+        {
+          "dataFile": "data/commit_1/part-0000-abc.parquet",
+          "partitionValues": {},
+          "dataChange": true
+        }
+      ],
+      "addDomainMetadata": [
+        {
+          "domain": "myApp.config",
+          "configuration": "{\"version\": 1}"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Low-level commit with application transaction:**
+
+```json
+{
+  "type": "write",
+  "commits": [
+    {
+      "operation": "create_table",
+      "schema": { ... }
+    },
+    {
+      "operation": "commit",
+      "txn": {
+        "appId": "streaming-job-1",
+        "version": 42
+      },
+      "addFiles": [
+        {
+          "dataFile": "data/commit_1/part-0000-abc.parquet"
+        }
+      ]
+    }
+  ]
 }
 ```
 
@@ -581,6 +894,306 @@ Tests reading application transaction (`SetTransaction`) entries from the Delta 
   "expected": {
     "appId": "app-A",
     "txnVersion": 10
+  }
+}
+```
+
+---
+
+## Checkpoint Spec
+
+**Type:** `"checkpoint"`
+
+Tests reading and validating Delta checkpoint files. Checkpoints are periodic snapshots of the table state that allow readers to skip replaying the entire log history.
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"checkpoint"` |
+| `version` | `long` | yes | Checkpoint version to validate |
+| `expected` | `CheckpointExpected` | yes | Expected checkpoint state |
+
+Checkpoint specs never have `expectedError` — invalid checkpoint scenarios are tested via read/snapshot error specs.
+
+### CheckpointExpected
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `protocol` | `ProtocolInfo` | Protocol from the checkpoint |
+| `metadata` | `object` | Metadata action from the checkpoint |
+| `txn` | `TxnAction[]?` | Application transactions (SetTransaction) in the checkpoint |
+| `domainMetadata` | `DomainMetadataEntry[]?` | Domain metadata entries in the checkpoint |
+
+### DomainMetadataEntry
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `domain` | `string` | Domain identifier |
+| `configuration` | `string?` | Domain configuration JSON |
+
+### Expected Data
+
+When a checkpoint spec is captured, the directory `expected/<spec_name>/` contains:
+
+- **`expected_checkpoint/`** — Raw checkpoint files copied from `_delta_log/` (e.g., `00000000000000000010.checkpoint.parquet`)
+- **`expected_data/`** — Parquet files with expected rows at the checkpoint version
+- **`expected_metadata/`** — Parquet file with `AddFile` action JSON for files at that version
+
+### Examples
+
+**Basic checkpoint:**
+
+```json
+{
+  "type": "checkpoint",
+  "version": 10,
+  "expected": {
+    "protocol": {
+      "minReaderVersion": 1,
+      "minWriterVersion": 2
+    },
+    "metadata": {
+      "id": "abc123",
+      "format": { "provider": "parquet", "options": {} },
+      "schemaString": "{\"type\":\"struct\",\"fields\":[...]}",
+      "partitionColumns": [],
+      "configuration": {},
+      "createdTime": 1705000000000
+    }
+  }
+}
+```
+
+**Checkpoint with table features:**
+
+```json
+{
+  "type": "checkpoint",
+  "version": 20,
+  "expected": {
+    "protocol": {
+      "minReaderVersion": 3,
+      "minWriterVersion": 7,
+      "readerFeatures": ["deletionVectors"],
+      "writerFeatures": ["deletionVectors", "domainMetadata"]
+    },
+    "metadata": {
+      "id": "def456",
+      "format": { "provider": "parquet", "options": {} },
+      "schemaString": "...",
+      "partitionColumns": ["date"],
+      "configuration": {
+        "delta.enableDeletionVectors": "true"
+      },
+      "createdTime": 1705000000000
+    }
+  }
+}
+```
+
+**Checkpoint with application transactions:**
+
+```json
+{
+  "type": "checkpoint",
+  "version": 15,
+  "expected": {
+    "protocol": {
+      "minReaderVersion": 1,
+      "minWriterVersion": 2
+    },
+    "metadata": { ... },
+    "txn": [
+      { "appId": "streaming-app-1", "version": 100 },
+      { "appId": "batch-job-2", "version": 50 }
+    ]
+  }
+}
+```
+
+**Checkpoint with domain metadata:**
+
+```json
+{
+  "type": "checkpoint",
+  "version": 25,
+  "expected": {
+    "protocol": {
+      "minReaderVersion": 3,
+      "minWriterVersion": 7,
+      "readerFeatures": ["deletionVectors"],
+      "writerFeatures": ["deletionVectors", "domainMetadata"]
+    },
+    "metadata": { ... },
+    "domainMetadata": [
+      { "domain": "delta.rowTracking", "configuration": "{}" },
+      { "domain": "myApp.config", "configuration": "{\"version\":2}" }
+    ]
+  }
+}
+```
+
+---
+
+## CRC Spec (Checksum)
+
+**Type:** `"crc"`
+
+Tests reading and validating Delta CRC (checksum) sidecar files. CRC files contain pre-computed table statistics that allow readers to quickly validate table state without scanning all log entries.
+
+### Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | `string` | yes | Always `"crc"` |
+| `version` | `long` | yes | Version of the CRC file to validate |
+| `expected` | `CrcExpected` | yes | Expected CRC contents |
+
+CRC specs never have `expectedError` — they are only generated when a valid CRC file exists.
+
+### CrcExpected
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tableSizeBytes` | `long?` | Total size of active data files |
+| `numFiles` | `long?` | Number of active data files (AddFile actions) |
+| `numRemoveFiles` | `long?` | Number of tombstoned files (RemoveFile actions) |
+| `numTransactions` | `long?` | Number of application transactions |
+| `numDomainMetadata` | `long?` | Number of domain metadata entries |
+| `protocol` | `ProtocolInfo?` | Protocol at this version |
+| `metadata` | `object?` | Metadata at this version |
+| `txn` | `TxnAction[]?` | Application transactions |
+| `histograms` | `CrcHistograms?` | File size histograms |
+| `deletionVectors` | `CrcDeletionVectorStats?` | Deletion vector statistics |
+| `inCommitTimestamp` | `long?` | In-commit timestamp (if enabled) |
+
+### CrcHistograms
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `addFiles` | `object?` | Histogram of AddFile sizes |
+| `removeFiles` | `object?` | Histogram of RemoveFile sizes |
+
+### CrcDeletionVectorStats
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `numDeletionVectors` | `long?` | Total number of deletion vectors |
+| `numLogicalDeletionVectorRows` | `long?` | Total rows marked deleted by DVs |
+| `deletionVectorSizeInBytes` | `long?` | Total size of deletion vectors |
+
+### Examples
+
+**Basic CRC:**
+
+```json
+{
+  "type": "crc",
+  "version": 5,
+  "expected": {
+    "tableSizeBytes": 12345,
+    "numFiles": 3,
+    "numRemoveFiles": 0,
+    "protocol": {
+      "minReaderVersion": 1,
+      "minWriterVersion": 2
+    },
+    "metadata": {
+      "id": "abc123",
+      "format": { "provider": "parquet", "options": {} },
+      "schemaString": "...",
+      "partitionColumns": [],
+      "configuration": {},
+      "createdTime": 1705000000000
+    }
+  }
+}
+```
+
+**CRC with deletion vectors:**
+
+```json
+{
+  "type": "crc",
+  "version": 10,
+  "expected": {
+    "tableSizeBytes": 50000,
+    "numFiles": 5,
+    "numRemoveFiles": 2,
+    "protocol": {
+      "minReaderVersion": 3,
+      "minWriterVersion": 7,
+      "readerFeatures": ["deletionVectors"],
+      "writerFeatures": ["deletionVectors"]
+    },
+    "metadata": { ... },
+    "deletionVectors": {
+      "numDeletionVectors": 2,
+      "numLogicalDeletionVectorRows": 150,
+      "deletionVectorSizeInBytes": 1024
+    }
+  }
+}
+```
+
+**CRC with transactions and domain metadata:**
+
+```json
+{
+  "type": "crc",
+  "version": 15,
+  "expected": {
+    "tableSizeBytes": 100000,
+    "numFiles": 10,
+    "numRemoveFiles": 3,
+    "numTransactions": 2,
+    "numDomainMetadata": 1,
+    "protocol": { ... },
+    "metadata": { ... },
+    "txn": [
+      { "appId": "app-1", "version": 42 },
+      { "appId": "app-2", "version": 17 }
+    ]
+  }
+}
+```
+
+**CRC with histograms:**
+
+```json
+{
+  "type": "crc",
+  "version": 20,
+  "expected": {
+    "tableSizeBytes": 500000,
+    "numFiles": 25,
+    "numRemoveFiles": 5,
+    "protocol": { ... },
+    "metadata": { ... },
+    "histograms": {
+      "addFiles": {
+        "sortedBinBoundaries": [0, 1024, 10240, 102400, 1048576],
+        "fileCounts": [0, 5, 15, 5, 0],
+        "totalBytes": [0, 4096, 122880, 307200, 0]
+      }
+    }
+  }
+}
+```
+
+**CRC with in-commit timestamp:**
+
+```json
+{
+  "type": "crc",
+  "version": 8,
+  "expected": {
+    "tableSizeBytes": 25000,
+    "numFiles": 4,
+    "protocol": { ... },
+    "metadata": { ... },
+    "inCommitTimestamp": 1705123456789
   }
 }
 ```
